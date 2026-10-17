@@ -34,7 +34,8 @@
   - Dùng `hooks.before_plan` trong `.specify/extensions.yml` của Spec Kit: model tự đọc và tự làm theo, không có gì thực thi. Đã loại.
   - Dùng `UserPromptExpansion`: hợp với lệnh gõ tay, nhưng mới hơn. `UserPromptSubmit` đã đủ và có tài liệu rõ. Có thể chuyển sau.
   - Dùng `disable-model-invocation` trong SKILL.md: phải sửa file của Spec Kit, và không chặn lệnh gõ tay. Đã loại.
-- **Cần kiểm chứng khi cài đặt**:
+- **Đã kiểm chứng (T029, Claude Code 2.1.302)**: lệnh gõ tay bị chặn trước khi có turn nào; `Skill` bị từ chối với `tool_input: { "skill": "speckit-plan", "args": "001" }`.
+- **Trước khi kiểm chứng**:
   - Tài liệu không nêu tên trường của `tool_input` cho `Skill`. Script đọc lần lượt `skill`, `name`, `command`.
   - Phải có một test ghi lại input thật của Claude Code (quickstart, kịch bản 3).
 
