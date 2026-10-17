@@ -27,7 +27,8 @@ export async function gh(src: Source, path: string, raw = false, write?: { metho
     headers: {
       Accept: raw ? 'application/vnd.github.raw+json' : 'application/vnd.github+json',
       'X-GitHub-Api-Version': '2022-11-28',
-      'User-Agent': 'speckit-ui',
+      // Browsers set their own User-Agent; sending one from a page breaks GitHub's CORS preflight.
+      ...(typeof window === 'undefined' ? { 'User-Agent': 'speckit-ui' } : {}),
       ...(write ? { 'Content-Type': 'application/json' } : {}),
       ...(src.token ? { Authorization: `Bearer ${src.token}` } : {})
     }

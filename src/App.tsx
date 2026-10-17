@@ -6,6 +6,7 @@ import { NewSpecDialog, type NewSpec } from './NewSpecDialog';
 import { Copilot, GateBrief, type AskFn, type CopilotMsg } from './copilot/Copilot';
 import { CP_REF, CP_SUGGEST, buildContext, gateBrief, refPhase, type WorkspaceState } from './copilot/context';
 import { OfflineError, requestCopilot } from './copilot/api';
+import { STATIC, browserCopilot, loadSettings } from './backend';
 import { offlineAnswer } from './copilot/offline';
 import { SpecView } from './views/SpecView';
 import { AnalyzeView, ClarifyView, ConstitutionView, ImplementView, PlanView, SummaryView, TasksView } from './views/views';
@@ -107,7 +108,9 @@ export function App() {
   const setMsgs = (m: CopilotMsg[]) => setThreads(t => ({ ...t, [f.id]: m }));
   const ask: AskFn = async hist => {
     try {
-      return { t: await requestCopilot(buildContext(state), hist) };
+      // The static build has no server; use the viewer's own key if they gave one.
+      const t = STATIC ? await browserCopilot(loadSettings()?.anthropicKey ?? '', buildContext(state), hist) : await requestCopilot(buildContext(state), hist);
+      return { t };
     } catch (e) {
       if (e instanceof OfflineError) return { t: offlineAnswer(hist[hist.length - 1].t, state), offline: true };
       throw e;

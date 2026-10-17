@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Copilot, type AskFn, type CopilotMsg } from '../copilot/Copilot';
-import { OfflineError, requestCopilot } from '../copilot/api';
+import type { Backend } from '../backend';
+import { OfflineError } from '../copilot/api';
 import { Icon, Label } from '../ui';
 import { LIVE_SUGGEST, buildLiveContext, liveOfflineAnswer, liveRefPattern, liveRefPhase } from './copilot';
 import { GatePanel } from './GatePanel';
 import { GATE_NAME, unapprovedGates } from './gates';
 import { LIVE_CLASS, LIVE_LABEL, PHASES, blobUrl, nextStep, phaseStatus, type LiveStatus } from './phases';
-import { fetchTracking, postGate, type GateAction } from './trackingApi';
+import type { GateAction } from './trackingApi';
 import type { GateKey, Project, Tracking } from './types';
 import { LiveAnalyze, LiveClarify, LiveConstitution, LiveImplement, LivePlan, LiveSpec, LiveTasks, NotStarted } from './views';
 
@@ -18,9 +19,18 @@ const ago = (iso: string, now: number) => {
   return s < 60 ? 'just now' : s < 3600 ? `${Math.floor(s / 60)} min ago` : `${Math.floor(s / 3600)} h ago`;
 };
 
-interface Props { project: Project; refreshing: boolean; onRefresh: () => void }
+interface Props {
+  project: Project;
+  backend: Backend;
+  refreshing: boolean;
+  onRefresh: () => void;
+  /** Static build only: forget the stored keys. */
+  onDisconnect?: () => void;
+  /** Static build only: back to the connect screen. */
+  onSettings?: () => void;
+}
 
-export function LiveWorkspace({ project, refreshing, onRefresh }: Props) {
+export function LiveWorkspace({ project, backend, refreshing, onRefresh, onDisconnect, onSettings }: Props) {
   const [slug, setSlug] = useState(() => load('slug', ''));
   const [sel, setSel] = useState<number | null>(null);
   const [rtab, setRtab] = useState<'spec' | 'ai'>('spec');
@@ -33,11 +43,11 @@ export function LiveWorkspace({ project, refreshing, onRefresh }: Props) {
   const logRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => save('slug', slug), [slug]);
-  const loadTracking = (refresh: boolean) => fetchTracking(refresh).then(t => { setTracking(t); setTrackingError(null); }, (e: Error) => setTrackingError(e.message));
+  const loadTracking = (refresh: boolean) => backend.tracking(refresh).then(t => { setTracking(t); setTrackingError(null); }, (e: Error) => setTrackingError(e.message));
   useEffect(() => { void loadTracking(false); }, []);
   const refreshAll = () => { onRefresh(); void loadTracking(true); };
   const decide = async (gate: GateKey, action: GateAction, note: string) => {
-    try { setTracking(await postGate(f!.slug, gate, action, note)); return null; } catch (e) { return e instanceof Error ? e.message : 'Gate update failed.'; }
+    try { setTracking(await backend.decide(f!.slug, gate, action, note)); return null; } catch (e) { return e instanceof Error ? e.message : 'Gate update failed.'; }
   };
   const issueOf = (s: string) => tracking?.issues[s] ?? null;
   /** Rail label and class for step i, folding in gate approvals once they have loaded. */
@@ -85,7 +95,7 @@ export function LiveWorkspace({ project, refreshing, onRefresh }: Props) {
   const setMsgs = (m: CopilotMsg[]) => f && setThreads(t => ({ ...t, [f.slug]: m }));
   const ask: AskFn = async hist => {
     try {
-      return { t: await requestCopilot(buildLiveContext(project, f!, phase), hist) };
+      return { t: await backend.copilot(buildLiveContext(project, f!, phase), hist) };
     } catch (e) {
       if (e instanceof OfflineError) return { t: liveOfflineAnswer(hist[hist.length - 1].t, project, f!), offline: true };
       throw e;
@@ -103,6 +113,8 @@ export function LiveWorkspace({ project, refreshing, onRefresh }: Props) {
         <Icon n="branch" s={14} />{project.ref} @ {project.sha.slice(0, 7)}<span className="text-muted"> · {ago(project.fetchedAt, now)}</span>
       </a>
       <button className="btn btn-secondary sk-small" onClick={refreshAll} disabled={refreshing}>{refreshing ? 'Refreshing…' : 'Refresh'}</button>
+      {onSettings && <button className="btn btn-ghost sk-small" onClick={onSettings}>Settings</button>}
+      {onDisconnect && <button className="btn btn-ghost sk-small" onClick={onDisconnect} title="Remove the stored keys from this browser">Disconnect</button>}
     </nav>
     <div className="sk-body">
       <aside className="sk-side">

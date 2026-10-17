@@ -4,7 +4,7 @@ Speckit Workspace: a web UI where a cross-functional team (Director, Designer, E
 
 Built from the Claude Design handoff `Speckit Workspace.html` (Modernist design system). It matches the prototype pixel for pixel.
 
-It runs in two modes:
+It runs in two modes, with or without a server (see [GitHub Pages](#github-pages-no-server)):
 
 - **GitHub mode**: set `GITHUB_REPO` and the app reads a real Spec Kit project (constitution, `specs/NNN-*/`) from GitHub. It also tracks gate approvals in GitHub issues and lists each spec's PRs across the repo and its submodules.
 - **Demo mode**: with no `GITHUB_REPO` (or with `?demo` in the URL), it shows the sample "Wallet App" workspace from the design, including approvals and the New spec flow.
@@ -25,6 +25,26 @@ npm start                 # serves dist/ and the API on PORT (default 8787)
 ```
 
 Other scripts: `npm test` (Vitest) and `npm run typecheck`. Requires Node 22.18 or later, because the server runs TypeScript directly.
+
+## GitHub Pages (no server)
+
+The app can also be built as static files and published to GitHub Pages. There's no speckit-ui server: the page calls GitHub, and optionally Claude, straight from the browser with keys the viewer enters.
+
+- **Connect screen:** the first visit asks for the repository (`owner/repo`), an optional branch, a GitHub token and an optional Anthropic API key.
+  - Keys are kept in `sessionStorage` (forgotten when the tab closes) unless **Remember on this device** is ticked, which uses `localStorage`.
+  - **Disconnect** removes them. **Settings** changes them.
+- **Permissions:** every viewer uses their own token, so they only see repositories GitHub already lets them read. Gate approvals are recorded under their own GitHub login.
+- **Copilot:** with an Anthropic key, the page calls Claude directly. The SDK loads only when Copilot is used. Without a key, Copilot answers the suggested questions from the project files.
+- **Content Security Policy:** the built page carries a CSP. Scripts load only from the site itself, and network calls go only to `api.github.com` and `api.anthropic.com`. Markdown is rendered without raw HTML.
+- **No shared cache:** each page load reads the repository again, which takes about 15–20 GitHub API calls.
+
+Publish:
+
+1. Merge to `main`. `.github/workflows/pages.yml` runs the tests, builds with `VITE_STATIC=1` and the repository name as the base path, and deploys.
+2. One-time setup: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+3. Open `https://<owner>.github.io/<repo>/`.
+
+To try the static build locally, run `npm run build:pages`. Then serve `dist/` so it's reachable at `/speckit-ui/`.
 
 ## GitHub mode
 
@@ -145,11 +165,14 @@ src/
   views/                one view per phase, plus the draft spec
   NewSpecDialog.tsx     /speckit.specify flow
   Root.tsx              picks GitHub mode or demo mode
+  backend.ts            data source: the speckit-ui server, or GitHub/Claude from the browser (static build)
+  Connect.tsx           static build: repository and key entry
   project/              GitHub mode: types, step derivation, gates, views, Copilot context
   copilot/              Copilot panel, context builder, gate brief, API client, offline responder
   styles/               modernist.css (design system), workspace.css (app layout)
 server/
   copilot.ts            /api/copilot handler (also mounted by the Vite dev server)
+  claude.ts             the Claude call shared by the server and the static build
   github.ts             /api/project: loads and caches the project from GitHub
   tracking.ts           /api/tracking and /api/gates: tracking issues, linked PRs, submodule bumps
   parse.ts              parsers for constitution, spec, plan, tasks, analysis and checklists
