@@ -51,8 +51,8 @@ Cho phép người dùng làm việc với mọi repo mà quyền GitHub của h
 Kết quả: **PASS** cả trước Phase 0 lẫn sau khi thiết kế Phase 1.
 
 - [x] **I. Git là nguồn sự thật**: dữ liệu dự án vẫn chỉ đọc từ repo, và phê duyệt vẫn chỉ ghi vào issue theo dõi. Ghim và vị trí đang xem là tuỳ chọn hiển thị trên thiết bị, không phải trạng thái dự án (R9). Phiên ở server là trạng thái xác thực tạm thời, không phải dữ liệu dự án. Không thêm loại ghi mới ra GitHub.
-- [x] **II. Khoá thuộc về người dùng**:
-  - Bản server bỏ token chung; token của từng người chỉ ở server, trình duyệt chỉ có cookie `HttpOnly` (R5, FR-015).
+- [x] **II. Khoá thuộc về người dùng** (constitution 1.1.0):
+  - Bản server bỏ token chung; token của từng người chỉ ở server, trong phiên ở bộ nhớ tiến trình, và trình duyệt chỉ có cookie `HttpOnly` (R5, FR-015). Bản 1.0.0 chỉ cho phép khoá nằm trong biến môi trường; constitution đã được sửa lên 1.1.0 để cho phép phiên phía server (analysis.md C1).
   - GitHub App xin quyền tối thiểu (R4).
   - `.env.local` được thêm vào `.gitignore` (R7).
   - Chế độ token chỉ lắng nghe trên `127.0.0.1` (R6).

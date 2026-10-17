@@ -43,16 +43,19 @@ Cấu trúc hiện có của repo: SPA trong `src/`, server Node trong `server/`
 
 - [ ] T004 Add `CurrentUser`, `AccessibleRepo`, `RepoListing` and `OverviewItem` types from data-model.md to `src/project/types.ts`
 - [ ] T005 Add `identityFor(token)` (first 8 hex chars of SHA-256 via `crypto.subtle`, which works in the browser and Node 22) and an optional `identity` field on `Source` in `server/github.ts` (R3)
-- [ ] T006 Replace the single-slot project cache and the shared `inflight` promise in `server/github.ts` with a `Map` keyed by `identity|owner/repo@ref`: at most 8 entries, evicting the oldest, and an in-flight promise per key (R3, FR-006)
-- [ ] T007 Replace the single-slot tracking cache in `server/tracking.ts` with a `Map` keyed by `identity|owner/repo@sha`, and invalidate only the affected key after `decideGate` (R3)
+- [ ] T006 Replace the single-slot project cache and the shared `inflight` promise in `server/github.ts` with a `Map` keyed by `identity|owner/repo@ref`: at most 8 entries, evicting the oldest, and an in-flight promise per key. Export `clearProjectCache()`, which empties the map (R3, FR-006, FR-017)
+- [ ] T007 Replace the single-slot tracking cache in `server/tracking.ts` with a `Map` keyed by `identity|owner/repo@sha`, and invalidate only the affected key after `decideGate`. Export `clearTrackingCache()` (R3, FR-017)
 - [ ] T008 [P] Write `tests/cache.test.ts` covering:
   - switching repo while a load is in flight returns the right repo;
   - two identities never share an entry;
   - eviction after 8 entries;
-  - a tracking write invalidates only its own repo.
+  - a tracking write invalidates only its own repo;
+  - `POST /api/gates` with `"repo": "o/b"` while `GITHUB_REPO=o/a` writes the issue in `o/b`, and the same holds for `browserBackend.decide` (FR-009);
+  - `clearProjectCache()` and `clearTrackingCache()` leave no entries.
 - [ ] T009 Make `/api/project`, `/api/tracking` and `POST /api/gates` accept `repo` (and optional `ref`), defaulting to `GITHUB_REPO` and returning 400 when neither is set, per contracts/server-api.md, in `server/github.ts` and `server/tracking.ts`
 - [ ] T010 Extend the `Backend` interface in `src/backend.ts`:
   - add `session()`, `repos()` and `detect(repos)`;
+  - `browserBackend.session()` calls `GET /user` with the stored token and returns `CurrentUser` (`mode: 'pages'`); a 401 returns `user: null` with an error, so Connect shows it;
   - give `project`, `tracking` and `decide` a `repo` argument;
   - `serverBackend` sends `?repo=` and `"repo"` in the body;
   - `browserBackend` builds a `Source` per repo from the stored token, with `identity` set.
@@ -62,7 +65,11 @@ Cấu trúc hiện có của repo: SPA trong `src/`, server Node trong `server/`
   - wrap every access in try/catch;
   - cap pins at 20 and drop duplicates (R9, data-model.md).
 - [ ] T012 [P] Write `tests/prefs.test.ts`: per-login isolation, session versus local storage choice, blocked storage, pin cap and dedupe
-- [ ] T013 [P] Create `src/project/urlState.ts` to read and write `repo`, `spec`, `step` and `view` with `history.replaceState`, and assert that no other parameters (tokens, keys) are ever written (FR-008, contracts/client-state.md)
+- [ ] T013 [P] Create `src/project/urlState.ts`:
+  - read and write `repo`, `spec`, `step` and `view` with `history.replaceState`;
+  - assert that no other parameters (tokens, keys) are ever written (FR-008, contracts/client-state.md);
+  - in the app the step is the index `0–6`, while the URL uses the name (`constitution`, `specify`, `clarify`, `plan`, `tasks`, `analyze`, `implement`); export `stepToParam` and `paramToStep`, where an unknown name gives `null`;
+  - put tests for the mapping and the no-secrets assertion in `tests/prefs.test.ts`.
 
 **Checkpoint**: Foundation ready — user story implementation can now begin
 
@@ -77,18 +84,26 @@ Cấu trúc hiện có của repo: SPA trong `src/`, server Node trong `server/`
 ### Tests for User Story 1
 
 - [ ] T014 [P] [US1] Write `tests/repos.test.ts` with a mocked GitHub covering:
-  - `listRepos` paging and the 1,000-repo cap (`truncated`);
+  - `listRepos` paging (200 repos take exactly 2 calls, SC-002) and the 1,000-repo cap (`truncated`);
   - `detectSpeckit` mapping 200 to Spec Kit, 404 to not, and other errors to an error entry;
   - concurrency of at most 6;
-  - the `repo@pushedAt` cache;
-  - sort order: pinned, then Spec Kit, then unknown, then plain, newest first within each group.
+  - the in-memory `repo@pushedAt` cache;
+  - sort order: pinned, then Spec Kit, then unknown, then plain, newest first within each group;
+  - `/api/session` in token mode returns the login from `GET /user`, and reports a rejected token with the `.env.local` hint.
 
 ### Implementation for User Story 1
 
 - [ ] T015 [US1] Implement `listRepos(src)` in `server/github.ts`: `GET /user/repos?per_page=100&sort=pushed`, at most 10 pages, mapped to `AccessibleRepo` and returned as `RepoListing` (R1)
-- [ ] T016 [US1] Implement `detectSpeckit(src, fullNames)` in `server/github.ts`: `GET /repos/{owner}/{repo}/contents/.specify`, at most 6 at a time, cached in memory by `repo@pushedAt`, plus a `sortRepos(repos, pins)` helper (R2, FR-002)
+- [ ] T016 [US1] Implement `detectSpeckit(src, fullNames)` in `server/github.ts`:
+  - call `GET /repos/{owner}/{repo}/contents/.specify`, at most 6 at a time;
+  - cache in memory only, keyed by `identity|repo@pushedAt`, and clear it with `clearProjectCache()`;
+  - nothing is written to browser storage (R2);
+  - add a `sortRepos(repos, pins)` helper (FR-002).
 - [ ] T017 [US1] Add `handleSession`, `handleRepos` and `handleDetect` (`GET /api/session`, `GET /api/repos`, and `POST /api/repos/detect` with the same-origin JSON check) per contracts/server-api.md in `server/github.ts`, and register them in `server/index.ts` and `vite.config.ts`
-- [ ] T018 [US1] Add start-up mode detection (`signin` / `token` / `demo`) in `server/index.ts`. In token mode, bind to `127.0.0.1` unless `ALLOW_REMOTE_TOKEN_MODE=1` and print a warning; `GET /api/session` reports a missing or rejected `GITHUB_TOKEN` with the `.env.local` hint (R6, FR-016)
+- [ ] T018 [US1] Add start-up mode detection (`signin` / `token` / `demo`) in `server/index.ts`. In token mode:
+  - bind to `127.0.0.1` unless `ALLOW_REMOTE_TOKEN_MODE=1`, and print a warning;
+  - `GET /api/session` calls `GET /user` once with `GITHUB_TOKEN` and caches the login;
+  - a missing or rejected token is reported with the `.env.local` hint (R6, FR-016).
 - [ ] T019 [US1] Create `src/project/RepoPicker.tsx`:
   - repo list with a "Spec Kit" or "Checking…" label;
   - detection requested for visible rows first;
@@ -136,7 +151,12 @@ Cấu trúc hiện có của repo: SPA trong `src/`, server Node trong `server/`
 
 - [ ] T028 [US3] Add pin and unpin buttons with `aria-pressed` to each row in `src/project/RepoPicker.tsx`, using `prefs.setPins`, and re-sort immediately (FR-011, US3-AS3)
 - [ ] T029 [US3] Add a search box in `src/project/RepoPicker.tsx` that filters by any part of `owner/name`, case-insensitive, and keeps the manual entry option when nothing matches (FR-010)
-- [ ] T030 [US3] In `src/project/RepoPicker.tsx` and `src/project/LiveWorkspace.tsx`, mark pinned repos that are no longer accessible (404 or 403) as unavailable with a notice, keep them stored until the user unpins them, and keep the other repos working (FR-012)
+- [ ] T030 [US3] Handle repo-scoped access errors:
+  - in `src/project/RepoPicker.tsx` and `src/project/LiveWorkspace.tsx`, hide pinned repos that are no longer accessible (404 or 403) from the active list and show a notice;
+  - keep those repos in stored pins until the user unpins them (data-model.md → Pins);
+  - keep the other repos working (FR-012);
+  - in `src/project/GatePanel.tsx`, map a 403 from `decide` to "You can read this repo but cannot write issues here", shown only for that repo, with the Approve button left enabled for a retry;
+  - add both cases to `tests/repoLoader.test.ts`.
 
 **Checkpoint**: Pinning and search work. The overview can use the pin list.
 
@@ -205,7 +225,11 @@ Cấu trúc hiện có của repo: SPA trong `src/`, server Node trong `server/`
 - [ ] T039 [US5] In `server/index.ts` and `vite.config.ts`, register the `/auth/*` routes. In sign-in mode, require a session for every `/api/*` except `/api/session`, and build each request's `Source` from the session token with `identity = login` (FR-014, FR-015)
 - [ ] T040 [US5] Make `listRepos` in `server/github.ts` list repos through `/user/installations` and `/user/installations/{id}/repositories` when the token is a GitHub App user token (R1)
 - [ ] T041 [US5] Create `src/project/SignIn.tsx` with a "Sign in with GitHub" screen that keeps the current query in `return`. In `src/Root.tsx`, send any 401 to SignIn and hide all repo data. Add a "Sign out" button that calls `POST /auth/logout` in `src/project/LiveWorkspace.tsx` (US5-AS1, US5-AS5)
-- [ ] T042 [US5] Make Pages **Disconnect** clear `sk.settings` and every `sk.speckit.*` key while keeping pins and the last-viewed position, in `src/backend.ts` and `src/Root.tsx` (FR-017, contracts/client-state.md)
+- [ ] T042 [US5] On Pages **Disconnect** and server **Sign out**, in `src/backend.ts` and `src/Root.tsx`:
+  - clear `sk.settings`;
+  - call `clearProjectCache()` and `clearTrackingCache()`;
+  - drop the shown `RepoContext` and the Copilot threads;
+  - keep pins and the last-viewed position (FR-017, contracts/client-state.md).
 
 **Checkpoint**: All user stories work in every mode, each with the user's own permissions.
 
@@ -220,7 +244,10 @@ Cấu trúc hiện có của repo: SPA trong `src/`, server Node trong `server/`
   - token-mode binding;
   - **Security**: the new server-side destination `github.com/login/oauth/*`, tokens only in the server-side session, and the single-process limit of the in-memory store (constitution II).
 - [ ] T044 [P] Update the Rules and Commands summary in `CLAUDE.md` to mention per-user access in every mode and `.env.local`
-- [ ] T045 Run quickstart.md scenarios 1, 2 and 4 in Chromium with Playwright, intercepting GitHub writes. Run scenario 3 against a mocked GitHub App flow (`specs/002-multi-repo-workspace/quickstart.md`)
+- [ ] T045 Run the quickstart scenarios from `specs/002-multi-repo-workspace/quickstart.md` in Chromium with Playwright:
+  - scenarios 1, 2 and 4 with GitHub writes intercepted;
+  - scenario 3 against a mocked GitHub App flow;
+  - record the wall-clock times of scenario 1 step 2 (SC-002, ≤5 s), step 4 (SC-001, ≤10 s) and step 6 (SC-005, ≤10 s) against real GitHub (read-only), and put them in the PR description.
 - [ ] T046 Check demo-mode pixel parity against the design at 1440×900 and 924×540, on the main screen and the New spec dialog (constitution IV)
 - [ ] T047 Run all four quality gates: `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages` (constitution V)
 

@@ -21,9 +21,16 @@
 | `sk.u.<login>.pins` | local; session nếu bản Pages không tick Remember | `string[]` |
 | `sk.u.<login>.last` | như trên | `{ [fullName]: { spec, step } }` |
 | `sk.u.<login>.lastRepo` | như trên | `string` |
-| `sk.speckit.<owner/repo>@<pushedAt>` | session | `true \| false`, kết quả nhận diện (R2) |
+Kết quả nhận diện Spec Kit (R2) **không** lưu vào storage của trình duyệt. Nó chỉ nằm trong cache bộ nhớ của `server/github.ts`, cùng chỗ với dữ liệu dự án.
 
-Mọi lần đọc và ghi bọc `try/catch`. Thiếu dữ liệu lưu thì ứng dụng vẫn chạy đúng. **Disconnect** (bản Pages) và **Sign out** (bản server) xoá `sk.settings` và mọi khoá `sk.speckit.*`, nhưng giữ ghim và vị trí đang xem, vì đây chỉ là tuỳ chọn hiển thị.
+**Bước** (`step`) trong dữ liệu là số thứ tự `0–6`; trên URL là tên bước. `urlState` chuyển đổi giữa hai dạng, và tên lạ cho kết quả `null`.
+
+Mọi lần đọc và ghi bọc `try/catch`. Thiếu dữ liệu lưu thì ứng dụng vẫn chạy đúng.
+
+**Disconnect** (bản Pages) và **Sign out** (bản server):
+- xoá `sk.settings`;
+- xoá mọi cache bộ nhớ (dự án, tracking, nhận diện) và lịch sử Copilot;
+- giữ ghim và vị trí đang xem, vì đây chỉ là tuỳ chọn hiển thị.
 
 ## Màn hình và luồng
 

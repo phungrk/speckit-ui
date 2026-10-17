@@ -50,7 +50,9 @@ Danh sách repo đã ghim của một người dùng trên một thiết bị (F
 Vị trí đang xem gần nhất trong từng repo (FR-005).
 
 - **Khoá lưu**: `sk.u.<login>.last` → `{ [fullName]: { spec: string \| null, step: number \| null } }`, cùng `sk.u.<login>.lastRepo` → `string`.
-- **Quy tắc**: nếu spec đã lưu không còn tồn tại thì rơi về spec mới nhất của repo.
+- **Quy tắc**:
+  - Nếu spec đã lưu không còn tồn tại thì rơi về spec mới nhất của repo.
+  - `step` là số thứ tự bước `0–6`, giống `OverviewItem.step`. Chỉ URL dùng tên bước (xem contracts/client-state.md).
 
 ## RepoContext
 
