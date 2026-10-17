@@ -76,7 +76,7 @@
 - **Không kiểm tra được** (FR-008):
   - Các trường hợp: không có `gh` và không có token, mạng lỗi, 401/403/404, hoặc không đọc được remote.
   - Khi đó hook chặn và nói rõ lý do. Cách bỏ qua có chủ đích: chạy lại với biến môi trường `SPECKIT_GATE_BYPASS="<lý do>"`.
-  - Khi bỏ qua, hook cho chạy và ghi lý do vào ngữ cảnh của session (stdout của `UserPromptSubmit`), nên lý do nằm lại trong transcript.
+  - Khi bỏ qua, hook cho chạy và ghi lý do lại: với `UserPromptSubmit`, in ra stdout (được thêm vào session); với `PreToolUse`, trả JSON `permissionDecision: "allow"` kèm `permissionDecisionReason`. Lý do nằm lại trong transcript ở cả hai đường.
 
 ## R6. Bật/tắt theo repo
 

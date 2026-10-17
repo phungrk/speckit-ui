@@ -89,7 +89,7 @@ Một spec đã chạy Plan và Tasks dù Specify chưa được duyệt (tình 
 
 ### Functional Requirements
 
-- **FR-001**: Một bước MUST bị coi là khoá khi cổng của bước đã làm gần nhất trước nó chưa được duyệt. Bước Not run không tính.
+- **FR-001**: Một bước MUST bị coi là khoá khi còn một cổng chưa được duyệt trong các bước đã làm trước nó. Cổng được nêu là cổng chưa duyệt *đầu tiên* theo thứ tự bước. Bước Not run không tính. Khi duyệt theo thứ tự, đây chính là cổng của bước đã làm gần nhất trước nó.
 - **FR-002**: Bước bị khoá MUST hiện trạng thái khoá trên thanh bước và trong thanh tiến độ, kèm lý do nêu tên cổng đang chờ duyệt.
 - **FR-003**: Ứng dụng MUST không gợi ý và không cho sao chép lệnh của một bước đang khoá. Thanh lệnh MUST nhắc duyệt cổng đang chờ.
 - **FR-004**: Next up MUST chỉ hiện việc duyệt cổng đang chờ cho tới khi cổng đó được duyệt, không hiện lệnh của bước sau.
@@ -105,17 +105,18 @@ Một spec đã chạy Plan và Tasks dù Specify chưa được duyệt (tình 
 ### Key Entities
 
 - **Cổng**: phê duyệt của một bước (Specify đến Implement) trong issue theo dõi của spec. Không đổi định dạng.
+- **Bước kiểm tra** (gate check): hook Claude Code `speckit-gate.mjs` cài trong `.claude/` của repo dự án. Giao diện gọi nó là "gate check".
 - **Trạng thái bước**: đã xong, tiếp theo, khoá (chờ duyệt), chạy trước khi duyệt, chưa chạy (Not run).
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: Với spec có cổng trước chưa duyệt, ứng dụng không gợi ý lệnh của bước sau trong 100% lần thử, ở mọi nơi có gợi ý lệnh (thanh lệnh, Next up, màn hình tổng quan).
+- **SC-001**: Với spec có cổng trước chưa duyệt, ứng dụng không gợi ý lệnh của bước sau trong 100% lần thử, ở mọi nơi có gợi ý lệnh (thanh lệnh, màn hình bước, khung Gate, Next up, màn hình tổng quan, Copilot).
 - **SC-002**: Duyệt một cổng mở khoá bước sau trong vòng 1 giây sau khi việc duyệt được ghi nhận, không cần tải lại trang.
-- **SC-003**: Trong repo đã cài bước kiểm tra, chạy lệnh của bước bị khoá luôn dừng trước khi tạo hay sửa file nào. Kiểm tra với mọi lệnh từ `/speckit-clarify` tới `/speckit-implement`.
-- **SC-005**: Cài bước kiểm tra vào một repo theo hướng dẫn mất không quá 5 phút, và không cần thêm khoá hay quyền nào ngoài quyền GitHub người dùng đang có trong Claude Code.
+- **SC-003**: Trong repo đã cài bước kiểm tra, chạy lệnh của bước bị khoá luôn dừng trước khi tạo hay sửa file nào. Kiểm tra với cả năm lệnh có cổng: `/speckit-clarify`, `/speckit-plan`, `/speckit-tasks`, `/speckit-analyze`, `/speckit-implement`. Các lệnh không ứng với một bước (`/speckit-checklist`, `/speckit-converge`, `/speckit-taskstoissues`) không bị kiểm tra.
 - **SC-004**: Mọi spec hiện có vẫn hiện đủ nội dung sau khi bật tính năng, không spec nào bị ẩn.
+- **SC-005**: Cài bước kiểm tra vào một repo theo hướng dẫn mất không quá 5 phút, và không cần thêm khoá hay quyền nào ngoài quyền GitHub người dùng đang có trong Claude Code.
 
 ## Assumptions
 
@@ -126,6 +127,8 @@ Một spec đã chạy Plan và Tasks dù Specify chưa được duyệt (tình 
   - chặn thật sự khi chạy lệnh cần một bước kiểm tra nằm trong repo dự án (FR-007, FR-012).
 - **Bước kiểm tra trong Claude Code** đọc issue theo dõi bằng quyền GitHub mà người dùng đã có trong Claude Code. Nó không dùng khoá của speckit-ui và không gửi dữ liệu tới nơi nào khác (constitution II). Đây là file của repo dự án, được commit như mọi file cấu hình khác.
 - **Bật mặc định:** các spec đã đi trước phần duyệt, ví dụ spec 001 và 002 của speckit-ui, sẽ hiện "chạy trước khi duyệt" cho tới khi các cổng được duyệt bù theo thứ tự.
+- **Quyền:** bước kiểm tra cần quyền đọc Issues của repo dự án, qua `gh` hoặc token sẵn có của người dùng. Ứng dụng không cần quyền mới.
+- **Session cloud nhiều repo:** theo tài liệu Claude Code, session cloud mở nhiều repo không đọc `hooks` trong `.claude/settings.json` của repo. Ở đó lệnh không bị chặn, dù đã cài bước kiểm tra. README ghi rõ giới hạn này.
 - **Nơi lưu phê duyệt** vẫn là issue theo dõi có nhãn `speckit`; không thêm nơi lưu mới.
 - **Thứ tự bước** như hiện nay: Constitution → Specify → Clarify → Plan → Tasks → Analyze → Implement.
 

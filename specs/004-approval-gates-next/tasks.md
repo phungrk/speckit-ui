@@ -88,7 +88,8 @@ Xem plan.md → Project Structure.
   - approving Plan while Specify is unapproved throws `GateRefused('Approve Specify first.')`, and nothing is written (no POST or PATCH in the fake's calls);
   - `reopen` and `changes` are never refused for this reason;
   - approving Specify, then Plan, succeeds;
-  - with `off`, the old behaviour applies.
+  - with `off`, the old behaviour applies;
+  - on a `feat/` branch version from `tests/fakeGitHub.ts` `fakeBranches` (specs/003), approving Plan with Specify unapproved is refused the same way (FR-010, analysis G1).
 
 ### Implementation for User Story 1
 
@@ -103,7 +104,10 @@ Xem plan.md → Project Structure.
   - command bar for a blocked step: empty read-only input, Copy disabled, and a `sk-cmdhint` line "Approve K first" that selects step K when clicked or activated with the keyboard;
   - command bar when approvals can't be loaded and gates are on: Copy disabled, with the line "Approvals could not be checked, so no command is suggested.".
 - [ ] T013 [P] [US1] In `src/project/views.tsx` `NotStarted`, accept an optional `blockedBy` gate and `onGoTo`. When set, show "Waiting for K approval", a lock icon, and a `btn btn-secondary` "Go to K". Show no command.
-- [ ] T014 [P] [US1] In `src/project/GatePanel.tsx`, accept `blockedBy`. When set and the gate is not approved, disable Approve and show `sk-warn` "Approve K first." instead of the checks message.
+- [ ] T014 [P] [US1] In `src/project/GatePanel.tsx`, accept `blockedBy`. When set and the gate is not approved:
+  - disable Approve;
+  - show one `sk-warn` "Approve K first.";
+  - replace both the "Fix the failing checks…" line and the "K has no output yet. Run /speckit-k first." line (`GatePanel.tsx:86`), so no command for a blocked step appears in the Gate panel (analysis U1, SC-001).
 - [ ] T015 [P] [US1] In `src/project/copilot.ts`:
   - add "Locked: waiting for K approval" to the live context when the selected step is blocked;
   - make the offline answers suggest the pending approval instead of a blocked command.
@@ -127,7 +131,8 @@ Xem plan.md → Project Structure.
   - non-gated commands and non-commands pass;
   - spec resolution order works: argument `NNN`, then `SPECIFY_FEATURE`, then `.specify/feature.json`, then the branch name (R4);
   - `approvalGates: "off"` passes;
-  - `gh` failure, a 401 or no credentials give exit 2 with the `SPECKIT_GATE_BYPASS` hint; with the variable set, exit 0 and the reason on stdout;
+  - `gh` failure, a 401 or no credentials give exit 2 with the `SPECKIT_GATE_BYPASS` hint;
+  - with the variable set, the command runs and the bypass is recorded on both paths: on `UserPromptSubmit` the reason is printed on stdout (added to the session); on `PreToolUse` the hook prints JSON `permissionDecision: "allow"` with `permissionDecisionReason` naming the bypass (analysis U2);
   - an unexpected throw gives exit 2;
   - no file in the temp dir changes.
 - [ ] T018 [P] [US2] Add `install` cases to `tests/hook.test.ts`:
@@ -146,20 +151,19 @@ Xem plan.md → Project Structure.
   - read config with `parseUiConfig`;
   - read the tracking issue with `gh api` or `fetch` and `GH_TOKEN`/`GITHUB_TOKEN`, taking the repo from `git remote get-url origin`, and parse it with `parseIssueBody` (R5);
   - decide with `blockingGates`;
-  - handle `SPECKIT_GATE_BYPASS`, `install`, `check <spec> <step>` and `--version`.
+  - handle `SPECKIT_GATE_BYPASS` (recorded on both paths, as in T017), `install`, `check <spec> <step>` and `--version`.
 
   Export `run()` for tests; the CLI entry wraps it and maps every error to exit 2. Never print tokens.
 - [ ] T020 [US2] Add `vite.hook.config.ts`:
   - SSR or library build of `hook/speckit-gate.ts` into one ES module at `dist/speckit-gate.mjs`, with `emptyOutDir: false`;
-  - Node built-ins external, a banner `// speckit-gate <commit>` from the same build-commit helper used for `__BUILD__`.
+  - Node built-ins external, a banner `// speckit-gate <commit>` from the `buildCommit()` helper in `vite.config.ts` (from PR #12; export it so both configs share it).
 
   In `package.json`, make `build` run it after `vite build`, so Pages and the server serve `speckit-gate.mjs`.
 - [ ] T021 [US2] Show the install hint in `src/project/LiveWorkspace.tsx`: when `approvalGates === 'block'` and `gateCheck === 'missing'`, add a `sk-cmdhint` line "Commands aren't blocked in Claude Code for this repo. Install the gate check →", linking to the README section from T025 (FR-012, US2-AS4).
 - [ ] T022 [US2] Smoke-test the built bundle in `tests/hook.test.ts`:
-  - after `npm run build`, run `node dist/speckit-gate.mjs --version` and a blocked `UserPromptSubmit` input with a fake `gh` on `PATH`;
-  - check exit 2 and that it works on Node ≥ 18 syntax (no TS at runtime).
-
-  Skip when `dist/` is absent.
+  - the test builds the hook itself with `vite build --config vite.hook.config.ts` into a temp `outDir`, so `npm test` in CI (which runs before `npm run build`) still covers the shipped file (analysis G2);
+  - run `node <out>/speckit-gate.mjs --version` and a blocked `UserPromptSubmit` input with a fake `gh` on `PATH`;
+  - check exit 2 and that it runs without TypeScript at runtime.
 
 **Checkpoint**: Quickstart scenarios 2 and 3 (steps 1–7) pass. Step 8, a real Claude Code session, is recorded in T029.
 
@@ -194,11 +198,12 @@ Xem plan.md → Project Structure.
 - [ ] T025 [P] Add an "Approval gates" section to `README.md`:
   - what is locked and why, and the `approvalGates: "off"` switch;
   - installing the gate check in ≤ 5 minutes (the `curl` + `node … install` + commit steps from R8);
-  - what happens offline (`SPECKIT_GATE_BYPASS`), and that the hook needs Node, `gh` or a token, and Issues read.
+  - what happens offline (`SPECKIT_GATE_BYPASS`), and that the hook needs Node, `gh` or a token, and Issues read;
+  - the limit that multi-repo Claude Code cloud sessions don't load repo hooks, so commands are not blocked there (analysis U3).
 
   Link to it from T021.
 - [ ] T026 [P] Update spec 001's Non-Goal line in `specs/001-approve-button-state/spec.md` to say spec 004 replaces it.
-- [ ] T027 Run `specs/004-approval-gates-next/quickstart.md` scenarios 1 and 2 with Playwright against a synthetic GitHub, on Pages and on the server build, including 390 px width. Check that no `/speckit-plan` text is copyable while the step is blocked (SC-001), and time the unlock after Approve (SC-002).
+- [ ] T027 Run `specs/004-approval-gates-next/quickstart.md` scenarios 1 and 2 with Playwright against a synthetic GitHub, on Pages and on the server build, including 390 px width. Include a spec on a `feat/` branch (FR-010). Check that no `/speckit-<k>` text for a blocked step is *visible anywhere* on the page or copyable (SC-001, analysis U1), and time the unlock after Approve (SC-002).
 - [ ] T028 [P] Check demo-mode pixel parity of `src/App.tsx` against `main` at 1440×900 and 924×540, on the main screen and the New spec dialog (constitution IV).
 - [ ] T029 Run `specs/004-approval-gates-next/quickstart.md` scenario 3 against `dist/speckit-gate.mjs`:
   - with `dist/speckit-gate.mjs` in a temp repo and a fake `gh`;

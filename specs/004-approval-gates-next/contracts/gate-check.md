@@ -42,7 +42,7 @@ Lệnh được nhận dạng khi tên khớp `^/?<prefix>(clarify|plan|tasks|an
 | Không bị chặn | 0 | không có |
 | Bị chặn | 2 | stderr: `Approve Specify for 004-approval-gates-next before running /speckit-plan. Tracking issue: <url>` (khi chưa có issue thì thay link bằng `Approve it in speckit-ui.`) |
 | Không kiểm tra được | 2 | stderr: `Could not check approvals for <slug>: <lý do>. To run anyway, set SPECKIT_GATE_BYPASS="<why>" and try again.` |
-| Có `SPECKIT_GATE_BYPASS` | 0 | stdout (`UserPromptSubmit`): `Approval gate check bypassed for <slug>: <why>` |
+| Có `SPECKIT_GATE_BYPASS` | 0 | `UserPromptSubmit`: stdout `Approval gate check bypassed for <slug>: <why>` (thêm vào session). `PreToolUse`: stdout JSON `{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","permissionDecisionReason":"Approval gate check bypassed for <slug>: <why>"}}` |
 | Lỗi bất ngờ trong script | 2 | stderr: `speckit gate: <message>` |
 
 Quy tắc chặn là `blockingGates` (data-model.md). Nó chạy trên `phaseStatus` của file trong thư mục làm việc và issue theo dõi đọc từ GitHub.
