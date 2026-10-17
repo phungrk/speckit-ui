@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { Icon, Label } from '../ui';
-import { canApprove, gateChecks } from './gates';
+import { blockedReason, canApprove, gateChecks } from './gates';
 import { PHASES, type LiveStatus } from './phases';
 import type { GateAction } from './trackingApi';
 import { GATE_KEYS, type GateKey, type Project, type SpecFeature, type SpecPR, type Tracking } from './types';
@@ -17,6 +17,8 @@ interface Props {
   tracking: Tracking | null;
   trackingError: string | null;
   onDecide: (gate: GateKey, action: GateAction, note: string) => Promise<DecideResult>;
+  /** The earlier gate that must be approved first (specs/004), if any. */
+  blockedBy?: GateKey | null;
 }
 
 export interface DecideResult {
@@ -25,7 +27,7 @@ export interface DecideResult {
   unchanged: boolean;
 }
 
-export function GatePanel({ project, f, pi, status, tracking, trackingError, onDecide }: Props) {
+export function GatePanel({ project, f, pi, status, tracking, trackingError, onDecide, blockedBy = null }: Props) {
   const [busy, setBusy] = useState(false);
   // Set synchronously, so a second click before React re-renders is ignored (specs/001 FR-003).
   const inFlight = useRef(false);
@@ -82,9 +84,13 @@ export function GatePanel({ project, f, pi, status, tracking, trackingError, onD
                 <button key="reopen" className="btn btn-secondary btn-block" disabled={busy} onClick={() => decide('reopen')}>{busy ? 'Saving…' : 'Reopen gate'}</button>
               </div>
               : <div className="sk-gateact">
-                {!ok && status === 'done' && <div className="sk-warn"><Icon n="alert" s={14} />Fix the failing checks before approving.</div>}
-                {status !== 'done' && <div className="sk-warn"><Icon n="alert" s={14} />{phase.n} has no output yet. Run {project.commandPrefix}{phase.k} first.</div>}
-                <button key="approve" className="btn btn-primary btn-block" disabled={busy || !ok || status !== 'done'} onClick={() => decide('approve')}>{busy ? 'Saving…' : phase.k === 'implement' ? 'Verify & ship' : `Approve ${phase.n}`}<Icon n="arrow" s={14} /></button>
+                {blockedBy
+                  ? <div className="sk-warn"><Icon n="lock" s={14} />{blockedReason(blockedBy)}</div>
+                  : <>
+                    {!ok && status === 'done' && <div className="sk-warn"><Icon n="alert" s={14} />Fix the failing checks before approving.</div>}
+                    {status !== 'done' && <div className="sk-warn"><Icon n="alert" s={14} />{phase.n} has no output yet. Run {project.commandPrefix}{phase.k} first.</div>}
+                  </>}
+                <button key="approve" className="btn btn-primary btn-block" disabled={busy || !ok || status !== 'done' || !!blockedBy} onClick={() => decide('approve')}>{busy ? 'Saving…' : phase.k === 'implement' ? 'Verify & ship' : `Approve ${phase.n}`}<Icon n="arrow" s={14} /></button>
                 {issue && (noteFor === 'changes'
                   ? <div className="sk-note">
                     <textarea className="input" rows={3} value={note} onChange={e => setNote(e.target.value)} placeholder="What needs to change?" aria-label="Requested changes" autoFocus></textarea>

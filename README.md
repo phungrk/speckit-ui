@@ -191,6 +191,29 @@ Approvals are stored in **one GitHub issue per spec** in the root repo of the op
 
 In the rail, a step whose files are done shows **To approve** until its gate is approved, then **Approved**. **Next up** lists the first pending approval for each spec before its next command.
 
+### Approval gates
+
+A step can't go ahead until the gates before it are approved (`specs/004-approval-gates-next`). The rule is the same on the server, on Pages and in Claude Code: a step is locked by the first unapproved gate among the earlier steps that ran. Steps that were not run, such as a skipped Clarify, don't lock anything.
+
+- **In the app**: a locked step shows **Locked** and *Waiting for Specify approval*. The command bar offers no command and says **Approve Specify first**, and **Next up** lists only the approval. The gate of a later step can't be approved, and the server refuses it too (`409 Approve Specify first.`). Work that ran before an earlier gate was approved stays visible, marked **Ran early**. Reopening a gate locks the steps after it again.
+- **In Claude Code**: the *gate check*, a hook installed in your project repo, stops `/speckit-clarify`, `/speckit-plan`, `/speckit-tasks`, `/speckit-analyze` and `/speckit-implement` before they run, whether you type them or Claude calls the skill. `/speckit-specify`, `/speckit-constitution`, `/speckit-checklist`, `/speckit-converge` and `/speckit-taskstoissues` are not checked.
+- **Turn it off** for a repo with `{ "approvalGates": "off" }` in `.specify/speckit-ui.json`. The app and the gate check both read it.
+
+Install the gate check in a project repo (about 5 minutes):
+
+```bash
+mkdir -p .claude/hooks
+curl -fsSL https://phungrk.github.io/speckit-ui/speckit-gate.mjs -o .claude/hooks/speckit-gate.mjs
+node .claude/hooks/speckit-gate.mjs install   # adds two hooks to .claude/settings.json, keeps the rest
+git add .claude && git commit -m "chore: speckit approval gate check"
+```
+
+- It needs Node 18+ and GitHub read access to the repo's issues: a logged-in `gh` (used first; it is already set up in Claude Code on the web), or `GH_TOKEN`/`GITHUB_TOKEN`. It only reads the tracking issue and the files in your working tree, and never prints a token.
+- To check by hand: `node .claude/hooks/speckit-gate.mjs check 004 plan`. `--version` prints the commit it was built from; download it again when speckit-ui changes the rule.
+- If approvals can't be read (offline, no `gh` login, 401/404), the command is stopped with the reason. To run it anyway, start Claude Code with `SPECKIT_GATE_BYPASS="<why>"`. The reason is recorded in the session.
+- The app shows *Commands aren't blocked in Claude Code for this repo* until `.claude/hooks/speckit-gate.mjs` and a `.claude/settings.json` that runs it are on the branch you are viewing.
+- **Limitation:** Claude Code cloud sessions that open several repositories don't load hooks from the repo, so commands are not blocked there. Single-repo sessions, the CLI and the desktop app do load them.
+
 ### Pull requests and merge order
 
 A PR is linked to a spec when its branch name contains the spec slug (`feat/001-rename-vendor-tab`) or its description mentions `specs/001-rename-vendor-tab`. The server looks at the last 100 PRs in the root repo and in each submodule repo from `.gitmodules`.

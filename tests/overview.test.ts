@@ -16,7 +16,7 @@ const done = (n: number, of: number) => [{ name: 'P', tasks: Array.from({ length
 const project = (specs: SpecFeature[]): Project => ({
   repo: 'o/a', ref: 'main', sha: 'abc1234', committedAt: null, fetchedAt: '', commandPrefix: '/speckit-',
   constitution: { title: 'C', version: '1', ratified: '', amended: '', principles: [], raw: '' } as unknown as Project['constitution'],
-  specs, submodules: [], warnings: [], branches: [], skippedBranches: 0, branchPrefixes: ['feat/'], pinned: false
+  specs, submodules: [], warnings: [], branches: [], skippedBranches: 0, branchPrefixes: ['feat/'], pinned: false, approvalGates: 'off', gateCheck: 'installed'
 });
 
 const tracking = (issues: Record<string, GateIssue>): Tracking => ({ fetchedAt: '', user: 'mai', repos: [], issues, prs: {}, warnings: [] });

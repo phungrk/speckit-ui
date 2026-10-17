@@ -54,7 +54,7 @@ export default defineConfig(({ mode }) => {
   };
 });
 
-function buildCommit() {
+export function buildCommit() {
   if (process.env.GITHUB_SHA) return process.env.GITHUB_SHA.slice(0, 7);
   try { return execSync('git rev-parse --short=7 HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); } catch { return 'dev'; }
 }

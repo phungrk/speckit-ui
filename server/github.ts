@@ -1,6 +1,7 @@
 // Reads Spec Kit projects from GitHub (REST API). Shared by the server and the static build,
 // so nothing here uses Node APIs; the HTTP handlers live in routes.ts.
 import type { AccessibleRepo, BranchInfo, DetectResult, DetectTarget, Project, RepoListing, SpecFeature, SpecVariant } from '../src/project/types.ts';
+import { CLAUDE_SETTINGS, GATE_HOOK_FILE, GATE_HOOK_PATH } from '../src/project/gates.ts';
 import { commandPrefix, parseAnalysis, parseChecklist, parseConstitution, parseGitmodules, parsePlan, parseSpec, parseTasks, parseUiConfig } from './parse.ts';
 
 const API = 'https://api.github.com';
@@ -75,7 +76,7 @@ const SPEC_DIR = /^\d{3,}-[^/]+$/;
 const wantedInSpec = (f: string) => ['spec.md', 'plan.md', 'tasks.md', 'analysis.md', ...DOCS].includes(f) || /^checklists\/[^/]+\.md$/.test(f);
 
 /** A spec folder parsed from its files; `read(f)` gives the text of a file in the folder. */
-function buildFeature(dir: string, files: string[], read: (f: string) => string | null, sha: string): SpecFeature {
+export function buildFeature(dir: string, files: string[], read: (f: string) => string | null, sha: string): SpecFeature {
   const spec = read('spec.md');
   const plan = read('plan.md');
   const tasks = read('tasks.md');
@@ -134,7 +135,7 @@ async function loadAt(src: Source, ref: string, sha: string, committedAt: string
   }
 
   // Only the files the UI renders are downloaded.
-  const wanted = ['.specify/memory/constitution.md', '.specify/integration.json', '.specify/speckit-ui.json', '.gitmodules'].filter(p => blobs.includes(p));
+  const wanted = ['.specify/memory/constitution.md', '.specify/integration.json', '.specify/speckit-ui.json', '.gitmodules', CLAUDE_SETTINGS].filter(p => blobs.includes(p));
   for (const [dir, files] of specFiles) for (const f of files) if (wantedInSpec(f)) wanted.push(`specs/${dir}/${f}`);
   const texts = new Map<string, string>();
   await pool(wanted, CONCURRENCY, async p => {
@@ -173,7 +174,10 @@ async function loadAt(src: Source, ref: string, sha: string, committedAt: string
     branches: [],
     skippedBranches: 0,
     branchPrefixes: ui.branchPrefixes,
-    pinned: !!src.ref
+    pinned: !!src.ref,
+    approvalGates: ui.approvalGates,
+    // The gate check counts as installed when the script is there and settings.json runs it (specs/004 R7).
+    gateCheck: blobs.includes(GATE_HOOK_PATH) && (read(CLAUDE_SETTINGS) ?? '').includes(GATE_HOOK_FILE) ? 'installed' : 'missing'
   };
   const dirShas = Object.fromEntries(specs.flatMap(f => { const t = treeShas.get(`specs/${f.slug}`); return t ? [[f.slug, t]] : []; }));
   const mainPointers = Object.fromEntries([...pointers].flatMap(([p, v]) => (v ? [[p, v]] : [])));
