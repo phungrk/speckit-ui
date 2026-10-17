@@ -38,6 +38,7 @@ Mỗi mục ghi quyết định, lý do và các phương án đã cân nhắc. 
   - Kết quả đọc một thư mục spec được cache theo **SHA của cây thư mục đó**. Nội dung theo SHA không bao giờ đổi, nên giữ được mãi trong giới hạn LRU (mặc định 64 mục).
   - Lần làm mới gọi lại `branches` (1 lần) và so SHA từng nhánh. Nhánh không đổi thì dùng lại kết quả; nhánh đổi thì đọc lại theo R2, nhưng các thư mục có SHA đã biết vẫn lấy từ cache.
   - `getProject` hiện chỉ kiểm tra SHA của nhánh chính trước khi dùng lại cache. Từ giờ nó kiểm tra cả danh sách SHA của các nhánh.
+  - Hai lần gọi này chạy song song. Nếu nhánh chính đổi `branchPrefixes`, danh sách nhánh được lấy lại theo tiền tố mới.
 - **Rationale**: Làm mới khi không có gì thay đổi chỉ tốn 2 lần gọi (commit của nhánh chính và danh sách nhánh), nên đạt SC-002 (3 giây). Spec vừa đẩy lên hiện ngay ở lần làm mới đầu (SC-001).
 - **Alternatives considered**: Cache theo tên nhánh có hạn dùng: sai ngay khi có push mới. Đã loại.
 
@@ -48,6 +49,7 @@ Mỗi mục ghi quyết định, lý do và các phương án đã cân nhắc. 
   - "Đi xa nhất" = số bước có trạng thái `done` theo `phaseStatus`.
   - Nếu bằng nhau thì chọn bản có commit mới nhất. Ngày commit chỉ lấy khi cần phá hoà, bằng `GET commits/{sha}` (1 lần mỗi nhánh, có cache).
   - Nhiều nhánh cùng SHA thư mục (nhánh tạo từ nhánh khác) được gộp thành **một bản**, kèm danh sách các nhánh.
+  - Bản gộp mang tên nhánh có tên chứa slug, nếu không có thì nhánh có tên nhỏ nhất. Ví dụ `003-search` trên cả `feat/003-search` và `feat/004-share` hiện là `feat/003-search`. Commit và con trỏ submodule cũng lấy từ nhánh đó.
 - **Rationale**: Bản trên nhánh thường đi trước bản trên nhánh chính (đã có plan, tasks). Gộp theo SHA khiến hai nhánh mang cùng spec không tạo ra hai bản giống nhau.
 - **Alternatives considered**: Luôn ưu tiên nhánh chính: sẽ giấu đúng phần việc cần duyệt. Đã loại.
 

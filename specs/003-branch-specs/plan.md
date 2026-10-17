@@ -31,7 +31,7 @@ Khi mở hoặc chuyển sang một repo, ứng dụng đọc nhánh chính và 
 
 **Project Type**: Ứng dụng web: SPA React cộng server Node nhỏ, kèm bản build tĩnh.
 
-**Performance Goals** (SC-002): 20 nhánh `feat/…`, lần mở đầu ≤ 10 giây; làm mới khi không có gì đổi ≤ 3 giây.
+**Performance Goals** (SC-002): 20 nhánh `feat/…`, lần mở đầu ≤ 10 giây; làm mới khi không có gì đổi ≤ 3 giây. Đo khi cài đặt (giả lập 80 ms mỗi lần gọi): 2,1 giây và khoảng 0,2 giây (tasks.md, T023).
 
 **Constraints**:
 - CSP bản Pages chỉ cho `api.github.com`; không dùng GraphQL.

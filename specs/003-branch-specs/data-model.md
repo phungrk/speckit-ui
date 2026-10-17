@@ -15,7 +15,7 @@ Các kiểu bổ sung cho `src/project/types.ts`. Định dạng issue theo dõi
 
 | Trường | Kiểu | Ghi chú |
 |---|---|---|
-| `branches` | string[] | Các nhánh có cùng SHA thư mục, gộp lại (R4) |
+| `branches` | string[] | Các nhánh có cùng SHA thư mục, gộp lại (R4). Nhánh có tên chứa slug đứng đầu, sau đó theo tên tăng dần |
 | `treeSha` | string | SHA cây `specs/NNN-slug` trên các nhánh đó |
 | `sha` | string | Commit của nhánh đầu tiên trong `branches` |
 | `onDefault` | boolean | Bản này trùng với nhánh chính |
