@@ -122,6 +122,8 @@ export interface GateIssue {
   url: string;
   state: 'open' | 'closed';
   gates: Partial<Record<GateKey, GateApproval>>;
+  /** GitHub's updated_at; the newer copy wins when a fresh write meets a stale list. */
+  updatedAt: string | null;
 }
 
 export interface Submodule { path: string; repo: string | null; sha: string | null }

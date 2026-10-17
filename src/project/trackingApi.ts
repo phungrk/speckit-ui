@@ -33,9 +33,12 @@ export async function fetchTracking(repo: string, refresh = false): Promise<Trac
   return data.tracking;
 }
 
-/** Records a gate decision in the spec's tracking issue in `repo` and returns fresh tracking. */
-export async function postGate(repo: string, slug: string, gate: GateKey, action: GateAction, note = ''): Promise<Tracking> {
-  const data = await api<{ tracking?: Tracking }>('/api/gates', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ repo, slug, gate, action, note }) });
+/** What a gate decision returns: tracking with the write applied, and whether anything was written. */
+export interface Decided { tracking: Tracking; unchanged: boolean }
+
+/** Records a gate decision in the spec's tracking issue in `repo`. */
+export async function postGate(repo: string, slug: string, gate: GateKey, action: GateAction, note = ''): Promise<Decided> {
+  const data = await api<{ tracking?: Tracking; unchanged?: boolean }>('/api/gates', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ repo, slug, gate, action, note }) });
   if (!data.tracking) throw new Error('Gate update failed.');
-  return data.tracking;
+  return { tracking: data.tracking, unchanged: !!data.unchanged };
 }

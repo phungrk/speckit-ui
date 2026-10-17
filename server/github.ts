@@ -36,7 +36,9 @@ export class GitHubError extends Error {
 
 export async function gh(src: Source, path: string, raw = false, write?: { method: 'POST' | 'PATCH'; body: unknown }): Promise<Response> {
   const res = await fetch(API + path, {
-    ...(write ? { method: write.method, body: JSON.stringify(write.body) } : {}),
+    // Reads revalidate with GitHub (ETag): a browser would otherwise serve GitHub's
+    // max-age=60 copy, which is how an approval used to "come back" (specs/001 R1).
+    ...(write ? { method: write.method, body: JSON.stringify(write.body) } : { cache: 'no-cache' as RequestCache }),
     headers: {
       Accept: raw ? 'application/vnd.github.raw+json' : 'application/vnd.github+json',
       'X-GitHub-Api-Version': '2022-11-28',

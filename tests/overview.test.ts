@@ -21,7 +21,7 @@ const project = (specs: SpecFeature[]): Project => ({
 
 const tracking = (issues: Record<string, GateIssue>): Tracking => ({ fetchedAt: '', user: 'mai', repos: [], issues, prs: {}, warnings: [] });
 const issue = (slug: string, approved: string[]): GateIssue => ({
-  number: 1, url: 'u', state: 'open',
+  number: 1, url: 'u', state: 'open', updatedAt: null,
   gates: parseIssueBody(newIssueBody(slug, 'x', Object.fromEntries(approved.map(g => [g, { approved: true }]))))!.gates
 });
 

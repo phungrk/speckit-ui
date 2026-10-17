@@ -5,7 +5,7 @@ import { GitHubError, clearProjectCache, detectSpeckit, getProject, identityFor,
 import { clearTrackingCache, decideGate, getTracking } from '../server/tracking';
 import type { CopilotMsg } from './copilot/Copilot';
 import { OfflineError, requestCopilot, toTurns } from './copilot/api';
-import type { GateAction } from './project/trackingApi';
+import type { Decided, GateAction } from './project/trackingApi';
 import { api, fetchTracking, postGate } from './project/trackingApi';
 import type { DetectResult, DetectTarget, GateKey, Project, ProjectResponse, RepoListing, SessionResponse, Tracking } from './project/types';
 
@@ -21,7 +21,8 @@ export interface Backend {
   /** null when the server has no GitHub configuration (demo mode). */
   project(repo: string, refresh: boolean): Promise<Project | null>;
   tracking(repo: string, refresh: boolean): Promise<Tracking | null>;
-  decide(repo: string, slug: string, gate: GateKey, action: GateAction, note: string): Promise<Tracking>;
+  /** Resolves once GitHub has the decision; the tracking it returns already shows it. */
+  decide(repo: string, slug: string, gate: GateKey, action: GateAction, note: string): Promise<Decided>;
   /** Throws OfflineError when no Claude credentials are available. */
   copilot(context: string, hist: CopilotMsg[]): Promise<string>;
   /** Forget everything loaded in this tab (Disconnect, Sign out). */
@@ -121,8 +122,8 @@ export function browserBackend(settings: Settings): Backend {
       const project = await getProject(src);
       const f = project.specs.find(x => x.slug === slug);
       if (!f) throw new Error(`No spec ${slug} at ${project.sha.slice(0, 7)}.`);
-      await decideGate(src, project, f, gate, action, note.trim().slice(0, 2000));
-      return getTracking(src, project, true);
+      const { tracking, unchanged } = await decideGate(src, project, f, gate, action, note.trim().slice(0, 2000));
+      return { tracking, unchanged };
     },
     copilot: (context, hist) => browserCopilot(settings.anthropicKey, context, hist),
     reset: resetCaches
