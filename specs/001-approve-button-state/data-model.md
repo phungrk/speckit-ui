@@ -15,13 +15,19 @@
 |---|---|---|
 | khoá | `identity\|owner/repo\|slug` | Không lẫn giữa người dùng và repo |
 | `issue` | GateIssue | Kết quả của lần ghi thành công |
-| `at` | number | Hết hạn sau 2 phút |
+| `at` | number | Hết hạn sau 5 phút |
 
 **Quy tắc gộp** (`loadTracking`): với mỗi `slug` có RecentWrite còn hạn:
 - Nếu danh sách đọc được không có issue cho slug đó, hoặc `updatedAt` trong danh sách cũ hơn của RecentWrite, thì dùng `RecentWrite.issue`.
 - Nếu không, dùng bản trong danh sách và xoá RecentWrite.
 
 Disconnect và Sign out xoá toàn bộ, qua `clearTrackingCache()`.
+
+## KnownIssue (mới, chỉ trong bộ nhớ, `server/tracking.ts`)
+
+Bảng `owner/repo|slug → số issue`, dùng chung trong tiến trình và không khoá theo người dùng.
+- Chỉ dùng để không tạo issue theo dõi thứ hai (analysis U1).
+- Không chứa nội dung issue. Mọi lần đọc vẫn dùng token của người dùng hiện tại.
 
 ## Kết quả ghi (`decideGate`)
 

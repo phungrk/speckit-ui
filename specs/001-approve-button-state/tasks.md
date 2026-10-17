@@ -47,7 +47,7 @@ Cấu trúc hiện có: SPA trong `src/`, logic GitHub dùng chung trong `server
 - [ ] T003 [P] Make every read in `gh()` in `server/github.ts` use `cache: 'no-cache'`, so the browser revalidates with GitHub instead of serving its 60-second HTTP cache (R1, R3). Leave writes as they are.
 - [ ] T004 Add the pure function `applyIssue(tracking, slug, issue): Tracking` to `server/tracking.ts`. It returns a new tracking whose `issues[slug]` is `issue`, and leaves the input unchanged (R2).
 - [ ] T005 Add the recent-writes store to `server/tracking.ts`:
-  - a `Map` keyed `identity|owner/repo|slug` holding `{ issue, at }` for 2 minutes;
+  - a `Map` keyed `identity|owner/repo|slug` holding `{ issue, at }` for 5 minutes, longer than the 2-minute window of SC-003 (A1);
   - `loadTracking` merges it into the listed issues, keeping whichever has the newer `updatedAt` and dropping recent writes that GitHub has caught up with;
   - `clearTrackingCache()` empties it (data-model.md → RecentWrite).
 - [ ] T006 [P] Write foundational tests in `tests/tracking.test.ts`:
@@ -73,7 +73,8 @@ Cấu trúc hiện có: SPA trong `src/`, logic GitHub dùng chung trong `server
   - `decideGate(...,'approve')` returns `tracking` where the gate is approved by the current user;
   - `getTracking(src, project, true)` right after still shows it approved (FR-004);
   - `POST /api/gates` through `route()` returns the same `{ issue, unchanged: false, tracking }` without re-listing PRs;
-  - `browserBackend.decide` returns the same result (FR-009).
+  - `browserBackend.decide` returns the same result (FR-009);
+  - approving Implement returns the issue with `state: 'closed'` (G1).
 
 ### Implementation for User Story 1
 
@@ -100,14 +101,17 @@ Cấu trúc hiện có: SPA trong `src/`, logic GitHub dùng chung trong `server
 - [ ] T012 [P] [US2] Write tests in `tests/tracking.test.ts`:
   - five concurrent `decideGate` approvals for one spec make exactly 1 PATCH and 1 comment, and four results have `unchanged: true` (SC-002);
   - approving a gate already approved by `@lan` makes no write and returns `unchanged: true` with `by: 'lan'` (FR-007);
-  - the first approval creates the issue, and a second approval of another gate right after, with `staleIssueList` on, reuses it and does not create a second issue.
+  - the first approval creates the issue, and a second approval of another gate right after, with `staleIssueList` on, reuses it and does not create a second issue;
+  - the same holds when the second approval comes from **another identity** (U1): exactly one `POST /issues`.
 
 ### Implementation for User Story 2
 
 - [ ] T013 [US2] Serialise `decideGate` per `owner/repo|slug` with a promise-chain lock in `server/tracking.ts`, so later calls see earlier results (R4)
 - [ ] T014 [US2] Make `decideGate` in `server/tracking.ts` idempotent:
   - after reading the issue with `GET /issues/{n}`, if the gate is already in the target state (approved for `approve`, not approved for `reopen`), return `{ issue, unchanged: true, tracking }` without a PATCH or comment;
-  - find an existing issue through the merged tracking (recent writes included) before creating one.
+  - find an existing issue through the merged tracking (recent writes included) before creating one;
+  - also keep a process-wide `owner/repo|slug → issue number` map that is not keyed by identity. Use it only to avoid creating a duplicate tracking issue; the user's own token still reads the issue with `GET /issues/{n}`, so access is still checked (U1);
+  - read the issue and return `unchanged` before running the gate checks, so an already-approved gate answers "Already approved" rather than 409 (C1). The checks still run before any write.
 - [ ] T015 [US2] In `src/project/GatePanel.tsx`:
   - guard `decide` with a `useRef` flag set synchronously before `setBusy`, so a second click is ignored even before React re-renders (FR-002, FR-003);
   - change `onDecide` to return `{ error: string | null; unchanged: boolean }`;

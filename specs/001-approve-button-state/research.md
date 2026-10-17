@@ -38,7 +38,7 @@ Ngoài ra, bước 4 đọc lại PR của mọi repo submodule, nên mất vài
 
 - **Decision**:
   - Lệnh đọc GitHub dùng `fetch(…, { cache: 'no-cache' })`. Trình duyệt luôn hỏi lại GitHub bằng ETag; nếu dữ liệu không đổi thì GitHub trả 304, rẻ và không tính vào giới hạn số lần gọi.
-  - `server/tracking.ts` giữ thêm một **bản ghi gần đây** trong bộ nhớ: mỗi lần ghi thành công lưu `{ issue, updatedAt }`, khoá theo `identity|repo|slug`, trong 2 phút.
+  - `server/tracking.ts` giữ thêm một **bản ghi gần đây** trong bộ nhớ: mỗi lần ghi thành công lưu `{ issue, updatedAt }`, khoá theo `identity|repo|slug`, trong 5 phút. 5 phút dài hơn khoảng 2 phút mà SC-003 đo.
   - `loadTracking` gộp bản ghi gần đây vào danh sách đọc được. Với mỗi spec, giữ bản có `updatedAt` mới hơn.
 - **Rationale**:
   - FR-004 và SC-003: làm mới nhiều lần trong 2 phút không quay lại nút Approve.
@@ -55,12 +55,13 @@ Ngoài ra, bước 4 đọc lại PR của mọi repo submodule, nên mất vài
   2. **Trong logic ghi (dùng chung):**
      - Ghi lần lượt từng cái theo khoá `repo|slug`. Hai lệnh duyệt cùng spec trong một tiến trình (cùng tab, hoặc cùng server) chạy nối tiếp nhau.
      - **Ghi lặp lại thì không làm gì (idempotent):** `decideGate` đọc lại issue bằng `GET /issues/{n}`. Nếu cổng đã ở trạng thái đích (đã duyệt khi bấm Approve, chưa duyệt khi Reopen) thì không PATCH và không comment, mà trả `{ issue, unchanged: true }` kèm người đã duyệt thật (FR-007, US2-AS3).
-     - Lần duyệt đầu tiên tạo issue: nhờ bản ghi gần đây (R3), lệnh duyệt thứ hai biết issue đã tồn tại, nên không tạo issue thứ hai.
+     - Lần duyệt đầu tiên tạo issue: nhờ bản ghi gần đây (R3), lệnh duyệt thứ hai của cùng người biết issue đã tồn tại. Với người khác, tiến trình còn giữ bảng `repo|slug → số issue` dùng chung (không khoá theo người dùng). Bảng này chỉ dùng để tránh tạo trùng; việc đọc issue vẫn dùng token của từng người (analysis U1).
+     - Kiểm tra "đã ở trạng thái đích" chạy trước kiểm tra cổng, nên cổng đã duyệt trả "Already approved" thay vì 409 (analysis C1).
 - **Rationale**: Nhiều lớp bảo vệ ở những chỗ rẻ. Hai tab hoặc hai người khác nhau vẫn được chặn nhờ việc đọc lại issue ngay trước khi ghi.
 - **Alternatives considered**:
   - **Khoá phía GitHub:** GitHub không có compare-and-swap cho thân issue.
   - **Chỉ khoá giao diện:** không chặn được hai tab.
-- **Giới hạn đã biết**: hai người bấm cách nhau vài mili-giây trên hai server hoặc hai trình duyệt khác nhau vẫn có thể cùng ghi. Kết quả vẫn đúng (cổng đã duyệt), chỉ thừa một comment. Chấp nhận được với công cụ nội bộ.
+- **Giới hạn đã biết**: hai người bấm cách nhau vài mili-giây trên hai server hoặc hai trình duyệt khác nhau vẫn có thể cùng ghi. Kết quả vẫn đúng (cổng đã duyệt), chỉ thừa một comment. Trên bản Pages, vì mỗi trình duyệt có bộ nhớ riêng, lần duyệt **đầu tiên** của một spec từ hai trình duyệt trong vài giây đầu vẫn có thể tạo hai issue. Chấp nhận được với công cụ nội bộ.
 
 ## R5. Lỗi khi duyệt
 

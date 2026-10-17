@@ -29,6 +29,13 @@ Response 200:
 2. Hai lệnh cho cùng `repo|slug` trong một tiến trình chạy nối tiếp nhau, và lệnh thứ hai thấy kết quả của lệnh thứ nhất.
 3. `getTracking` trong 2 phút sau khi ghi không trả trạng thái cổng cũ hơn lần ghi đó (so bằng `updatedAt`).
 4. Lệnh đọc GitHub gửi `cache: 'no-cache'`, nên trình duyệt không dùng bản cũ trong cache HTTP.
+5. **Ghi được một phần (I1):** khi PATCH đã được GitHub nhận nhưng việc đăng comment lỗi, lệnh vẫn trả lỗi.
+   - Giao diện báo lỗi, và nút Approve dùng lại được.
+   - Issue thật đã ghi duyệt, nên lần làm mới sau hiện đã duyệt (nhờ bản ghi gần đây).
+   - Lần bấm sau trả `unchanged: true` và không ghi gì thêm. Lỗi comment chỉ làm thiếu một comment, không bao giờ làm thừa một lần duyệt.
+6. **Một issue cho mỗi spec (U1):** trong một tiến trình, lệnh duyệt đầu tiên của một spec tạo issue và ghi lại số issue cho `repo|slug`, dùng chung cho mọi người dùng.
+   - Lệnh duyệt sau, của bất kỳ ai, dùng lại số issue đó thay vì tạo mới.
+   - Lệnh đó vẫn đọc issue bằng token của chính người dùng, nên ai không có quyền thì vẫn nhận 404.
 
 ## Giao diện (GatePanel)
 
