@@ -2,14 +2,14 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import Anthropic from '@anthropic-ai/sdk';
 
 const MODEL = process.env.COPILOT_MODEL || 'claude-opus-5-5';
-const MAX_CONTEXT = 60_000;
+const MAX_CONTEXT = 150_000;
 const MAX_MESSAGE = 4_000;
 const MAX_TURNS = 8;
 const RATE_LIMIT = 15; // requests per minute per client
 
 export const SYSTEM_PROMPT = `You are Copilot inside a Spec Kit (spec-driven development) workspace used by a cross-functional team.
 Answer only from the project context provided. If something is not in the context, say so plainly.
-Tailor the answer to the user's role. Be brief: at most 6 short lines or bullets, no preamble, no headings.
+Tailor the answer to the user's role and answer in the language the user writes in. Be brief: at most 6 short lines or bullets, no preamble, no headings.
 Always cite artifact IDs exactly as written (FR-001, SC-001, US1, T009, A1, Q2) so the user can jump to them.
 Use "- " for bullets and **bold** sparingly. Never claim you changed files; you only suggest.`;
 
@@ -31,7 +31,7 @@ function rateLimited(key: string, now = Date.now()) {
 export function validate(body: unknown): string | null {
   if (!body || typeof body !== 'object') return 'Body must be a JSON object.';
   const { context, messages } = body as Partial<CopilotRequest>;
-  if (typeof context !== 'string' || context.length > MAX_CONTEXT) return 'context must be a string under 60 KB.';
+  if (typeof context !== 'string' || context.length > MAX_CONTEXT) return 'context must be a string under 150,000 characters.';
   if (!Array.isArray(messages) || messages.length === 0 || messages.length > MAX_TURNS) return `messages must hold 1–${MAX_TURNS} turns.`;
   for (const [i, m] of messages.entries()) {
     if (!m || (m.role !== 'user' && m.role !== 'assistant') || typeof m.content !== 'string' || !m.content.trim() || m.content.length > MAX_MESSAGE) return `messages[${i}] is invalid.`;
