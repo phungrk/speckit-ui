@@ -11,7 +11,8 @@
     "build": "tsc -b && vite build",
     "start": "node --env-file-if-exists=.env server/index.ts",
     "typecheck": "tsc -b",
-    "test": "vitest run"
+    "test": "vitest run",
+    "build:pages": "VITE_STATIC=1 VITE_BASE=/speckit-ui/ npm run build"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.135.0",
