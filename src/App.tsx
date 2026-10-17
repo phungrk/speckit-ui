@@ -4,7 +4,7 @@ import type { ActivityItem, Feature, QaResult, Role, Task } from './types';
 import { Icon, Label } from './ui';
 import { NewSpecDialog, type NewSpec } from './NewSpecDialog';
 import { Copilot, GateBrief, type AskFn, type CopilotMsg } from './copilot/Copilot';
-import { buildContext, gateBrief, refPhase, type WorkspaceState } from './copilot/context';
+import { CP_REF, CP_SUGGEST, buildContext, gateBrief, refPhase, type WorkspaceState } from './copilot/context';
 import { OfflineError, requestCopilot } from './copilot/api';
 import { offlineAnswer } from './copilot/offline';
 import { SpecView } from './views/SpecView';
@@ -189,7 +189,7 @@ export function App() {
           <button role="tab" aria-selected={rtab === 'gate'} onClick={() => setRtab('gate')}>Gate & activity</button>
           <button role="tab" aria-selected={rtab === 'ai'} onClick={() => setRtab('ai')}><span className="sk-ai-badge">AI</span>Copilot{msgs.length > 0 && <span className="sk-rtab-n">{Math.ceil(msgs.length / 2)}</span>}</button>
         </div>
-        {rtab === 'ai' ? <Copilot role={role} phase={phase} f={f} msgs={msgs} setMsgs={setMsgs} ask={ask} seed={seed} clearSeed={() => setSeed(null)} onRef={onRef} onShare={onShare} /> : <>
+        {rtab === 'ai' ? <Copilot label={<>Reading <b>{f.id}</b> · {phase.n} · as {role}</>} tag={`${f.id} · ${phase.n} · ${role}`} audience={role} suggestions={CP_SUGGEST[role]} placeholder={`Ask about ${f.title.toLowerCase()}…`} refPattern={CP_REF} msgs={msgs} setMsgs={setMsgs} ask={ask} seed={seed} clearSeed={() => setSeed(null)} onRef={onRef} onShare={onShare} /> : <>
           <div className="sk-pad">
             <Label>Gate · {phase.n}</Label>
             <p className="sk-what">{phase.what}</p>

@@ -4,7 +4,7 @@ import { DocHead, Label } from '../ui';
 
 export function Stories({ stories }: { stories: Story[] }) {
   return <>{stories.map(u => <article key={u.id} className="sk-story">
-    <div className="sk-story-h"><span className="tag tag-accent">{u.p}</span><span className="sk-id">{u.id}</span><h5>{u.title}</h5></div>
+    <div className="sk-story-h">{u.p && <span className="tag tag-accent">{u.p}</span>}<span className="sk-id">{u.id}</span><h5>{u.title}</h5></div>
     <p>{u.text}</p>
     <ol className="sk-ac">{u.ac.map((a, i) => <li key={i}><b>Given</b> {a[0]}, <b>when</b> {a[1]}, <b>then</b> {a[2]}.</li>)}</ol>
   </article>)}</>;

@@ -1,0 +1,25 @@
+/* Additions for the GitHub-backed workspace. Same tokens and rules as workspace.css. */
+.sk-bar i.skipped{background:transparent;box-shadow:inset 0 0 0 1px var(--color-neutral-400)}
+.sk-cell.skipped b,.sk-cell.skipped .sk-st{color:color-mix(in srgb,var(--color-text) 45%,transparent)}
+.sk-plain{color:inherit;text-decoration:none}.sk-plain:hover{color:var(--color-accent)}
+.sk-sync{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--color-text);text-decoration:none;font-variant-numeric:tabular-nums;white-space:nowrap}.sk-sync:hover{color:var(--color-accent)}.sk-sync svg{color:var(--color-accent)}
+.sk-props{list-style:none;margin:0 0 var(--space-3);padding:0;border-top:1px solid var(--color-divider)}
+.sk-props li{display:grid;grid-template-columns:96px 1fr;gap:8px;padding:8px 0;border-bottom:1px solid var(--color-divider);font-size:13px}
+.sk-props span{font-size:12px;color:color-mix(in srgb,var(--color-text) 60%,transparent)}.sk-props b{font-weight:600;overflow-wrap:anywhere;display:flex;align-items:center;gap:4px}.sk-props b svg{color:var(--color-accent)}
+.sk-files{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:13px}
+.sk-files a{display:inline-flex;align-items:center;gap:6px;color:var(--color-text);text-decoration:none}.sk-files a:hover{color:var(--color-accent)}.sk-files svg{color:var(--color-accent);flex:none}
+.sk-fail{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:600;color:var(--color-accent-700)}
+.sk-check-ro{cursor:default}
+.sk-opts-1{grid-template-columns:1fr}
+.sk-cellbox-link{color:var(--color-text);text-decoration:none}.sk-cellbox-link:hover{background:var(--color-surface)}.sk-cellbox-link:focus-visible{outline:2px solid var(--color-accent);outline-offset:-2px}
+.sk-md{font-size:14px;line-height:1.55}.sk-md>:first-child{margin-top:0}.sk-md>:last-child{margin-bottom:0}
+.sk-md p{margin:0 0 var(--space-2);text-wrap:pretty}
+.sk-md ul,.sk-md ol{margin:0 0 var(--space-3);padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.sk-md h1,.sk-md h2,.sk-md h3,.sk-md h4{font-size:16px;margin:var(--space-4) 0 var(--space-2)}
+.sk-md code{font-size:13px;background:var(--color-surface);padding:0 4px}
+.sk-md pre{background:var(--color-surface);border:1px solid var(--color-divider);padding:12px;overflow:auto;margin:0 0 var(--space-3)}.sk-md pre code{background:none;padding:0}
+.sk-md table{margin-bottom:var(--space-3)}.sk-md blockquote{margin:0 0 var(--space-3);padding-left:12px;border-left:3px solid var(--color-divider)}
+.sk-md input[type=checkbox]{accent-color:var(--color-accent);margin-right:6px}
+.sk-boot{min-height:100vh;display:flex;flex-direction:column;gap:var(--space-4);padding:var(--space-8);max-width:720px}.sk-boot .nav-brand{color:var(--color-accent);font-size:20px;font-weight:800}
+.sk-boot-err{display:flex;flex-direction:column;gap:var(--space-3)}.sk-boot-err .sk-warn{font-size:15px}
+@media (max-width:760px){.sk-sync span{display:none}.sk-boot{padding:var(--space-4)}}
