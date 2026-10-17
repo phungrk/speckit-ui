@@ -198,9 +198,9 @@ Xem plan.md → Project Structure.
 
   Link to it from T021.
 - [ ] T026 [P] Update spec 001's Non-Goal line in `specs/001-approve-button-state/spec.md` to say spec 004 replaces it.
-- [ ] T027 Run quickstart scenarios 1 and 2 with Playwright against a synthetic GitHub, on Pages and on the server build, including 390 px width. Check that no `/speckit-plan` text is copyable while the step is blocked (SC-001), and time the unlock after Approve (SC-002).
+- [ ] T027 Run `specs/004-approval-gates-next/quickstart.md` scenarios 1 and 2 with Playwright against a synthetic GitHub, on Pages and on the server build, including 390 px width. Check that no `/speckit-plan` text is copyable while the step is blocked (SC-001), and time the unlock after Approve (SC-002).
 - [ ] T028 [P] Check demo-mode pixel parity of `src/App.tsx` against `main` at 1440×900 and 924×540, on the main screen and the New spec dialog (constitution IV).
-- [ ] T029 Run quickstart scenario 3:
+- [ ] T029 Run `specs/004-approval-gates-next/quickstart.md` scenario 3 against `dist/speckit-gate.mjs`:
   - with `dist/speckit-gate.mjs` in a temp repo and a fake `gh`;
   - in a fresh Claude Code session on a scratch repo with the hook installed, confirm a typed `/speckit-plan` and a model `Skill` call are both blocked;
   - record the real `PreToolUse` `tool_input` field names and adjust `hook/speckit-gate.ts` if needed (R2).
