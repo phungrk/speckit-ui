@@ -76,7 +76,7 @@ export function Overview({ user, backend, pins, onOpen, onAllRepos, onAuthLost, 
               {b.items.length === 0
                 ? <p className="text-muted" style={{ fontSize: 13 }}>Every spec is done.</p>
                 : <ul className="sk-list">{b.items.map(it => <li key={it.slug}>
-                  <button className="sk-qitem" onClick={() => onOpen(repo, it.slug, it.step)}><b>{it.label}</b><span>{it.slug} · {it.title}</span><Icon n="arrow" s={14} /></button>
+                  <button className="sk-qitem" onClick={() => onOpen(repo, it.slug, it.step)}><b>{it.label}</b><span>{it.slug}{it.branch ? ` · ${it.branch}` : ''} · {it.title}</span><Icon n="arrow" s={14} /></button>
                 </li>)}</ul>}
             </>}
           </section>;

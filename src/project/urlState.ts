@@ -7,12 +7,14 @@ export type View = 'overview' | 'repos';
 export interface UrlState {
   repo: string | null;
   spec: string | null;
+  /** Branch of the spec version, for unmerged specs (specs/003). */
+  branch: string | null;
   /** Step index 0–6 */
   step: number | null;
   view: View | null;
 }
 
-export const URL_KEYS = ['repo', 'spec', 'step', 'view'] as const;
+export const URL_KEYS = ['repo', 'spec', 'branch', 'step', 'view'] as const;
 
 /** The app keeps the step as an index; the URL uses its name, e.g. "plan". */
 export const stepToParam = (step: number | null): string | null => (step == null ? null : PHASES[step]?.k ?? null);
@@ -21,7 +23,7 @@ export const paramToStep = (name: string | null): number | null => { const i = P
 export function readUrl(search: string = location.search): UrlState {
   const q = new URLSearchParams(search);
   const view = q.get('view');
-  return { repo: q.get('repo'), spec: q.get('spec'), step: paramToStep(q.get('step')), view: view === 'overview' || view === 'repos' ? view : null };
+  return { repo: q.get('repo'), spec: q.get('spec'), branch: q.get('branch'), step: paramToStep(q.get('step')), view: view === 'overview' || view === 'repos' ? view : null };
 }
 
 /** The query string for `s`, built from URL_KEYS only. */
@@ -29,6 +31,7 @@ export function queryFor(s: Partial<UrlState>): string {
   const q = new URLSearchParams();
   if (s.repo) q.set('repo', s.repo);
   if (s.spec) q.set('spec', s.spec);
+  if (s.branch) q.set('branch', s.branch);
   const step = stepToParam(s.step ?? null);
   if (step) q.set('step', step);
   if (s.view) q.set('view', s.view);

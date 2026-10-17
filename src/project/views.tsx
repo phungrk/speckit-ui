@@ -92,7 +92,7 @@ export function LivePlan({ f, project }: { f: SpecFeature; project: Project }) {
       <table className="table"><tbody>{p.checks.map(([k, ok]) => <tr key={k}><td>{k}</td><td style={{ width: 110 }}>{ok ? <span className="sk-pass"><Icon n="check" s={14} />Pass</span> : <span className="sk-fail"><Icon n="alert" s={14} />Not ticked</span>}</td></tr>)}</tbody></table>
     </section>}
     {artifacts.length > 0 && <section className="sk-sec"><Label>Artifacts</Label>
-      <div className="sk-cells">{artifacts.map(a => <a key={a} className="sk-cellbox sk-cellbox-link" href={blobUrl(project, `specs/${f.slug}/${a}`)} target="_blank" rel="noreferrer"><Icon n="file" s={16} /><b>{a}</b><span>Open on GitHub</span></a>)}</div>
+      <div className="sk-cells">{artifacts.map(a => <a key={a} className="sk-cellbox sk-cellbox-link" href={blobUrl({ repo: project.repo, sha: f.sha || project.sha }, `specs/${f.slug}/${a}`)} target="_blank" rel="noreferrer"><Icon n="file" s={16} /><b>{a}</b><span>Open on GitHub</span></a>)}</div>
     </section>}
     <OtherSections md={p.raw} skip={/^(Summary|Technical Context|Constitution Check)/i} />
   </div>;

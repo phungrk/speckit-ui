@@ -11,7 +11,7 @@ const SESSION_MAX_AGE_S = SESSION_MAX_AGE_MS / 1000;
 const STATE_MAX_AGE_S = 600;
 /** Refresh the access token this long before it expires. */
 const REFRESH_EARLY_MS = 60_000;
-const RETURN_KEYS = ['repo', 'spec', 'step', 'view'];
+const RETURN_KEYS = ['repo', 'spec', 'branch', 'step', 'view'];
 
 export interface ServerSession {
   id: string;

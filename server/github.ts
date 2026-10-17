@@ -1,6 +1,6 @@
 // Reads Spec Kit projects from GitHub (REST API). Shared by the server and the static build,
 // so nothing here uses Node APIs; the HTTP handlers live in routes.ts.
-import type { AccessibleRepo, DetectResult, DetectTarget, Project, RepoListing, SpecFeature } from '../src/project/types.ts';
+import type { AccessibleRepo, BranchInfo, DetectResult, DetectTarget, Project, RepoListing, SpecFeature, SpecVariant } from '../src/project/types.ts';
 import { commandPrefix, parseAnalysis, parseChecklist, parseConstitution, parseGitmodules, parsePlan, parseSpec, parseTasks, parseUiConfig } from './parse.ts';
 
 const API = 'https://api.github.com';
@@ -70,7 +70,50 @@ export async function pool<T, R>(items: T[], n: number, fn: (x: T) => Promise<R>
   return out;
 }
 
+interface TreeEntry { path: string; type: string; sha?: string }
+const SPEC_DIR = /^\d{3,}-[^/]+$/;
+const wantedInSpec = (f: string) => ['spec.md', 'plan.md', 'tasks.md', 'analysis.md', ...DOCS].includes(f) || /^checklists\/[^/]+\.md$/.test(f);
+
+/** A spec folder parsed from its files; `read(f)` gives the text of a file in the folder. */
+function buildFeature(dir: string, files: string[], read: (f: string) => string | null, sha: string): SpecFeature {
+  const spec = read('spec.md');
+  const plan = read('plan.md');
+  const tasks = read('tasks.md');
+  const analysis = read('analysis.md');
+  const parsedSpec = spec ? parseSpec(spec) : null;
+  const sorted = [...files].sort();
+  return {
+    id: dir.match(/^\d+/)![0],
+    slug: dir,
+    title: parsedSpec?.title || dir.replace(/^\d+-/, '').replace(/-/g, ' '),
+    files: sorted,
+    spec: parsedSpec,
+    plan: plan ? parsePlan(plan) : null,
+    tasks: tasks ? parseTasks(tasks) : null,
+    analysis: analysis ? parseAnalysis(analysis) : null,
+    checklists: sorted.filter(f => /^checklists\/[^/]+\.md$/.test(f) && read(f) !== null).map(f => parseChecklist(f.slice('checklists/'.length), read(f)!)),
+    docs: Object.fromEntries(DOCS.flatMap(d => (read(d) !== null ? [[d, read(d)!]] : []))),
+    branch: null,
+    sha,
+    unmerged: false,
+    variants: []
+  };
+}
+
+/** What the default branch's load knows about its spec folders, for comparing branches against it. */
+interface MainTrees { specsTreeSha: string | null; dirShas: Record<string, string>; pointers: Record<string, string> }
+const mainTrees = new WeakMap<Project, MainTrees>();
+
+/**
+ * Loads a Spec Kit project: the default branch (or `src.ref` when pinned), plus, unless a branch is
+ * pinned, every spec that differs on a feat/ branch (specs/003).
+ */
 export async function loadProject(src: Source): Promise<Project> {
+  const main = await loadMain(src);
+  return src.ref ? main : withBranches(src, main, await listBranches(src, main.branchPrefixes).catch(branchListFailed));
+}
+
+async function loadMain(src: Source): Promise<Project> {
   const base = `/repos/${src.owner}/${src.repo}`;
   const ref = src.ref || (await json<{ default_branch: string }>(src, base)).default_branch;
   const commit = await json<{ sha: string; commit: { committer?: { date?: string } } }>(src, `${base}/commits/${encodeURIComponent(ref)}`);
@@ -79,7 +122,7 @@ export async function loadProject(src: Source): Promise<Project> {
 
 async function loadAt(src: Source, ref: string, sha: string, committedAt: string | null): Promise<Project> {
   const base = `/repos/${src.owner}/${src.repo}`;
-  const tree = await json<{ tree: { path: string; type: string; sha?: string }[]; truncated: boolean }>(src, `${base}/git/trees/${sha}?recursive=1`);
+  const tree = await json<{ tree: TreeEntry[]; truncated: boolean }>(src, `${base}/git/trees/${sha}?recursive=1`);
   const blobs = tree.tree.filter(e => e.type === 'blob').map(e => e.path);
   const pointers = new Map(tree.tree.filter(e => e.type === 'commit').map(e => [e.path, e.sha ?? null]));
   const warnings: string[] = tree.truncated ? ['The repository tree was too large to list fully; some specs may be missing.'] : [];
@@ -92,11 +135,7 @@ async function loadAt(src: Source, ref: string, sha: string, committedAt: string
 
   // Only the files the UI renders are downloaded.
   const wanted = ['.specify/memory/constitution.md', '.specify/integration.json', '.specify/speckit-ui.json', '.gitmodules'].filter(p => blobs.includes(p));
-  for (const [dir, files] of specFiles) {
-    for (const f of files) {
-      if (['spec.md', 'plan.md', 'tasks.md', 'analysis.md', ...DOCS].includes(f) || /^checklists\/[^/]+\.md$/.test(f)) wanted.push(`specs/${dir}/${f}`);
-    }
-  }
+  for (const [dir, files] of specFiles) for (const f of files) if (wantedInSpec(f)) wanted.push(`specs/${dir}/${f}`);
   const texts = new Map<string, string>();
   await pool(wanted, CONCURRENCY, async p => {
     try { texts.set(p, await (await gh(src, `${base}/contents/${enc(p)}?ref=${sha}`, true)).text()); }
@@ -104,35 +143,23 @@ async function loadAt(src: Source, ref: string, sha: string, committedAt: string
   });
 
   const read = (p: string) => texts.get(p) ?? null;
-  const specs: SpecFeature[] = [...specFiles.keys()].sort().map(dir => {
-    const at = (f: string) => read(`specs/${dir}/${f}`);
-    const spec = at('spec.md');
-    const plan = at('plan.md');
-    const tasks = at('tasks.md');
-    const analysis = at('analysis.md');
-    const parsedSpec = spec ? parseSpec(spec) : null;
-    const files = specFiles.get(dir)!.sort();
-    return {
-      id: dir.match(/^\d+/)![0],
-      slug: dir,
-      title: parsedSpec?.title || dir.replace(/^\d+-/, '').replace(/-/g, ' '),
-      files,
-      spec: parsedSpec,
-      plan: plan ? parsePlan(plan) : null,
-      tasks: tasks ? parseTasks(tasks) : null,
-      analysis: analysis ? parseAnalysis(analysis) : null,
-      checklists: files.filter(f => /^checklists\/[^/]+\.md$/.test(f) && at(f) !== null).map(f => parseChecklist(f.slice('checklists/'.length), at(f)!)),
-      docs: Object.fromEntries(DOCS.flatMap(d => (at(d) !== null ? [[d, at(d)!]] : [])))
-    };
+  const treeShas = new Map(tree.tree.filter(e => e.type === 'tree').map(e => [e.path, e.sha ?? '']));
+  const specs = [...specFiles.keys()].sort().map(dir => {
+    const f = buildFeature(dir, specFiles.get(dir)!, x => read(`specs/${dir}/${x}`), sha);
+    const treeSha = treeShas.get(`specs/${dir}`);
+    // The same folder on a branch is then served from cache.
+    if (treeSha) remember(specDirs, dirKey(src, treeSha), f, MAX_SPEC_DIRS);
+    return f;
   });
 
   const constitution = read('.specify/memory/constitution.md');
   const modules = parseGitmodules(read('.gitmodules') || '').map(m => ({ ...m, sha: pointers.get(m.path) ?? null }));
   // Merge order: .specify/speckit-ui.json if present, else .gitmodules order.
-  const order = parseUiConfig(read('.specify/speckit-ui.json')).mergeOrder;
+  const ui = parseUiConfig(read('.specify/speckit-ui.json'));
+  const order = ui.mergeOrder;
   const rank = (m: { path: string; repo: string | null }) => { const i = order.findIndex(o => o === m.path || o === m.repo); return i < 0 ? order.length : i; };
   const submodules = modules.map((m, i) => ({ m, i })).sort((a, b) => rank(a.m) - rank(b.m) || a.i - b.i).map(x => x.m);
-  return {
+  const project: Project = {
     repo: `${src.owner}/${src.repo}`,
     ref,
     sha,
@@ -142,8 +169,190 @@ async function loadAt(src: Source, ref: string, sha: string, committedAt: string
     constitution: constitution ? parseConstitution(constitution) : null,
     specs,
     submodules,
-    warnings
+    warnings,
+    branches: [],
+    skippedBranches: 0,
+    branchPrefixes: ui.branchPrefixes
   };
+  const dirShas = Object.fromEntries(specs.flatMap(f => { const t = treeShas.get(`specs/${f.slug}`); return t ? [[f.slug, t]] : []; }));
+  const mainPointers = Object.fromEntries([...pointers].flatMap(([p, v]) => (v ? [[p, v]] : [])));
+  mainTrees.set(project, { specsTreeSha: treeShas.get('specs') ?? null, dirShas, pointers: mainPointers });
+  // Each spec starts as its single default-branch version; withBranches adds the others.
+  for (const f of specs) f.variants = [{ branches: [ref], treeSha: dirShas[f.slug] ?? '', sha, onDefault: true, stage: stageOf(f), committedAt, pointers: mainPointers }];
+  return project;
+}
+
+// ---- Specs on feat/ branches (specs/003) ----
+
+export const MAX_BRANCHES = 30;
+const BRANCH_PAGES = 3;
+const MAX_SPEC_DIRS = 64;
+
+export interface BranchHead { name: string; sha: string }
+
+/** feat/ branches (or the repo's prefixes), highest name first, at most MAX_BRANCHES. */
+export interface BranchHeads { branches: BranchHead[]; skipped: number; error?: string }
+
+export async function listBranches(src: Source, prefixes: string[]): Promise<BranchHeads> {
+  if (!prefixes.length) return { branches: [], skipped: 0 };
+  const all: BranchHead[] = [];
+  for (let page = 1; page <= BRANCH_PAGES; page++) {
+    const res = await gh(src, `/repos/${src.owner}/${src.repo}/branches?per_page=100&page=${page}`);
+    const items = await res.json() as { name: string; commit: { sha: string } }[];
+    all.push(...items.map(b => ({ name: b.name, sha: b.commit.sha })));
+    if (!res.headers.get('link')?.includes('rel="next"')) break;
+  }
+  const matching = all.filter(b => prefixes.some(p => b.name.startsWith(p))).sort((a, b) => b.name.localeCompare(a.name));
+  return { branches: matching.slice(0, MAX_BRANCHES), skipped: Math.max(0, matching.length - MAX_BRANCHES) };
+}
+
+/** A repo whose branches can't be listed still shows its default branch. */
+const branchListFailed = (e: unknown): BranchHeads => ({
+  branches: [],
+  skipped: 0,
+  ...(e instanceof GitHubError && e.status === 404 ? {} : { error: `Could not list branches: ${e instanceof Error ? e.message : e}` })
+});
+
+// Git objects never change, so anything keyed by a SHA can be kept until evicted.
+const specDirs = new Map<string, SpecFeature>();
+const trees = new Map<string, TreeEntry[]>();
+const commitDates = new Map<string, string | null>();
+const dirKey = (src: Source, sha: string) => `${src.identity ?? ''}|${src.owner}/${src.repo}|${sha}`;
+
+async function treeAt(src: Source, sha: string): Promise<TreeEntry[]> {
+  const key = dirKey(src, sha);
+  const hit = trees.get(key);
+  if (hit) return hit;
+  const t = (await json<{ tree: TreeEntry[] }>(src, `/repos/${src.owner}/${src.repo}/git/trees/${sha}`)).tree;
+  remember(trees, key, t, MAX_SPEC_DIRS);
+  return t;
+}
+
+/** One spec folder at `commitSha`, cached by the folder's tree SHA. */
+export async function loadSpecDir(src: Source, commitSha: string, dir: string, treeSha: string): Promise<SpecFeature> {
+  const key = dirKey(src, treeSha);
+  const hit = specDirs.get(key);
+  if (hit) return { ...hit, sha: commitSha };
+  const base = `/repos/${src.owner}/${src.repo}`;
+  const tree = await json<{ tree: TreeEntry[] }>(src, `${base}/git/trees/${treeSha}?recursive=1`);
+  const files = tree.tree.filter(e => e.type === 'blob').map(e => e.path);
+  const texts = new Map<string, string>();
+  await pool(files.filter(wantedInSpec), CONCURRENCY, async f => {
+    texts.set(f, await (await gh(src, `${base}/contents/${enc(`specs/${dir}/${f}`)}?ref=${commitSha}`, true)).text());
+  });
+  const feature = buildFeature(dir, files, f => texts.get(f) ?? null, commitSha);
+  remember(specDirs, key, feature, MAX_SPEC_DIRS);
+  return feature;
+}
+
+/** Steps done from Specify to Implement, the measure of how far a version went (R4). */
+function stageOf(f: SpecFeature): number {
+  const tasks = (f.tasks || []).flatMap(p => p.tasks);
+  return [!!f.spec, !!f.spec?.clarifications.length, !!f.plan, !!f.tasks, !!f.analysis, tasks.length > 0 && tasks.every(t => t.done)].filter(Boolean).length;
+}
+
+interface BranchRead { info: BranchInfo; versions: { feature: SpecFeature; treeSha: string }[]; pointers: Record<string, string> }
+
+/** Reads one branch: only spec folders whose tree differs from the default branch are loaded (R2). */
+async function readBranch(src: Source, main: MainTrees, b: BranchHead): Promise<BranchRead> {
+  const info: BranchInfo = { name: b.name, sha: b.sha, specsTreeSha: null, unmergedSlugs: [], error: null };
+  try {
+    const root = await treeAt(src, b.sha);
+    const pointers = Object.fromEntries(root.flatMap(e => (e.type === 'commit' && e.sha ? [[e.path, e.sha]] : [])));
+    const specs = root.find(e => e.path === 'specs' && e.type === 'tree');
+    info.specsTreeSha = specs?.sha ?? null;
+    if (!specs?.sha || specs.sha === main.specsTreeSha) return { info, versions: [], pointers };
+    const dirs = (await treeAt(src, specs.sha)).filter(e => e.type === 'tree' && e.sha && SPEC_DIR.test(e.path) && e.sha !== main.dirShas[e.path]);
+    info.unmergedSlugs = dirs.map(d => d.path);
+    const versions = await pool(dirs, 4, async d => ({ feature: await loadSpecDir(src, b.sha, d.path, d.sha!), treeSha: d.sha! }));
+    return { info, versions, pointers };
+  } catch (e) {
+    info.error = e instanceof Error ? e.message : String(e);
+    return { info, versions: [], pointers: {} };
+  }
+}
+
+async function commitDate(src: Source, sha: string): Promise<string | null> {
+  const key = dirKey(src, sha);
+  if (commitDates.has(key)) return commitDates.get(key)!;
+  let d: string | null = null;
+  try { d = (await json<{ commit: { committer?: { date?: string } } }>(src, `/repos/${src.owner}/${src.repo}/commits/${sha}`)).commit.committer?.date ?? null; } catch { /* unknown */ }
+  remember(commitDates, key, d, MAX_SPEC_DIRS);
+  return d;
+}
+
+/** The default branch's project plus every unmerged spec version from `heads`, one row per slug (R4, R5). */
+async function withBranches(src: Source, main: Project, heads: BranchHeads): Promise<Project> {
+  const trees0 = mainTrees.get(main)!;
+  const reads = await pool(heads.branches, CONCURRENCY, b => readBranch(src, trees0, b));
+  const warnings = [...main.warnings];
+  if (heads.error) warnings.push(heads.error);
+  for (const r of reads) if (r.info.error) warnings.push(`Could not read branch ${r.info.name}: ${r.info.error}`);
+  if (heads.skipped) warnings.push(`${heads.skipped} more ${main.branchPrefixes.join(', ')} branches were not read (limit ${MAX_BRANCHES}).`);
+
+  // Versions per slug, merged by tree SHA so branches carrying the same folder count once.
+  const bySlug = new Map<string, { feature: SpecFeature; variant: SpecVariant }[]>();
+  // Copies: `main` stays cached and is re-used when only branches moved.
+  for (const f of main.specs) bySlug.set(f.slug, [{ feature: f, variant: { ...f.variants[0], branches: [...f.variants[0].branches] } }]);
+  for (const r of reads) {
+    for (const v of r.versions) {
+      const list = bySlug.get(v.feature.slug) ?? [];
+      const same = list.find(x => x.variant.treeSha === v.treeSha);
+      if (same) { same.variant.branches.push(r.info.name); continue; }
+      list.push({ feature: v.feature, variant: { branches: [r.info.name], treeSha: v.treeSha, sha: r.info.sha, onDefault: false, stage: stageOf(v.feature), committedAt: null, pointers: { ...trees0.pointers, ...r.pointers } } });
+      bySlug.set(v.feature.slug, list);
+    }
+  }
+
+  const specs: SpecFeature[] = [];
+  for (const slug of [...bySlug.keys()].sort()) {
+    const list = bySlug.get(slug)!;
+    // A version carried by several branches is named after the one made for it (feat/003-x for 003-x).
+    for (const { variant: v } of list) {
+      if (v.onDefault || v.branches.length < 2) continue;
+      v.branches.sort((a, b) => Number(b.includes(slug)) - Number(a.includes(slug)) || a.localeCompare(b));
+      const r = reads.find(x => x.info.name === v.branches[0]);
+      if (r) { v.sha = r.info.sha; v.pointers = { ...trees0.pointers, ...r.pointers }; }
+    }
+    const top = Math.max(...list.map(x => x.variant.stage));
+    const tied = list.filter(x => x.variant.stage === top);
+    // Dates are only needed to break a tie between versions that went equally far.
+    if (tied.length > 1) await Promise.all(tied.map(async x => { x.variant.committedAt ??= await commitDate(src, x.variant.sha); }));
+    list.sort((a, b) => b.variant.stage - a.variant.stage || (b.variant.committedAt ?? '').localeCompare(a.variant.committedAt ?? '') || a.variant.branches[0].localeCompare(b.variant.branches[0]));
+    specs.push(asShown(list[0].feature, list[0].variant, list.map(x => x.variant)));
+  }
+
+  // Two different specs with the same number (FR-007).
+  const byId = new Map<string, SpecFeature[]>();
+  for (const f of specs) byId.set(f.id, [...(byId.get(f.id) ?? []), f]);
+  for (const [id, fs] of byId) if (fs.length > 1) warnings.push(`Spec number ${id} is used by ${fs.map(f => `${f.slug} (${f.branch ?? main.ref})`).join(' and ')}.`);
+
+  const project: Project = { ...main, specs, warnings, branches: reads.map(r => r.info), skippedBranches: heads.skipped };
+  mainTrees.set(project, trees0);
+  return project;
+}
+
+/** `feature` presented as `variant`, with every version listed and the shown one first. */
+const asShown = (feature: SpecFeature, variant: SpecVariant, all: SpecVariant[]): SpecFeature => ({
+  ...feature,
+  branch: variant.onDefault ? null : variant.branches[0],
+  sha: variant.sha,
+  unmerged: !variant.onDefault,
+  variants: [variant, ...all.filter(v => v !== variant)]
+});
+
+/**
+ * The version of `slug` on `branch` (or on the default branch when `branch` is empty or the default
+ * branch). null when the slug has no such version (contracts/branches.md, GET /api/spec).
+ */
+export async function getSpecVariant(src: Source, project: Project, slug: string, branch?: string | null): Promise<SpecFeature | null> {
+  const shown = project.specs.find(f => f.slug === slug);
+  if (!shown) return null;
+  const variant = !branch || branch === project.ref ? shown.variants.find(v => v.onDefault) : shown.variants.find(v => v.branches.includes(branch));
+  if (!variant) return null;
+  if (variant === shown.variants[0]) return shown;
+  const feature = await loadSpecDir(src, variant.sha, slug, variant.treeSha);
+  return asShown(feature, variant, shown.variants);
 }
 
 // ---- Caches, keyed by identity|owner/repo@ref so users and repos never share an entry ----
@@ -151,14 +360,15 @@ async function loadAt(src: Source, ref: string, sha: string, committedAt: string
 export const MAX_CACHED = 8;
 
 /** Insert or refresh `key` as the newest entry, dropping the oldest beyond MAX_CACHED. */
-export function remember<V>(map: Map<string, V>, key: string, value: V) {
+export function remember<V>(map: Map<string, V>, key: string, value: V, max = MAX_CACHED) {
   map.delete(key);
   map.set(key, value);
-  while (map.size > MAX_CACHED) map.delete(map.keys().next().value!);
+  while (map.size > max) map.delete(map.keys().next().value!);
 }
 
 const projectKey = (src: Source) => `${src.identity ?? ''}|${src.owner}/${src.repo}@${src.ref || ''}`;
-const projects = new Map<string, { project: Project; checkedAt: number }>();
+interface Cached { project: Project; main: Project; heads: string; checkedAt: number }
+const projects = new Map<string, Cached>();
 const inflight = new Map<string, Promise<Project>>();
 const detected = new Map<string, boolean>();
 
@@ -167,9 +377,17 @@ export function clearProjectCache() {
   projects.clear();
   inflight.clear();
   detected.clear();
+  specDirs.clear();
+  trees.clear();
+  commitDates.clear();
 }
 
-/** Serve a load for RECHECK_MS, then re-check the branch head and reload only if it moved. */
+const headsKey = (h: BranchHeads) => h.branches.map(b => `${b.name}@${b.sha}`).join(',') + `+${h.skipped}${h.error ? '!' : ''}`;
+
+/**
+ * Serve a load for RECHECK_MS, then re-check the default branch head and the feat/ branch heads,
+ * re-reading only what moved (specs/003 R3).
+ */
 export async function getProject(src: Source, refresh = false): Promise<Project> {
   const key = projectKey(src);
   const hit = projects.get(key);
@@ -178,15 +396,23 @@ export async function getProject(src: Source, refresh = false): Promise<Project>
   if (running) return running;
   const load = (async () => {
     try {
+      let main: Project | null = null;
+      const list = (prefixes: string[]) => listBranches(src, prefixes).catch(branchListFailed);
+      // On a refresh the branch heads are listed alongside the default branch check, not after it.
+      const early = hit && !src.ref ? list(hit.main.branchPrefixes) : null;
       if (hit) {
-        const commit = await json<{ sha: string }>(src, `/repos/${src.owner}/${src.repo}/commits/${encodeURIComponent(hit.project.ref)}`);
-        if (commit.sha === hit.project.sha) {
-          remember(projects, key, { project: hit.project, checkedAt: Date.now() });
-          return hit.project;
-        }
+        const commit = await json<{ sha: string }>(src, `/repos/${src.owner}/${src.repo}/commits/${encodeURIComponent(hit.main.ref)}`);
+        if (commit.sha === hit.main.sha) main = hit.main;
       }
-      const project = await loadProject(src);
-      remember(projects, key, { project, checkedAt: Date.now() });
+      main ??= await loadMain(src);
+      let project = main, heads = '';
+      if (!src.ref) {
+        const same = early && main.branchPrefixes.join('\n') === hit!.main.branchPrefixes.join('\n');
+        const h = await (same ? early : list(main.branchPrefixes));
+        heads = headsKey(h);
+        project = hit && hit.main === main && hit.heads === heads ? hit.project : await withBranches(src, main, h);
+      }
+      remember(projects, key, { project, main, heads, checkedAt: Date.now() });
       return project;
     } finally {
       inflight.delete(key);

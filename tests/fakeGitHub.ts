@@ -26,7 +26,7 @@ const ok = (x: unknown, headers: Record<string, string> = {}) => new Response(JS
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 /** Serves `repos` (keyed owner/name) and records every call. `extra` handles anything else first. */
-export function fakeGitHub(repos: Record<string, FakeRepo>, extra?: (u: URL, method: string, body: Record<string, unknown> | undefined) => Response | Promise<Response> | undefined,
+export function fakeGitHub(repos: Record<string, FakeRepo>, extra?: (u: URL, method: string, body: Record<string, unknown> | undefined) => Response | Promise<Response | undefined> | undefined,
   user: (auth: string | null) => unknown = () => ({ login: 'mai', avatar_url: 'https://avatars.example/mai' })) {
   const calls: Call[] = [];
   const fn = vi.fn(async (url: string, init?: RequestInit) => {
@@ -133,4 +133,117 @@ export function fakeRes(): ServerResponse & { out: FakeRes } {
     setHeader(k: string, v: string | string[]) { out.headers[k.toLowerCase()] = v; },
     end(b?: string) { out.body = b ?? ''; }
   } as unknown as ServerResponse & { out: FakeRes };
+}
+
+// ---- A repo with branches (specs/003): content-derived SHAs, so identical folders share one ----
+
+export interface BranchRepo {
+  defaultBranch: string;
+  /** branch → path → text */
+  branches: Record<string, Record<string, string>>;
+  /** branch → submodule path → pointer */
+  pointers?: Record<string, Record<string, string>>;
+  /** branch → commit date */
+  dates?: Record<string, string>;
+  /** Branch whose trees answer 500. */
+  failBranch?: string;
+  /** Answer GET …/branches with 404 (no branch listing). */
+  noBranchList?: boolean;
+}
+
+const hash = (s: string) => { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0; return h.toString(16).padStart(8, '0'); };
+
+interface Node { type: 'blob' | 'tree' | 'commit'; sha: string; children?: Map<string, Node>; text?: string }
+
+/** Git-like trees for one branch: a tree's SHA depends only on what it holds. */
+function buildTree(files: Record<string, string>, pointers: Record<string, string>): Node {
+  const root: Node = { type: 'tree', sha: '', children: new Map() };
+  const put = (path: string, leaf: Node) => {
+    const parts = path.split('/');
+    let n = root;
+    for (const p of parts.slice(0, -1)) {
+      if (!n.children!.has(p)) n.children!.set(p, { type: 'tree', sha: '', children: new Map() });
+      n = n.children!.get(p)!;
+    }
+    n.children!.set(parts.at(-1)!, leaf);
+  };
+  for (const [p, text] of Object.entries(files)) put(p, { type: 'blob', sha: 'b' + hash(text), text });
+  for (const [p, sha] of Object.entries(pointers)) put(p, { type: 'commit', sha });
+  const seal = (n: Node): string => {
+    if (n.type !== 'tree') return n.sha;
+    n.sha = 't' + hash([...n.children!].sort(([a], [b]) => a.localeCompare(b)).map(([k, c]) => `${k}:${seal(c)}`).join(';'));
+    return n.sha;
+  };
+  seal(root);
+  return root;
+}
+
+/** Serves `name` (owner/repo) with its branches, plus a minimal tracking-issue API. Returns the recorded calls. */
+export function fakeBranches(name: string, repo: BranchRepo, extra?: (u: URL, method: string, body: Record<string, unknown> | undefined) => Response | Promise<Response> | undefined) {
+  const issues: FakeIssue[] = [];
+  const view = () => {
+    const out = new Map<string, { root: Node; commit: string }>();
+    for (const [b, files] of Object.entries(repo.branches)) {
+      const root = buildTree(files, repo.pointers?.[b] ?? {});
+      out.set(b, { root, commit: 'c' + hash(b + root.sha) });
+    }
+    return out;
+  };
+  const findTree = (n: Node, sha: string): Node | null => {
+    if (n.sha === sha && n.type === 'tree') return n;
+    for (const c of n.children?.values() ?? []) { const f = findTree(c, sha); if (f) return f; }
+    return null;
+  };
+  const entries = (n: Node, recursive: boolean, prefix = ''): { path: string; type: string; sha: string }[] =>
+    [...n.children!].flatMap(([k, c]) => [{ path: prefix + k, type: c.type, sha: c.sha }, ...(recursive && c.type === 'tree' ? entries(c, true, `${prefix}${k}/`) : [])]);
+  return fakeGitHub({}, async (u, method, body) => {
+    const x = await extra?.(u, method, body);
+    if (x) return x;
+    const base = `/repos/${name}`;
+    if (!u.pathname.startsWith(base)) return undefined;
+    const rest = u.pathname.slice(base.length);
+    const v = view();
+    const byCommit = (sha: string) => [...v].find(([, b]) => b.commit === sha);
+    if (rest === '') return ok({ default_branch: repo.defaultBranch });
+    if (rest === '/branches') return repo.noBranchList ? new Response('{}', { status: 404 }) : ok([...v].map(([b, { commit }]) => ({ name: b, commit: { sha: commit } })));
+    const commit = rest.match(/^\/commits\/(.+)$/);
+    if (commit) {
+      const ref = decodeURIComponent(commit[1]);
+      const hit = v.get(ref) ? [ref, v.get(ref)!] as const : byCommit(ref);
+      return hit ? ok({ sha: hit[1].commit, commit: { committer: { date: repo.dates?.[hit[0]] ?? '2026-10-01T00:00:00Z' } } }) : new Response('{}', { status: 404 });
+    }
+    const tree = rest.match(/^\/git\/trees\/([^/?]+)$/);
+    if (tree) {
+      const recursive = u.searchParams.has('recursive');
+      const asCommit = byCommit(tree[1]);
+      if (asCommit) {
+        if (asCommit[0] === repo.failBranch) return new Response('{}', { status: 500 });
+        return ok({ truncated: false, tree: entries(asCommit[1].root, recursive) });
+      }
+      for (const [, b] of v) { const t = findTree(b.root, tree[1]); if (t) return ok({ truncated: false, tree: entries(t, recursive) }); }
+      return new Response('{}', { status: 404 });
+    }
+    const file = rest.match(/^\/contents\/(.+)$/);
+    if (file) {
+      const at = byCommit(u.searchParams.get('ref') ?? '');
+      const text = at && repo.branches[at[0]][decodeURIComponent(file[1])];
+      return text === undefined ? new Response('{}', { status: 404 }) : new Response(text, { status: 200 });
+    }
+    if (rest === '/pulls') return ok([]);
+    if (rest === '/issues' && method === 'GET') return ok(issues);
+    if (rest === '/issues' && method === 'POST') {
+      const i = { number: issues.length + 1, body: String(body!.body), state: 'open', html_url: `https://github.com/${name}/issues/${issues.length + 1}`, updated_at: tick() };
+      issues.push(i);
+      return ok(i);
+    }
+    const one = rest.match(/^\/issues\/(\d+)$/);
+    if (one) {
+      const i = issues.find(y => y.number === +one[1]);
+      if (!i) return new Response('{}', { status: 404 });
+      if (method === 'PATCH') Object.assign(i, body, { updated_at: tick() });
+      return ok(i);
+    }
+    if (/^\/issues\/\d+\/comments$/.test(rest)) return ok({ id: 1 });
+    return undefined;
+  });
 }

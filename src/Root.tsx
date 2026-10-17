@@ -113,7 +113,7 @@ function Session({ backend, user, defaultRepo, storage, actions, onAuthLost }: S
   const prefs = useMemo(() => prefsFor(user.login, storage), [user.login, storage]);
   const url = useRef(readUrl()).current;
   /** A deep link's spec and step apply to the first repo opened only. */
-  const deepLink = useRef(url.repo ? { repo: normalizeRepo(url.repo), spec: url.spec, step: url.step } : null);
+  const deepLink = useRef(url.repo ? { repo: normalizeRepo(url.repo), spec: url.spec, branch: url.branch, step: url.step } : null);
   const [view, setView] = useState<View>(() => {
     if (url.view) return { kind: url.view };
     const repo = (url.repo && normalizeRepo(url.repo)) || prefs.getLastRepo() || (defaultRepo && normalizeRepo(defaultRepo));
@@ -227,10 +227,10 @@ function Session({ backend, user, defaultRepo, storage, actions, onAuthLost }: S
   </div>;
 
   const link = deepLink.current?.repo === repo ? deepLink.current : null;
-  const initial: LastViewed | null = link && (link.spec || link.step != null) ? { spec: link.spec, step: link.step } : prefs.getLast(repo);
+  const initial: LastViewed | null = link && (link.spec || link.step != null) ? { spec: link.spec, step: link.step, branch: link.branch } : prefs.getLast(repo);
   return <LiveWorkspace key={repo} project={open.project} backend={backend} user={user} refreshing={refreshing} onRefresh={() => void refresh()}
     initial={initial}
-    onPosition={v => { deepLink.current = null; prefs.setLast(repo, v); writeUrl({ repo, spec: v.spec, step: v.step }); }}
+    onPosition={v => { deepLink.current = null; prefs.setLast(repo, v); writeUrl({ repo, spec: v.spec, branch: v.branch, step: v.step }); }}
     threads={threads[repo] ?? {}} onThreads={t => setThreads(x => ({ ...x, [repo]: t }))}
     repos={{ pinned: pins, recent, unavailable }}
     onSwitch={r => openRepo(r)} onAllRepos={() => setView({ kind: 'repos' })} onOverview={() => setView({ kind: 'overview' })} onAuthLost={onAuthLost}

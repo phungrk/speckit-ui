@@ -145,7 +145,25 @@ The first step that is not done is marked *Next*, and it is listed under **Next 
 
 In GitHub mode the command bar copies the command for you to paste into Claude Code. The app doesn't run commands, and it never writes files or branches. Its only writes are to tracking issues.
 
-### Gates and approvals
+#### Specs on feat/ branches
+
+Spec Kit writes each spec on its own branch before it is merged. Unless a branch is pinned, the app also reads the repo's `feat/` branches, so unmerged specs show in the Specs list and can be approved before the merge.
+
+- **Which branches:** up to 30 branches whose names start with `feat/`, highest name first. A warning says how many were left out. Other branches are not read, even with an open pull request.
+- **Change the prefixes:** set `"branchPrefixes": ["feat/", "spec/"]` in `.specify/speckit-ui.json` on the default branch. `[]` turns branch reading off.
+- **Cost:** only spec folders whose git tree differs from the default branch are downloaded. A merged branch costs one call. Results are cached by SHA, so a refresh with nothing new costs two calls: the default branch's commit and the branch list.
+- **One row per spec:**
+  - An unmerged spec carries its branch name.
+  - When a spec exists on several branches, the version that went furthest (most steps done) is shown, then the newest commit. Branches holding the same folder count as one version.
+  - The selector in the spec header switches to another branch's version, and the address keeps it (`&branch=feat/…`).
+  - Two different specs with the same number both show, with a warning.
+- **Working on a branch version:**
+  - Steps, files and gate checks use that branch's content, including its submodule pointers for the Implement gate.
+  - Approvals go to the spec's single tracking issue.
+  - The command bar reminds you to run the command on that branch (`git switch feat/…`).
+- **Pinned branch:** pinning a branch (Branch under Advanced, or `GITHUB_REF`) reads only that branch, as before.
+
+## Gates and approvals
 
 Each step from Specify to Implement has a gate. The **Gate & PRs** tab shows the gate's checks, evaluated from the spec's files:
 

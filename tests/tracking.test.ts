@@ -21,6 +21,7 @@ const feature = (over: Partial<SpecFeature> = {}): SpecFeature => ({
   analysis: { findings: [], raw: '' },
   checklists: [{ name: 'requirements.md', done: 3, total: 3 }],
   docs: {},
+  branch: null, sha: '', unmerged: false, variants: [],
   ...over
 });
 
@@ -93,8 +94,8 @@ describe('repo config', () => {
   it('parses .gitmodules and merge order', () => {
     expect(parseGitmodules('[submodule "web"]\n\tpath = web\n\turl = https://github.com/a/front.git\n[submodule "edge"]\n\tpath = edge\n\turl = git@github.com:a/back.git\n[submodule "x"]\n\tpath = x\n\turl = https://gitlab.com/a/x'))
       .toEqual([{ path: 'web', repo: 'a/front' }, { path: 'edge', repo: 'a/back' }, { path: 'x', repo: null }]);
-    expect(parseUiConfig('{"mergeOrder":["edge","a/front",3]}')).toEqual({ mergeOrder: ['edge', 'a/front'] });
-    expect(parseUiConfig('nope')).toEqual({ mergeOrder: [] });
+    expect(parseUiConfig('{"mergeOrder":["edge","a/front",3]}')).toEqual({ mergeOrder: ['edge', 'a/front'], branchPrefixes: ['feat/'] });
+    expect(parseUiConfig('nope')).toEqual({ mergeOrder: [], branchPrefixes: ['feat/'] });
   });
   it('links PRs by branch or description', () => {
     expect(prMatches({ head: { ref: 'feat/007-cards' }, body: '', title: '' }, '007-cards')).toBe(true);
@@ -108,7 +109,7 @@ describe('repo config', () => {
 const src = { owner: 'a', repo: 'root', token: 't' };
 const project = (f = feature(), pointer = 'ptr'): Project => ({
   repo: 'a/root', ref: 'main', sha: 'abc1234', committedAt: null, fetchedAt: '', commandPrefix: '/speckit.', constitution: null,
-  specs: [f], submodules: [{ path: 'edge', repo: 'a/back', sha: pointer }], warnings: []
+  specs: [f], submodules: [{ path: 'edge', repo: 'a/back', sha: pointer }], warnings: [], branches: [], skippedBranches: 0, branchPrefixes: ['feat/']
 });
 
 interface Call { method: string; path: string; body?: Record<string, unknown> }

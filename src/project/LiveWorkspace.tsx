@@ -11,8 +11,11 @@ import type { LastViewed } from './prefs';
 import { accessProblem } from './repoLoader';
 import { SessionButtons, type SessionActions } from './SessionNav';
 import { SignInRequired, type GateAction } from './trackingApi';
-import type { CurrentUser, GateKey, Project, Tracking } from './types';
+import type { CurrentUser, GateKey, Project, SpecFeature, Tracking } from './types';
 import { LiveAnalyze, LiveClarify, LiveConstitution, LiveImplement, LivePlan, LiveSpec, LiveTasks, NotStarted } from './views';
+
+/** "feat/003-x" → "003-x" for compact labels; the full name stays in the title. */
+const shortBranch = (b: string) => b.replace(/^feat\//, '');
 
 const ago = (iso: string, now: number) => {
   const s = Math.max(0, Math.round((now - Date.parse(iso)) / 1000));
@@ -67,7 +70,7 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
     try {
       // The tracking that comes back already holds this decision, so the gate, the rail,
       // Next up and the progress bars all change in this one render (specs/001 FR-001, FR-005).
-      const r = await backend.decide(project.repo, f!.slug, gate, action, note);
+      const r = await backend.decide(project.repo, f!.slug, gate, action, note, f!.branch);
       setTracking(r.tracking);
       setTrackingError(null);
       return { error: null, unchanged: r.unchanged };
@@ -87,8 +90,18 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(t); }, []);
   useEffect(() => { if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight; }, [log]);
 
-  const f = project.specs.find(x => x.slug === slug) || project.specs[project.specs.length - 1];
-  useEffect(() => { onPosition({ spec: f?.slug ?? null, step: sel }); }, [f?.slug, sel]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Versions picked on other branches, by slug (specs/003 US3); otherwise the version chosen by the loader.
+  const [versions, setVersions] = useState<Record<string, SpecFeature>>({});
+  const listed = project.specs.find(x => x.slug === slug) || project.specs[project.specs.length - 1];
+  const f = listed && versions[listed.slug] ? versions[listed.slug] : listed;
+  const chooseVersion = (of: string, branch: string | null) => backend.spec(project.repo, of, branch).then(
+    v => setVersions(x => ({ ...x, [of]: v })),
+    (e: Error) => setLog(l => [...l, `Could not open ${of} on ${branch ?? project.ref}: ${e.message}`]));
+  // A link to another branch's version opens that version.
+  useEffect(() => { if (f && initial?.branch !== undefined && initial.spec === f.slug && (initial.branch ?? null) !== f.branch) void chooseVersion(f.slug, initial.branch ?? null); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // After a refresh, re-read the versions picked so they follow new pushes.
+  useEffect(() => { for (const [of, v] of Object.entries(versions)) void chooseVersion(of, v.branch); }, [project]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { onPosition({ spec: f?.slug ?? null, step: sel, branch: f?.branch ?? null }); }, [f?.slug, f?.branch, sel]); // eslint-disable-line react-hooks/exhaustive-deps
   const status: LiveStatus[] = f ? phaseStatus(project, f) : PHASES.map((_, i) => (i === 0 && project.constitution ? 'done' : 'pending'));
   const current = Math.max(0, status.indexOf('current') === -1 ? 6 : status.indexOf('current'));
   const pi = sel ?? (f ? current : 0);
@@ -158,7 +171,7 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
       <aside className="sk-side">
         <div className="sk-pad"><Label>Next up</Label>
           {next.length === 0 ? <p className="text-muted" style={{ fontSize: 13 }}>Every spec is done.</p> :
-            <ul className="sk-list">{next.map(n => <li key={n.slug}><button className="sk-qitem" onClick={() => { setSlug(n.slug); setSel(n.step); }}><b>{n.label}</b><span>{n.slug}</span><Icon n="arrow" s={14} /></button></li>)}</ul>}
+            <ul className="sk-list">{next.map(n => <li key={n.slug}><button className="sk-qitem" onClick={() => { setSlug(n.slug); setSel(n.step); }}><b>{n.label}</b><span>{n.slug}{n.branch ? ` · ${shortBranch(n.branch)}` : ''}</span><Icon n="arrow" s={14} /></button></li>)}</ul>}
         </div>
         <div className="sk-pad sk-rule"><div className="sk-rowh"><Label>Specs · {project.specs.length}</Label></div>
           <ul className="sk-list">{project.specs.map(x => {
@@ -167,14 +180,20 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
             return <li key={x.slug}><button className={'sk-feat' + (x === f ? ' on' : '')} aria-current={x === f ? 'true' : undefined} onClick={() => { setSlug(x.slug); setSel(null); }}>
               <span className="sk-id">{x.id}</span><b>{x.title}</b>
               <span className="sk-bar" aria-hidden="true">{s.map((v, j) => <i key={j} className={cell(v, j, x.slug)[0]}></i>)}</span>
-              <span className="sk-featst">{i < 0 ? 'Done' : PHASES[i].n}{x.spec?.fields.Status ? ` · ${x.spec.fields.Status}` : ''}</span>
+              <span className="sk-featst">{i < 0 ? 'Done' : PHASES[i].n}{x.spec?.fields.Status ? ` · ${x.spec.fields.Status}` : ''}
+                {x.unmerged && x.branch && <span className="sk-branch" title={`${x.branch} · not merged into ${project.ref}`}>{shortBranch(x.branch)}</span>}</span>
             </button></li>;
           })}</ul>
         </div>
       </aside>
       <main className="sk-main">
         <div className="sk-fhead">
-          <div className="sk-file"><Icon n="branch" s={14} />{f ? f.slug : project.repo}</div>
+          <div className="sk-file"><Icon n="branch" s={14} />{f ? <>{f.branch ? `${f.branch} · ` : ''}{f.slug}</> : project.repo}
+            {f && f.variants.length > 1 && <select className="sk-repo-switch sk-version" aria-label={`Version of ${f.slug}`} value={f.variants[0].branches[0]}
+              onChange={e => { const v = f.variants.find(x => x.branches[0] === e.target.value)!; void chooseVersion(f.slug, v.onDefault ? null : v.branches[0]); }}>
+              {f.variants.map(v => <option key={v.treeSha} value={v.branches[0]}>{v.branches.join(', ')}{v.onDefault ? ' (default)' : ''}</option>)}
+            </select>}
+          </div>
           <h2>{f ? f.title : 'No specs yet'}</h2>
         </div>
         <div className="sk-rail" role="tablist" aria-label="Spec Kit steps">{PHASES.map((p, i) => {
@@ -189,6 +208,7 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
         <div className="sk-doc" role="tabpanel">{view}</div>
         <div className="sk-cmd">
           {log.length > 0 && <div className="sk-log" ref={logRef} aria-live="polite">{log.map((l, i) => <div key={i} className={l.startsWith('›') ? 'in' : ''}>{l}</div>)}</div>}
+          {f?.unmerged && f.branch && <div className="sk-cmdhint">Run on <b>{f.branch}</b>: <code>git switch {f.branch}</code></div>}
           <div className="sk-cmdrow">
             <Icon n="terminal" s={16} />
             <input className="sk-cmdin" value={cmd} onChange={e => setCmd(e.target.value)} onKeyDown={e => e.key === 'Enter' && copy()} aria-label="Command" />
@@ -211,7 +231,7 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
               <Label>Spec · {f.id}</Label>
               <ul className="sk-props">
                 {fields.map(([k, v]) => <li key={k}><span>{k}</span><b>{v}</b></li>)}
-                <li><span>Folder</span><b><a href={`https://github.com/${project.repo}/tree/${project.sha}/specs/${encodeURIComponent(f.slug)}`} target="_blank" rel="noreferrer">specs/{f.slug}</a></b></li>
+                <li><span>Folder</span><b><a href={`https://github.com/${project.repo}/tree/${f.sha || project.sha}/specs/${encodeURIComponent(f.slug)}`} target="_blank" rel="noreferrer">specs/{f.slug}</a></b></li>
               </ul>
             </>}
           </div>
@@ -219,7 +239,7 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
             <ul className="sk-props">{f.checklists.map(c => <li key={c.name}><span>{c.name}</span><b>{c.done} / {c.total}{c.done === c.total && <Icon n="check" s={12} />}</b></li>)}</ul>
           </div>}
           {f && <div className="sk-pad sk-rule"><Label>Files</Label>
-            <ul className="sk-files">{f.files.map(x => <li key={x}><a href={blobUrl(project, `specs/${f.slug}/${x}`)} target="_blank" rel="noreferrer"><Icon n="file" s={12} />{x}</a></li>)}</ul>
+            <ul className="sk-files">{f.files.map(x => <li key={x}><a href={blobUrl({ repo: project.repo, sha: f.sha || project.sha }, `specs/${f.slug}/${x}`)} target="_blank" rel="noreferrer"><Icon n="file" s={12} />{x}</a></li>)}</ul>
           </div>}
           {project.warnings.length > 0 && <div className="sk-pad sk-rule"><Label>Warnings</Label>
             {project.warnings.map(w => <div key={w} className="sk-warn"><Icon n="alert" s={14} />{w}</div>)}
