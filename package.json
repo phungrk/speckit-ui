@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "start": "node --env-file-if-exists=.env server/index.ts",
+    "start": "node --env-file-if-exists=.env --env-file-if-exists=.env.local server/index.ts",
     "typecheck": "tsc -b",
     "test": "vitest run",
     "build:pages": "VITE_STATIC=1 VITE_BASE=/speckit-ui/ npm run build"

@@ -6,14 +6,17 @@ Built from the Claude Design handoff `Speckit Workspace.html` (Modernist design 
 
 It runs in two modes, with or without a server (see [GitHub Pages](#github-pages-no-server)):
 
-- **GitHub mode**: set `GITHUB_REPO` and the app reads a real Spec Kit project (constitution, `specs/NNN-*/`) from GitHub. It also tracks gate approvals in GitHub issues and lists each spec's PRs across the repo and its submodules.
-- **Demo mode**: with no `GITHUB_REPO` (or with `?demo` in the URL), it shows the sample "Wallet App" workspace from the design, including approvals and the New spec flow.
+- **GitHub mode**: the app reads real Spec Kit projects (constitution, `specs/NNN-*/`) from GitHub, in [any repository your own access allows](#several-repositories). It also tracks gate approvals in GitHub issues and lists each spec's PRs across the repo and its submodules.
+- **Demo mode**: with no GitHub configuration (or with `?demo` in the URL), it shows the sample "Wallet App" workspace from the design, including approvals and the New spec flow.
+
+Whatever the mode, the app always uses the GitHub access of the person using it: the token they enter (Pages), their GitHub sign-in (a shared server), or their own token in `.env.local` (running locally).
 
 ## Run it
 
 ```bash
 npm install
 cp .env.example .env      # optional: add ANTHROPIC_API_KEY for AI answers
+echo 'GITHUB_TOKEN=github_pat_…' > .env.local   # optional: your own token; git ignores .env.local
 npm run dev               # http://localhost:5173 (app and API)
 ```
 
@@ -30,13 +33,13 @@ Other scripts: `npm test` (Vitest) and `npm run typecheck`. Requires Node 22.18 
 
 The app can also be built as static files and published to GitHub Pages. There's no speckit-ui server: the page calls GitHub, and optionally Claude, straight from the browser with keys the viewer enters.
 
-- **Connect screen:** the first visit asks for the repository (`owner/repo`), an optional branch, a GitHub token and an optional Anthropic API key.
+- **Connect screen:** the first visit asks for a GitHub token and an optional Anthropic API key. Under **Advanced** you can name a repository (and branch) to open first; otherwise the app lists every repository the token can read.
   - Keys are kept in `sessionStorage` (forgotten when the tab closes) unless **Remember on this device** is ticked, which uses `localStorage`.
   - **Disconnect** removes them. **Settings** changes them.
 - **Permissions:** every viewer uses their own token, so they only see repositories GitHub already lets them read. Gate approvals are recorded under their own GitHub login.
 - **Copilot:** with an Anthropic key, the page calls Claude directly. The SDK loads only when Copilot is used. Without a key, Copilot answers the suggested questions from the project files.
 - **Content Security Policy:** the built page carries a CSP. Scripts load only from the site itself, and network calls go only to `api.github.com` and `api.anthropic.com`. Markdown is rendered without raw HTML.
-- **No shared cache:** each page load reads the repository again, which takes about 15–20 GitHub API calls.
+- **No shared cache:** each page load reads the repository again, which takes about 15–20 GitHub API calls. Within a page, the last 8 projects stay cached, so switching back to a repo is quick.
 
 Publish:
 
@@ -48,25 +51,67 @@ To try the static build locally, run `npm run build:pages`. Then serve `dist/` s
 
 ## GitHub mode
 
+The server picks how users are identified when it starts:
+
+| Mode | When | Who the user is |
+|---|---|---|
+| **Sign-in** | `GITHUB_APP_CLIENT_ID` and `GITHUB_APP_CLIENT_SECRET` are set | Everyone signs in with GitHub and works with their own access. For a server shared by a team. |
+| **Token** | `GITHUB_TOKEN` is set (and no App) | The owner of the token. For running on your own machine: the server only listens on `127.0.0.1`. |
+| **Demo** | neither | The sample workspace. |
+
 ```bash
-# .env (server-side only)
-GITHUB_REPO=owner/repo      # the repository that holds .specify/ and specs/
-GITHUB_REF=main             # optional; defaults to the repository's default branch
-GITHUB_TOKEN=github_pat_…   # needed for private repos
+# .env (shared settings)
+GITHUB_REPO=owner/repo      # optional: the repository opened first when the URL names none
+GITHUB_REF=main             # optional; branch for GITHUB_REPO
+
+# .env.local (yours, ignored by git): token mode
+GITHUB_TOKEN=github_pat_…
 ```
 
-For the token, use a fine-grained personal access token. Give it:
+Both `npm run dev` and `npm start` read `.env` and then `.env.local`, which wins. If the token is missing or GitHub rejects it, the app shows a screen saying where to put it.
+
+In token mode the server refuses to listen beyond `127.0.0.1` (`HOST=0.0.0.0` with `npm start`, or `npm run dev -- --host`, is ignored with a warning), because everyone who could reach it would act as the token's owner. Set `ALLOW_REMOTE_TOKEN_MODE=1` only if you accept that.
+
+For the token, use a fine-grained personal access token. Give it, for each repository you work on:
 
 | Repository | Permissions |
 |---|---|
-| The root repo (`GITHUB_REPO`) | Contents: Read-only · Pull requests: Read-only · **Issues: Read and write** (for gate approvals) |
+| A Spec Kit repo | Contents: Read-only · Pull requests: Read-only · **Issues: Read and write** (for gate approvals) |
 | Each submodule repo | Contents: Read-only · Pull requests: Read-only |
+
+Without Issues write on a repo you can still read it; approving a gate there says the permission is missing.
+
+### Sign-in mode (a server for a team)
+
+Register a **GitHub App** once for your organization (Settings → Developer settings → GitHub Apps):
+
+- **Callback URL:** `<your server>/auth/callback`. Tick *Expire user authorization tokens*.
+- **Permissions (repository):** Contents: Read-only · Pull requests: Read-only · Issues: Read and write · Metadata: Read-only. No account permissions are needed.
+- Install it on the organization (all repositories, or the ones speckit-ui should see).
+- Put its client ID and a client secret in the server's `.env` as `GITHUB_APP_CLIENT_ID` and `GITHUB_APP_CLIENT_SECRET`. Set `PUBLIC_URL` if the server sits behind a proxy.
+
+Then:
+
+- Nothing about any repository is shown before sign-in. A deep link (`/?repo=owner/name&step=plan`) survives the trip through GitHub.
+- Each person sees the repositories that both the App's installation and their own account can read, and approvals are recorded under their own login.
+- If the organization uses single sign-on (for example Okta), GitHub asks for it during sign-in.
+- **Sign out** ends the session on the server.
+
+## Several repositories
+
+Once the app knows who you are, it lists the repositories you can read (up to 1,000, most recently pushed first):
+
+- Repositories with a `.specify/` folder are labelled **Spec Kit** and listed first. The check is one API call per repository, done for pinned and visible rows first, so you can open a repo before every row is checked.
+- **Pin** repositories to keep them on top and on the **Overview**, which shows what waits in each pinned repo: gates to approve first, then the next command. A repo that can't be read shows its error in its own block.
+- Switch repositories from the selector in the top bar. Going back to a repo reopens the spec and step you were on.
+- Each repository has its own address, `?repo=owner/name&spec=NNN-slug&step=plan`, for bookmarks and links. Addresses never contain a token.
+- Pins and positions are kept per GitHub login on this device (`sessionStorage` on Pages unless **Remember** is ticked). They are display preferences, not project data.
 
 How it reads the project:
 
 - The server lists the repository tree through the GitHub REST API. It downloads only the files the UI shows: the constitution, `.specify/integration.json`, and for each spec `spec.md`, `plan.md`, `tasks.md`, `analysis.md`, `research.md`, `data-model.md`, `quickstart.md` and `checklists/*.md`.
 - It parses them on the server (`server/parse.ts`) and serves the result at `GET /api/project`.
-- The result is cached. After 30 seconds the next request checks the branch head and downloads again only if the commit changed. **Refresh** forces that check.
+- The result is cached per user and repository (the last 8). After 30 seconds the next request checks the branch head and downloads again only if the commit changed. **Refresh** forces that check.
 - Command names follow the project's integration: `/speckit-plan` when it invokes Claude skills with `-`, otherwise `/speckit.plan`.
 
 How each step's status is derived from the files:
@@ -87,9 +132,16 @@ The first step that is not done is marked *Next*, and it is listed under **Next 
 
 **Security:**
 
-- The server returns the repository's spec files to anyone who can reach it, and anyone who can reach it can approve gates as the token's owner. For a private repository, run the app locally or put it behind authentication before deploying.
-- `POST /api/gates` only accepts same-origin JSON requests, which blocks cross-site posts.
-- The token itself never leaves the server.
+- **Sign-in mode:** each person's GitHub token stays in the server's memory. The browser only gets a random session id in an `HttpOnly; Secure; SameSite=Lax` cookie (`sk_session`), and no API response contains a token.
+  - Sessions last at most 7 days. Access tokens are refreshed on the server and expire after 8 hours.
+  - The sign-in uses a random `state` checked on return. The return address is limited to `repo`, `spec`, `step` and `view`.
+  - The server calls one more destination: `github.com/login/oauth/access_token`, to exchange the sign-in code and refresh tokens.
+  - Sessions live in one process. Run a single server process; restarting it signs everyone out.
+  - Cookies are `Secure`, so serve the app over HTTPS (browsers allow `http://localhost`).
+- **Token mode:** anyone who can reach the server acts as the token's owner, which is why it listens on `127.0.0.1` only.
+- Caches are keyed by user and repository, so one person never receives data loaded with another person's access.
+- `POST /api/gates`, `POST /api/repos/detect` and `POST /auth/logout` only accept same-origin requests, which blocks cross-site posts.
+- Tokens never leave the server, and no URL ever contains one.
 
 In GitHub mode the command bar copies the command for you to paste into Claude Code. The app doesn't run commands, and it never writes files or branches. Its only writes are to tracking issues.
 
@@ -106,7 +158,7 @@ Each step from Specify to Implement has a gate. The **Gate & PRs** tab shows the
 | Analyze | analysis.md saved; no CRITICAL findings | HIGH findings |
 | Implement | all tasks checked; linked PRs merged; merged in repo order; submodule pointers include every merge | no linked PRs |
 
-Approvals are stored in **one GitHub issue per spec** in the root repo. The issue is labelled `speckit` and titled `Spec NNN: …`:
+Approvals are stored in **one GitHub issue per spec** in the root repo of the open repository. The issue is labelled `speckit` and titled `Spec NNN: …`:
 
 - Approving a gate ticks its box in the issue and adds a comment with the checks at that commit. The first approval creates the issue.
 - **Request changes** posts your note and leaves the gate unticked. **Reopen** unticks an approved gate.
@@ -162,7 +214,7 @@ This repo is developed with Spec Kit 0.15.1 (Claude integration).
 
 - **Rules:** the constitution in `.specify/memory/constitution.md` holds the development rules. `CLAUDE.md` is a summary for coding agents.
 - **When to use the full flow:** changes to keys, token permissions or network destinations; a new kind of write; changes affecting two or more modes. Medium features in one mode run specify + plan only. Small fixes go straight to a PR.
-- **Dogfooding:** speckit-ui manages its own specs. Point the Pages site at `phungrk/speckit-ui` to approve its gates in the app.
+- **Dogfooding:** speckit-ui manages its own specs. Open `phungrk/speckit-ui` on the Pages site to approve its gates in the app.
 
 ## Layout
 
@@ -172,20 +224,24 @@ src/
   data.ts / types.ts    sample project (Wallet App) and its types
   views/                one view per phase, plus the draft spec
   NewSpecDialog.tsx     /speckit.specify flow
-  Root.tsx              picks GitHub mode or demo mode
+  Root.tsx              identifies the user, then shows the repo list, the overview or a workspace
   backend.ts            data source: the speckit-ui server, or GitHub/Claude from the browser (static build)
-  Connect.tsx           static build: repository and key entry
-  project/              GitHub mode: types, step derivation, gates, views, Copilot context
+  Connect.tsx           static build: token and key entry
+  project/              GitHub mode: types, step derivation, gates, views, Copilot context,
+                        repo list, overview, sign-in screens, prefs and URL state
   copilot/              Copilot panel, context builder, gate brief, API client, offline responder
   styles/               modernist.css (design system), workspace.css (app layout)
 server/
-  copilot.ts            /api/copilot handler (also mounted by the Vite dev server)
+  routes.ts             every /api and /auth route (also mounted by the Vite dev server): modes, per-request access
+  session.ts            sign-in mode: GitHub App web flow, in-memory sessions
+  copilot.ts            /api/copilot handler
   claude.ts             the Claude call shared by the server and the static build
-  github.ts             /api/project: loads and caches the project from GitHub
-  tracking.ts           /api/tracking and /api/gates: tracking issues, linked PRs, submodule bumps
+  github.ts             loads and caches projects, lists repos, detects Spec Kit (shared with the static build)
+  tracking.ts           tracking issues, linked PRs, submodule bumps (shared with the static build)
   parse.ts              parsers for constitution, spec, plan, tasks, analysis and checklists
   index.ts              production static and API server
-tests/                  unit tests: parsers, step derivation, gates, GitHub loader and tracking (mocked GitHub), Copilot logic
+tests/                  unit tests: parsers, step derivation, gates, GitHub loader and tracking, repo listing,
+                        caches, sign-in and sessions (all against a fake GitHub), prefs, overview, Copilot logic
 ```
 
 ## Status

@@ -1,0 +1,92 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { MAX_CACHED, clearProjectCache, getProject, type Source } from '../server/github';
+import { route } from '../server/routes';
+import { clearTrackingCache, decideGate, getTracking } from '../server/tracking';
+import { browserBackend } from '../src/backend';
+import { newIssueBody } from '../src/project/gates';
+import { SPEC, fakeGitHub, fakeReq, fakeRes } from './fakeGitHub';
+
+const src = (repo: string, identity = 'u1'): Source => ({ owner: 'o', repo, token: 't', identity });
+const trees = (calls: { path: string }[], repo: string) => calls.filter(c => c.path.startsWith(`/repos/o/${repo}/git/trees/`)).length;
+
+describe('project cache keyed by user and repo', () => {
+  beforeEach(() => { clearProjectCache(); clearTrackingCache(); });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('switching repo while a load is in flight returns the right repo', async () => {
+    fakeGitHub({ 'o/a': { delay: 30, specs: { '001-a': SPEC('A') } }, 'o/b': { specs: { '001-b': SPEC('B') } } });
+    const [a, b] = await Promise.all([getProject(src('a')), getProject(src('b'))]);
+    expect(a.repo).toBe('o/a');
+    expect(b.repo).toBe('o/b');
+    expect(b.specs.map(s => s.slug)).toEqual(['001-b']);
+  });
+
+  it('never shares an entry between two identities', async () => {
+    const calls = fakeGitHub({ 'o/a': {} });
+    await getProject(src('a', 'u1'));
+    await getProject(src('a', 'u1'));
+    expect(trees(calls, 'a')).toBe(1);
+    await getProject(src('a', 'u2'));
+    expect(trees(calls, 'a')).toBe(2);
+  });
+
+  it(`keeps at most ${MAX_CACHED} projects, dropping the oldest`, async () => {
+    const repos = Object.fromEntries(Array.from({ length: MAX_CACHED + 1 }, (_, i) => [`o/r${i}`, {}]));
+    const calls = fakeGitHub(repos);
+    for (let i = 0; i <= MAX_CACHED; i++) await getProject(src(`r${i}`));
+    await getProject(src(`r${MAX_CACHED}`));
+    expect(trees(calls, `r${MAX_CACHED}`)).toBe(1);
+    await getProject(src('r0'));
+    expect(trees(calls, 'r0')).toBe(2);
+  });
+
+  it('clearProjectCache and clearTrackingCache leave no entries', async () => {
+    const calls = fakeGitHub({ 'o/a': {} });
+    const p = await getProject(src('a'));
+    await getTracking(src('a'), p);
+    clearProjectCache();
+    clearTrackingCache();
+    await getTracking(src('a'), await getProject(src('a')));
+    expect(trees(calls, 'a')).toBe(2);
+    expect(calls.filter(c => c.path === '/repos/o/a/issues').length).toBe(2);
+  });
+});
+
+describe('gate writes go to the repo that is open', () => {
+  beforeEach(() => { clearProjectCache(); clearTrackingCache(); });
+  afterEach(() => vi.unstubAllGlobals());
+
+  const repos = () => ({
+    'o/a': { specs: { '001-x': SPEC('X') }, issues: [{ number: 1, state: 'open', html_url: 'a1', body: newIssueBody('001-x', 'u') }] },
+    'o/b': { specs: { '001-x': SPEC('X') }, issues: [{ number: 1, state: 'open', html_url: 'b1', body: newIssueBody('001-x', 'u') }] }
+  });
+  const writes = (calls: { method: string; path: string }[]) => calls.filter(c => c.method !== 'GET').map(c => `${c.method} ${c.path}`);
+
+  it('a tracking write invalidates only its own repo', async () => {
+    const calls = fakeGitHub(repos());
+    const pa = await getProject(src('a')), pb = await getProject(src('b'));
+    await getTracking(src('a'), pa);
+    await getTracking(src('b'), pb);
+    await decideGate(src('a'), pa, pa.specs[0], 'specify', 'reopen', '');
+    const lists = (r: string) => calls.filter(c => c.method === 'GET' && c.path === `/repos/o/${r}/issues`).length;
+    const [a0, b0] = [lists('a'), lists('b')];
+    await getTracking(src('a'), pa);
+    await getTracking(src('b'), pb);
+    expect(lists('a')).toBe(a0 + 1);
+    expect(lists('b')).toBe(b0);
+  });
+
+  it('POST /api/gates writes in the repo from the body, not GITHUB_REPO (FR-009)', async () => {
+    const calls = fakeGitHub(repos());
+    const res = fakeRes();
+    await route(fakeReq('POST', {}, { repo: 'o/b', slug: '001-x', gate: 'specify', action: 'reopen' }), res, new URL('http://h/api/gates'), { GITHUB_TOKEN: 't', GITHUB_REPO: 'o/a' });
+    expect(res.out.status).toBe(200);
+    expect(writes(calls)).toEqual(['PATCH /repos/o/b/issues/1', 'POST /repos/o/b/issues/1/comments']);
+  });
+
+  it('the browser backend writes in the repo it is given', async () => {
+    const calls = fakeGitHub(repos());
+    await browserBackend({ repo: 'o/a', ref: '', githubToken: 't', anthropicKey: '', remember: false }).decide('o/b', '001-x', 'specify', 'reopen', '');
+    expect(writes(calls)).toEqual(['PATCH /repos/o/b/issues/1', 'POST /repos/o/b/issues/1/comments']);
+  });
+});
