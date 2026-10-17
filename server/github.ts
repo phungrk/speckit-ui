@@ -1,7 +1,7 @@
 // Reads a Spec Kit project from GitHub (REST API) and serves it as /api/project.
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Project, ProjectResponse, SpecFeature } from '../src/project/types.ts';
-import { commandPrefix, parseAnalysis, parseChecklist, parseConstitution, parsePlan, parseSpec, parseTasks } from './parse.ts';
+import { commandPrefix, parseAnalysis, parseChecklist, parseConstitution, parseGitmodules, parsePlan, parseSpec, parseTasks, parseUiConfig } from './parse.ts';
 
 const API = 'https://api.github.com';
 const RECHECK_MS = 30_000; // how long a loaded commit is served before checking for a newer one
@@ -21,12 +21,14 @@ export class GitHubError extends Error {
   constructor(message: string, status: number) { super(message); this.status = status; }
 }
 
-async function gh(src: Source, path: string, raw = false): Promise<Response> {
+export async function gh(src: Source, path: string, raw = false, write?: { method: 'POST' | 'PATCH'; body: unknown }): Promise<Response> {
   const res = await fetch(API + path, {
+    ...(write ? { method: write.method, body: JSON.stringify(write.body) } : {}),
     headers: {
       Accept: raw ? 'application/vnd.github.raw+json' : 'application/vnd.github+json',
       'X-GitHub-Api-Version': '2022-11-28',
       'User-Agent': 'speckit-ui',
+      ...(write ? { 'Content-Type': 'application/json' } : {}),
       ...(src.token ? { Authorization: `Bearer ${src.token}` } : {})
     }
   });
@@ -34,15 +36,15 @@ async function gh(src: Source, path: string, raw = false): Promise<Response> {
   const name = `${src.owner}/${src.repo}`;
   if (res.status === 404) throw new GitHubError(`GitHub returned 404 for ${name}${path.includes('/contents/') ? ' ' + decodeURIComponent(path.split('/contents/')[1].split('?')[0]) : ''}. Check GITHUB_REPO, GITHUB_REF, and that GITHUB_TOKEN can read this repository.`, 404);
   if (res.status === 401) throw new GitHubError('GITHUB_TOKEN was rejected by GitHub (401).', 401);
-  if (res.status === 403 || res.status === 429) throw new GitHubError(`GitHub refused the request (${res.status}). The token may lack access, or the rate limit is exhausted.`, res.status);
+  if (res.status === 403 || res.status === 429) throw new GitHubError(`GitHub refused the request (${res.status}). The token may lack access${write ? ' (writing to issues needs Issues: Read and write)' : ''}, or the rate limit is exhausted.`, res.status);
   throw new GitHubError(`GitHub API error ${res.status} for ${path}.`, res.status);
 }
 
-const json = async <T>(src: Source, path: string) => (await (await gh(src, path)).json()) as T;
+export const json = async <T>(src: Source, path: string) => (await (await gh(src, path)).json()) as T;
 const enc = (p: string) => p.split('/').map(encodeURIComponent).join('/');
 
 /** Run `fn` over `items` with at most `n` in flight. */
-async function pool<T, R>(items: T[], n: number, fn: (x: T) => Promise<R>): Promise<R[]> {
+export async function pool<T, R>(items: T[], n: number, fn: (x: T) => Promise<R>): Promise<R[]> {
   const out: R[] = new Array(items.length);
   let next = 0;
   await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => {
@@ -60,8 +62,9 @@ export async function loadProject(src: Source): Promise<Project> {
 
 async function loadAt(src: Source, ref: string, sha: string, committedAt: string | null): Promise<Project> {
   const base = `/repos/${src.owner}/${src.repo}`;
-  const tree = await json<{ tree: { path: string; type: string }[]; truncated: boolean }>(src, `${base}/git/trees/${sha}?recursive=1`);
+  const tree = await json<{ tree: { path: string; type: string; sha?: string }[]; truncated: boolean }>(src, `${base}/git/trees/${sha}?recursive=1`);
   const blobs = tree.tree.filter(e => e.type === 'blob').map(e => e.path);
+  const pointers = new Map(tree.tree.filter(e => e.type === 'commit').map(e => [e.path, e.sha ?? null]));
   const warnings: string[] = tree.truncated ? ['The repository tree was too large to list fully; some specs may be missing.'] : [];
 
   const specFiles = new Map<string, string[]>();
@@ -71,7 +74,7 @@ async function loadAt(src: Source, ref: string, sha: string, committedAt: string
   }
 
   // Only the files the UI renders are downloaded.
-  const wanted = ['.specify/memory/constitution.md', '.specify/integration.json'].filter(p => blobs.includes(p));
+  const wanted = ['.specify/memory/constitution.md', '.specify/integration.json', '.specify/speckit-ui.json', '.gitmodules'].filter(p => blobs.includes(p));
   for (const [dir, files] of specFiles) {
     for (const f of files) {
       if (['spec.md', 'plan.md', 'tasks.md', 'analysis.md', ...DOCS].includes(f) || /^checklists\/[^/]+\.md$/.test(f)) wanted.push(`specs/${dir}/${f}`);
@@ -107,6 +110,11 @@ async function loadAt(src: Source, ref: string, sha: string, committedAt: string
   });
 
   const constitution = read('.specify/memory/constitution.md');
+  const modules = parseGitmodules(read('.gitmodules') || '').map(m => ({ ...m, sha: pointers.get(m.path) ?? null }));
+  // Merge order: .specify/speckit-ui.json if present, else .gitmodules order.
+  const order = parseUiConfig(read('.specify/speckit-ui.json')).mergeOrder;
+  const rank = (m: { path: string; repo: string | null }) => { const i = order.findIndex(o => o === m.path || o === m.repo); return i < 0 ? order.length : i; };
+  const submodules = modules.map((m, i) => ({ m, i })).sort((a, b) => rank(a.m) - rank(b.m) || a.i - b.i).map(x => x.m);
   return {
     repo: `${src.owner}/${src.repo}`,
     ref,
@@ -116,6 +124,7 @@ async function loadAt(src: Source, ref: string, sha: string, committedAt: string
     commandPrefix: commandPrefix(read('.specify/integration.json')),
     constitution: constitution ? parseConstitution(constitution) : null,
     specs,
+    submodules,
     warnings
   };
 }

@@ -99,6 +99,8 @@ export interface Project {
   commandPrefix: string;
   constitution: Constitution | null;
   specs: SpecFeature[];
+  /** Submodules from .gitmodules, with the commit each points at. */
+  submodules: Submodule[];
   /** Files that were listed but could not be read. */
   warnings: string[];
 }
@@ -106,4 +108,57 @@ export interface Project {
 export type ProjectResponse =
   | { configured: false }
   | { configured: true; project: Project }
+  | { configured: true; error: string };
+
+// ---- Step 2: gates recorded in GitHub issues, and PR tracking ----
+
+export type GateKey = 'specify' | 'clarify' | 'plan' | 'tasks' | 'analyze' | 'implement';
+export const GATE_KEYS: GateKey[] = ['specify', 'clarify', 'plan', 'tasks', 'analyze', 'implement'];
+
+export interface GateApproval { approved: boolean; by?: string; at?: string }
+
+export interface GateIssue {
+  number: number;
+  url: string;
+  state: 'open' | 'closed';
+  gates: Partial<Record<GateKey, GateApproval>>;
+}
+
+export interface Submodule { path: string; repo: string | null; sha: string | null }
+
+export interface TrackedRepo {
+  /** owner/name */
+  repo: string;
+  /** Submodule path in the root repo; null for the root repo itself. */
+  path: string | null;
+  /** Commit the root repo's submodule pointer is at. */
+  pointer: string | null;
+}
+
+export interface SpecPR {
+  repo: string;
+  number: number;
+  title: string;
+  url: string;
+  state: 'open' | 'draft' | 'merged' | 'closed';
+  mergedAt: string | null;
+  headRef: string;
+  /** For merged PRs in a submodule repo: whether the root repo's pointer includes the merge. */
+  bumped: boolean | null;
+}
+
+export interface Tracking {
+  fetchedAt: string;
+  /** Login of the token's owner, recorded as the approver. */
+  user: string | null;
+  /** Repos in merge order. */
+  repos: TrackedRepo[];
+  issues: Record<string, GateIssue>;
+  prs: Record<string, SpecPR[]>;
+  warnings: string[];
+}
+
+export type TrackingResponse =
+  | { configured: false }
+  | { configured: true; tracking: Tracking }
   | { configured: true; error: string };

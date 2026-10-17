@@ -2,6 +2,7 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { handleCopilot } from './server/copilot.ts';
 import { handleProject } from './server/github.ts';
+import { handleGate, handleTracking } from './server/tracking.ts';
 
 export default defineConfig(({ mode }) => {
   // Expose .env to the API handlers (server-side only; nothing is prefixed VITE_).
@@ -15,6 +16,8 @@ export default defineConfig(({ mode }) => {
         configureServer(server) {
           server.middlewares.use('/api/copilot', (req, res) => void handleCopilot(req, res));
           server.middlewares.use('/api/project', (req, res) => void handleProject(req, res));
+          server.middlewares.use('/api/tracking', (req, res) => void handleTracking(req, res));
+          server.middlewares.use('/api/gates', (req, res) => void handleGate(req, res));
         }
       }
     ]

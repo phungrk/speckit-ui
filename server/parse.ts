@@ -216,3 +216,24 @@ export function commandPrefix(integrationJson: string | null): string {
     return '/speckit.';
   }
 }
+
+/** Submodule path → GitHub "owner/repo" (null when the URL isn't on github.com). */
+export function parseGitmodules(raw: string): { path: string; repo: string | null }[] {
+  return raw.split(/^\[submodule /m).slice(1).flatMap(block => {
+    const path = block.match(/^\s*path\s*=\s*(.+?)\s*$/m)?.[1];
+    const url = block.match(/^\s*url\s*=\s*(.+?)\s*$/m)?.[1] ?? '';
+    if (!path) return [];
+    const m = url.match(/github\.com[/:]([\w.-]+)\/([\w.-]+?)(?:\.git)?\/?$/);
+    return [{ path, repo: m ? `${m[1]}/${m[2]}` : null }];
+  });
+}
+
+/** Optional `.specify/speckit-ui.json`: `{ "mergeOrder": ["edge", "wedding-front"] }` (submodule paths or owner/repo). */
+export function parseUiConfig(raw: string | null): { mergeOrder: string[] } {
+  try {
+    const cfg = JSON.parse(raw || '{}');
+    return { mergeOrder: Array.isArray(cfg.mergeOrder) ? cfg.mergeOrder.filter((x: unknown) => typeof x === 'string') : [] };
+  } catch {
+    return { mergeOrder: [] };
+  }
+}

@@ -5,6 +5,7 @@ import { extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { handleCopilot } from './copilot.ts';
 import { handleProject } from './github.ts';
+import { handleGate, handleTracking } from './tracking.ts';
 
 const DIST = resolve(fileURLToPath(new URL('../dist', import.meta.url)));
 const PORT = Number(process.env.PORT) || 8787;
@@ -22,6 +23,8 @@ createServer((req, res) => {
   const path = (req.url || '/').split('?')[0];
   if (path === '/api/copilot') return void handleCopilot(req, res);
   if (path === '/api/project') return void handleProject(req, res);
+  if (path === '/api/tracking') return void handleTracking(req, res);
+  if (path === '/api/gates') return void handleGate(req, res);
   let file = '';
   try { file = normalize(join(DIST, decodeURIComponent(path))); } catch { /* malformed URI: serve the app */ }
   const target = file.startsWith(DIST + sep) && existsSync(file) && statSync(file).isFile() ? file : join(DIST, 'index.html');

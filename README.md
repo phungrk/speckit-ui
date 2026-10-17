@@ -6,7 +6,7 @@ Built from the Claude Design handoff `Speckit Workspace.html` (Modernist design 
 
 It runs in two modes:
 
-- **GitHub mode**: set `GITHUB_REPO` and the app reads a real Spec Kit project (constitution, `specs/NNN-*/`) from GitHub. Read-only.
+- **GitHub mode**: set `GITHUB_REPO` and the app reads a real Spec Kit project (constitution, `specs/NNN-*/`) from GitHub. It also tracks gate approvals in GitHub issues and lists each spec's PRs across the repo and its submodules.
 - **Demo mode**: with no `GITHUB_REPO` (or with `?demo` in the URL), it shows the sample "Wallet App" workspace from the design, including approvals and the New spec flow.
 
 ## Run it
@@ -35,7 +35,12 @@ GITHUB_REF=main             # optional; defaults to the repository's default bra
 GITHUB_TOKEN=github_pat_…   # needed for private repos
 ```
 
-For the token, use a fine-grained personal access token limited to that one repository, with **Contents: Read-only** permission.
+For the token, use a fine-grained personal access token. Give it:
+
+| Repository | Permissions |
+|---|---|
+| The root repo (`GITHUB_REPO`) | Contents: Read-only · Pull requests: Read-only · **Issues: Read and write** (for gate approvals) |
+| Each submodule repo | Contents: Read-only · Pull requests: Read-only |
 
 How it reads the project:
 
@@ -60,9 +65,53 @@ The first step that is not done is marked *Next*, and it is listed under **Next 
 
 `/speckit-analyze` only prints its report in the terminal. Save it as `specs/NNN-…/analysis.md` to see the findings in the app.
 
-**Security:** the server returns the repository's spec files to anyone who can reach it. For a private repository, run the app locally or put it behind authentication before deploying. The token itself never leaves the server.
+**Security:**
 
-In GitHub mode the command bar copies the command for you to paste into Claude Code. The app doesn't run commands or write to the repository yet.
+- The server returns the repository's spec files to anyone who can reach it, and anyone who can reach it can approve gates as the token's owner. For a private repository, run the app locally or put it behind authentication before deploying.
+- `POST /api/gates` only accepts same-origin JSON requests, which blocks cross-site posts.
+- The token itself never leaves the server.
+
+In GitHub mode the command bar copies the command for you to paste into Claude Code. The app doesn't run commands, and it never writes files or branches. Its only writes are to tracking issues.
+
+### Gates and approvals
+
+Each step from Specify to Implement has a gate. The **Gate & PRs** tab shows the gate's checks, evaluated from the spec's files:
+
+| Gate | Required (blocks approval) | Warning only |
+|---|---|---|
+| Specify | spec.md exists; every story has acceptance scenarios; FRs and SCs listed; `checklists/requirements.md` complete | `[NEEDS CLARIFICATION]` markers left (Clarify resolves them) |
+| Clarify | no `[NEEDS CLARIFICATION]` markers remain | no clarification answers recorded |
+| Plan | plan.md exists; Constitution Check fully ticked; no NEEDS CLARIFICATION in Technical Context | no Constitution Check list |
+| Tasks | tasks.md exists; every user story has tasks | tasks that name no file path |
+| Analyze | analysis.md saved; no CRITICAL findings | HIGH findings |
+| Implement | all tasks checked; linked PRs merged; merged in repo order; submodule pointers include every merge | no linked PRs |
+
+Approvals are stored in **one GitHub issue per spec** in the root repo. The issue is labelled `speckit` and titled `Spec NNN: …`:
+
+- Approving a gate ticks its box in the issue and adds a comment with the checks at that commit. The first approval creates the issue.
+- **Request changes** posts your note and leaves the gate unticked. **Reopen** unticks an approved gate.
+- Approving Implement closes the issue.
+- You can also tick a box directly on GitHub; the app reads it on the next refresh.
+- The server re-runs the checks before writing, so a failing gate can't be approved through the API.
+
+In the rail, a step whose files are done shows **To approve** until its gate is approved, then **Approved**. **Next up** lists the first pending approval for each spec before its next command.
+
+### Pull requests and merge order
+
+A PR is linked to a spec when its branch name contains the spec slug (`feat/001-rename-vendor-tab`) or its description mentions `specs/001-rename-vendor-tab`. The server looks at the last 100 PRs in the root repo and in each submodule repo from `.gitmodules`.
+
+The **Implement** gate checks two things across those PRs:
+
+- **Merge order:** PRs in the submodule repos must be merged in order.
+- **Bumped pointers:** the root repo's submodule pointers must include each merged PR, checked with GitHub's compare API.
+
+The order is the `.gitmodules` order unless the root repo has `.specify/speckit-ui.json`:
+
+```json
+{ "mergeOrder": ["edge", "wedding-front"] }
+```
+
+Entries are submodule paths or `owner/repo` names.
 
 ## Demo mode
 
@@ -96,20 +145,21 @@ src/
   views/                one view per phase, plus the draft spec
   NewSpecDialog.tsx     /speckit.specify flow
   Root.tsx              picks GitHub mode or demo mode
-  project/              GitHub mode: types, step derivation, views, Copilot context
+  project/              GitHub mode: types, step derivation, gates, views, Copilot context
   copilot/              Copilot panel, context builder, gate brief, API client, offline responder
   styles/               modernist.css (design system), workspace.css (app layout)
 server/
   copilot.ts            /api/copilot handler (also mounted by the Vite dev server)
   github.ts             /api/project: loads and caches the project from GitHub
+  tracking.ts           /api/tracking and /api/gates: tracking issues, linked PRs, submodule bumps
   parse.ts              parsers for constitution, spec, plan, tasks, analysis and checklists
   index.ts              production static and API server
-tests/                  unit tests: parsers, step derivation, GitHub loader (mocked), Copilot logic
+tests/                  unit tests: parsers, step derivation, gates, GitHub loader and tracking (mocked GitHub), Copilot logic
 ```
 
 ## Status
 
-GitHub mode is read-only. Next on the roadmap:
+Possible next steps:
 
-- Gates as checklists, with approvals written back to the spec's `**Status**`.
-- A per-spec view of the PRs across repositories and their merge order.
+- Run `/speckit-*` commands from the app through Claude Code sessions.
+- Multiple approvers per gate, mapped to GitHub users.
