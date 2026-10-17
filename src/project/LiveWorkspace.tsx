@@ -3,8 +3,11 @@ import { Copilot, type AskFn, type CopilotMsg } from '../copilot/Copilot';
 import { OfflineError, requestCopilot } from '../copilot/api';
 import { Icon, Label } from '../ui';
 import { LIVE_SUGGEST, buildLiveContext, liveOfflineAnswer, liveRefPattern, liveRefPhase } from './copilot';
+import { GatePanel } from './GatePanel';
+import { GATE_NAME, unapprovedGates } from './gates';
 import { LIVE_CLASS, LIVE_LABEL, PHASES, blobUrl, nextStep, phaseStatus, type LiveStatus } from './phases';
-import type { Project } from './types';
+import { fetchTracking, postGate, type GateAction } from './trackingApi';
+import type { GateKey, Project, Tracking } from './types';
 import { LiveAnalyze, LiveClarify, LiveConstitution, LiveImplement, LivePlan, LiveSpec, LiveTasks, NotStarted } from './views';
 
 const load = <T,>(k: string, d: T): T => { try { const v = localStorage.getItem('sk.live.' + k); return v ? JSON.parse(v) as T : d; } catch { return d; } };
@@ -21,6 +24,8 @@ export function LiveWorkspace({ project, refreshing, onRefresh }: Props) {
   const [slug, setSlug] = useState(() => load('slug', ''));
   const [sel, setSel] = useState<number | null>(null);
   const [rtab, setRtab] = useState<'spec' | 'ai'>('spec');
+  const [tracking, setTracking] = useState<Tracking | null>(null);
+  const [trackingError, setTrackingError] = useState<string | null>(null);
   const [threads, setThreads] = useState<Record<string, CopilotMsg[]>>({});
   const [cmd, setCmd] = useState('');
   const [log, setLog] = useState<string[]>([]);
@@ -28,6 +33,19 @@ export function LiveWorkspace({ project, refreshing, onRefresh }: Props) {
   const logRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => save('slug', slug), [slug]);
+  const loadTracking = (refresh: boolean) => fetchTracking(refresh).then(t => { setTracking(t); setTrackingError(null); }, (e: Error) => setTrackingError(e.message));
+  useEffect(() => { void loadTracking(false); }, []);
+  const refreshAll = () => { onRefresh(); void loadTracking(true); };
+  const decide = async (gate: GateKey, action: GateAction, note: string) => {
+    try { setTracking(await postGate(f!.slug, gate, action, note)); return null; } catch (e) { return e instanceof Error ? e.message : 'Gate update failed.'; }
+  };
+  const issueOf = (s: string) => tracking?.issues[s] ?? null;
+  /** Rail label and class for step i, folding in gate approvals once they have loaded. */
+  const cell = (s: LiveStatus, i: number, slugOf: string): [string, string] => {
+    const g = i > 0 ? issueOf(slugOf)?.gates[PHASES[i].k as GateKey] : undefined;
+    if (s !== 'done' || i === 0 || !tracking) return [LIVE_CLASS[s], LIVE_LABEL[s]];
+    return g?.approved ? ['done', 'Approved'] : ['review', 'To approve'];
+  };
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(t); }, []);
   useEffect(() => { if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight; }, [log]);
 
@@ -49,7 +67,13 @@ export function LiveWorkspace({ project, refreshing, onRefresh }: Props) {
       () => setLog(l => [...l, '› ' + c, `Copy failed. Select the command and copy it by hand. ${where}`]));
   };
 
-  const next = project.specs.flatMap(x => { const n = nextStep(project, x); return n ? [{ x, n }] : []; });
+  // Pending approvals come first, then the next command to run.
+  const next = project.specs.flatMap(x => {
+    const todo = tracking ? unapprovedGates(phaseStatus(project, x), issueOf(x.slug)) : [];
+    if (todo.length) return [{ x, n: { phase: PHASES.findIndex(p => p.k === todo[0]), text: `Approve ${GATE_NAME[todo[0]]}`, detail: '' } }];
+    const n = nextStep(project, x);
+    return n ? [{ x, n }] : [];
+  });
 
   let view: ReactNode;
   if (pi === 0) view = <LiveConstitution c={project.constitution} project={project} />;
@@ -78,7 +102,7 @@ export function LiveWorkspace({ project, refreshing, onRefresh }: Props) {
       <a className="sk-sync" href={`https://github.com/${project.repo}/commit/${project.sha}`} target="_blank" rel="noreferrer" title={`Loaded ${new Date(project.fetchedAt).toLocaleString()}`}>
         <Icon n="branch" s={14} />{project.ref} @ {project.sha.slice(0, 7)}<span className="text-muted"> · {ago(project.fetchedAt, now)}</span>
       </a>
-      <button className="btn btn-secondary sk-small" onClick={onRefresh} disabled={refreshing}>{refreshing ? 'Refreshing…' : 'Refresh'}</button>
+      <button className="btn btn-secondary sk-small" onClick={refreshAll} disabled={refreshing}>{refreshing ? 'Refreshing…' : 'Refresh'}</button>
     </nav>
     <div className="sk-body">
       <aside className="sk-side">
@@ -92,7 +116,7 @@ export function LiveWorkspace({ project, refreshing, onRefresh }: Props) {
             const i = s.indexOf('current');
             return <li key={x.slug}><button className={'sk-feat' + (x === f ? ' on' : '')} aria-current={x === f ? 'true' : undefined} onClick={() => { setSlug(x.slug); setSel(null); }}>
               <span className="sk-id">{x.id}</span><b>{x.title}</b>
-              <span className="sk-bar" aria-hidden="true">{s.map((v, j) => <i key={j} className={LIVE_CLASS[v]}></i>)}</span>
+              <span className="sk-bar" aria-hidden="true">{s.map((v, j) => <i key={j} className={cell(v, j, x.slug)[0]}></i>)}</span>
               <span className="sk-featst">{i < 0 ? 'Done' : PHASES[i].n}{x.spec?.fields.Status ? ` · ${x.spec.fields.Status}` : ''}</span>
             </button></li>;
           })}</ul>
@@ -105,10 +129,11 @@ export function LiveWorkspace({ project, refreshing, onRefresh }: Props) {
         </div>
         <div className="sk-rail" role="tablist" aria-label="Spec Kit steps">{PHASES.map((p, i) => {
           const s = status[i];
-          return <button key={p.k} role="tab" aria-selected={i === pi} className={'sk-cell ' + LIVE_CLASS[s]} onClick={() => setSel(i)}>
+          const [cls, label] = f ? cell(s, i, f.slug) : [LIVE_CLASS[s], LIVE_LABEL[s]];
+          return <button key={p.k} role="tab" aria-selected={i === pi} className={'sk-cell ' + cls} onClick={() => setSel(i)}>
             <span className="sk-num">{String(i + 1).padStart(2, '0')}</span>
             <b>{p.n}</b>
-            <span className="sk-st">{s === 'done' ? <Icon n="check" s={12} /> : s === 'pending' ? <Icon n="lock" s={12} /> : <Icon n="dot" s={12} />}{LIVE_LABEL[s]}</span>
+            <span className="sk-st">{cls === 'done' ? <Icon n="check" s={12} /> : s === 'pending' ? <Icon n="lock" s={12} /> : <Icon n="dot" s={12} />}{label}</span>
           </button>;
         })}</div>
         <div className="sk-doc" role="tabpanel">{view}</div>
@@ -123,15 +148,15 @@ export function LiveWorkspace({ project, refreshing, onRefresh }: Props) {
       </main>
       <aside className={'sk-right' + (rtab === 'ai' ? ' is-ai' : '')}>
         <div className="sk-rtabs" role="tablist">
-          <button role="tab" aria-selected={rtab === 'spec'} onClick={() => setRtab('spec')}>Spec details</button>
+          <button role="tab" aria-selected={rtab === 'spec'} onClick={() => setRtab('spec')}>Gate & PRs</button>
           <button role="tab" aria-selected={rtab === 'ai'} onClick={() => setRtab('ai')} disabled={!f}><span className="sk-ai-badge">AI</span>Copilot{msgs.length > 0 && <span className="sk-rtab-n">{Math.ceil(msgs.length / 2)}</span>}</button>
         </div>
         {rtab === 'ai' && f ? <Copilot label={<>Reading <b>{f.id}</b> · {phase.n} · {project.repo}</>} tag={`${f.id} · ${phase.n}`} audience="this spec" suggestions={LIVE_SUGGEST}
           placeholder={`Ask about ${f.title}…`} refPattern={liveRefPattern(f)} msgs={msgs} setMsgs={setMsgs} ask={ask} seed={null} clearSeed={() => {}}
           onRef={r => setSel(liveRefPhase(f, r))} /> : <>
-          <div className="sk-pad">
-            <Label>Step · {phase.n}</Label>
-            <p className="sk-what">{phase.what}</p>
+          {f && <GatePanel project={project} f={f} pi={pi} status={st} tracking={tracking} trackingError={trackingError} onDecide={decide} />}
+          <div className={f ? 'sk-pad sk-rule' : 'sk-pad'}>
+            {!f && <><Label>Step · {phase.n}</Label><p className="sk-what">{phase.what}</p></>}
             {f && <>
               <Label>Spec · {f.id}</Label>
               <ul className="sk-props">
