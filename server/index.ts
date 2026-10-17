@@ -11,7 +11,7 @@ const MODE = serverMode();
 const { host: HOST, warning } = listenHost(process.env.HOST?.trim() || undefined);
 if (warning) console.warn(warning);
 const TYPES: Record<string, string> = {
-  '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css',
+  '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css',
   '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.ico': 'image/x-icon', '.json': 'application/json'
 };
 

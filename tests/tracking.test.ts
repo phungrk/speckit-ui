@@ -94,8 +94,8 @@ describe('repo config', () => {
   it('parses .gitmodules and merge order', () => {
     expect(parseGitmodules('[submodule "web"]\n\tpath = web\n\turl = https://github.com/a/front.git\n[submodule "edge"]\n\tpath = edge\n\turl = git@github.com:a/back.git\n[submodule "x"]\n\tpath = x\n\turl = https://gitlab.com/a/x'))
       .toEqual([{ path: 'web', repo: 'a/front' }, { path: 'edge', repo: 'a/back' }, { path: 'x', repo: null }]);
-    expect(parseUiConfig('{"mergeOrder":["edge","a/front",3]}')).toEqual({ mergeOrder: ['edge', 'a/front'], branchPrefixes: ['feat/'] });
-    expect(parseUiConfig('nope')).toEqual({ mergeOrder: [], branchPrefixes: ['feat/'] });
+    expect(parseUiConfig('{"mergeOrder":["edge","a/front",3]}')).toEqual({ mergeOrder: ['edge', 'a/front'], branchPrefixes: ['feat/'], approvalGates: 'block' });
+    expect(parseUiConfig('nope')).toEqual({ mergeOrder: [], branchPrefixes: ['feat/'], approvalGates: 'block' });
   });
   it('links PRs by branch or description', () => {
     expect(prMatches({ head: { ref: 'feat/007-cards' }, body: '', title: '' }, '007-cards')).toBe(true);
@@ -109,7 +109,7 @@ describe('repo config', () => {
 const src = { owner: 'a', repo: 'root', token: 't' };
 const project = (f = feature(), pointer = 'ptr'): Project => ({
   repo: 'a/root', ref: 'main', sha: 'abc1234', committedAt: null, fetchedAt: '', commandPrefix: '/speckit.', constitution: null,
-  specs: [f], submodules: [{ path: 'edge', repo: 'a/back', sha: pointer }], warnings: [], branches: [], skippedBranches: 0, branchPrefixes: ['feat/'], pinned: false
+  specs: [f], submodules: [{ path: 'edge', repo: 'a/back', sha: pointer }], warnings: [], branches: [], skippedBranches: 0, branchPrefixes: ['feat/'], pinned: false, approvalGates: 'off', gateCheck: 'installed'
 });
 
 interface Call { method: string; path: string; body?: Record<string, unknown> }
@@ -195,6 +195,42 @@ describe('decideGate', () => {
   it('needs an existing issue to request changes', async () => {
     fakeGitHub();
     await expect(decideGate(src, project(), feature(), 'plan', 'changes', 'no')).rejects.toThrow(/no tracking issue/i);
+  });
+});
+
+describe('decideGate with approval gates on (specs/004 FR-005)', () => {
+  beforeEach(() => clearTrackingCache());
+  afterEach(() => vi.unstubAllGlobals());
+  const gated = (f = feature()): Project => ({ ...project(f), approvalGates: 'block' });
+
+  it('refuses Plan while Specify is unapproved, without writing', async () => {
+    const calls = fakeGitHub();
+    await expect(decideGate(src, gated(), feature(), 'plan', 'approve', '')).rejects.toThrow('Approve Specify first.');
+    expect(calls.filter(c => c.method !== 'GET')).toEqual([]);
+  });
+
+  it('checks the issue as it is right now, not the cached list', async () => {
+    const issues = [{ number: 4, state: 'open', html_url: 'i4', body: newIssueBody('007-cards', 'x') }];
+    fakeGitHub({ issues });
+    await getTracking(src, gated(), true);
+    // Someone approves Specify on GitHub after the list was read.
+    issues[0].body = newIssueBody('007-cards', 'x', { specify: { approved: true, by: 'lan' } });
+    const { issue } = await decideGate(src, gated(), feature(), 'plan', 'approve', '');
+    expect(issue.gates.plan?.approved).toBe(true);
+  });
+
+  it('approves in order: Specify, then Plan', async () => {
+    fakeGitHub();
+    await decideGate(src, gated(), feature(), 'specify', 'approve', '');
+    const { issue } = await decideGate(src, gated(), feature(), 'plan', 'approve', '');
+    expect(issue.gates).toMatchObject({ specify: { approved: true }, plan: { approved: true } });
+  });
+
+  it('never refuses reopen or changes for this reason', async () => {
+    const calls = fakeGitHub({ issues: [{ number: 4, state: 'open', html_url: 'i4', body: newIssueBody('007-cards', 'x', { plan: { approved: true } }) }] });
+    await decideGate(src, gated(), feature(), 'plan', 'reopen', '');
+    await decideGate(src, gated(), feature(), 'tasks', 'changes', 'why');
+    expect(calls.filter(c => c.method === 'PATCH')).toHaveLength(2);
   });
 });
 
@@ -294,7 +330,7 @@ describe('gate decisions against a lagging GitHub (specs/001)', () => {
     const done = '# Tasks\n\n## Phase 1\n\n- [x] T001 [US1] Do it in `a/b.ts`\n';
     fakeRepos(repo({ staleIssueList: false }), u => (u.pathname.endsWith('/contents/specs/001-x/tasks.md') ? new Response(done) : undefined));
     const { p, f } = await load();
-    const d = await decideGate(me(), p, { ...f, tasks: [{ name: 'P', tasks: [{ id: 'T001', done: true, parallel: false, story: 'US1', text: 'x', path: 'a/b.ts' }] }] }, 'implement', 'approve', '');
+    const d = await decideGate(me(), { ...p, approvalGates: 'off' }, { ...f, tasks: [{ name: 'P', tasks: [{ id: 'T001', done: true, parallel: false, story: 'US1', text: 'x', path: 'a/b.ts' }] }] }, 'implement', 'approve', '');
     expect(d.issue.state).toBe('closed');
     expect(d.tracking.issues['001-x'].state).toBe('closed');
   });

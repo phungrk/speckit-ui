@@ -4,6 +4,7 @@ import { STATIC, type Backend } from '../backend';
 import { OfflineError } from '../copilot/api';
 import { Icon, Label } from '../ui';
 import { LIVE_SUGGEST, buildLiveContext, liveOfflineAnswer, liveRefPattern, liveRefPhase } from './copilot';
+import { GATE_NAME, blockingGates } from './gates';
 import { GatePanel, type DecideResult } from './GatePanel';
 import { buildOverview } from './overview';
 import { LIVE_CLASS, LIVE_LABEL, PHASES, blobUrl, phaseStatus, type LiveStatus } from './phases';
@@ -13,6 +14,9 @@ import { SessionButtons, type SessionActions } from './SessionNav';
 import { SignInRequired, type GateAction } from './trackingApi';
 import type { CurrentUser, GateKey, Project, SpecFeature, Tracking } from './types';
 import { LiveAnalyze, LiveClarify, LiveConstitution, LiveImplement, LivePlan, LiveSpec, LiveTasks, NotStarted } from './views';
+
+/** How to install the Claude Code gate check (specs/004 FR-012). */
+const GATE_CHECK_HELP = 'https://github.com/phungrk/speckit-ui#approval-gates';
 
 /** "feat/003-x" → "003-x" for compact labels; the full name stays in the title. */
 const shortBranch = (b: string) => b.replace(/^feat\//, '');
@@ -81,11 +85,15 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
     }
   };
   const issueOf = (s: string) => tracking?.issues[s] ?? null;
-  /** Rail label and class for step i, folding in gate approvals once they have loaded. */
-  const cell = (s: LiveStatus, i: number, slugOf: string): [string, string] => {
+  const gatesOn = project.approvalGates === 'block';
+  /** The gate locking each step of a spec (specs/004 R1); nothing is locked until approvals load. */
+  const locksOf = (st: LiveStatus[], slugOf: string): (GateKey | null)[] => (tracking ? blockingGates(st, issueOf(slugOf), project.approvalGates) : st.map(() => null));
+  /** Rail label and class for step i, folding in gate approvals and locks once they have loaded. */
+  const cell = (s: LiveStatus, i: number, slugOf: string, lock: GateKey | null = null): [string, string] => {
     const g = i > 0 ? issueOf(slugOf)?.gates[PHASES[i].k as GateKey] : undefined;
+    if (lock && s !== 'done' && s !== 'skipped') return ['locked', 'Locked'];
     if (s !== 'done' || i === 0 || !tracking) return [LIVE_CLASS[s], LIVE_LABEL[s]];
-    return g?.approved ? ['done', 'Approved'] : ['review', 'To approve'];
+    return g?.approved ? ['done', 'Approved'] : lock ? ['review', 'Ran early'] : ['review', 'To approve'];
   };
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(t); }, []);
   useEffect(() => { if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight; }, [log]);
@@ -107,12 +115,16 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
   const pi = sel ?? (f ? current : 0);
   const phase = PHASES[pi];
   const st = status[pi];
+  const locks = f ? locksOf(status, f.slug) : status.map(() => null);
+  const lockedBy = locks[pi];
+  // A locked step's command is never offered; without approvals we can't tell, so none is (specs/004 FR-003, SC-001).
+  const cmdLocked = !!f && pi > 0 && (!!lockedBy || (gatesOn && !tracking));
 
   useEffect(() => { setCmd(project.commandPrefix + phase.k); }, [phase.k, project.commandPrefix, f?.slug]);
 
   const copy = () => {
     const c = cmd.trim();
-    if (!c) return;
+    if (!c || cmdLocked) return;
     const where = `Paste it into Claude Code in ${project.repo}.`;
     navigator.clipboard?.writeText(c).then(
       () => setLog(l => [...l, '› ' + c, `Copied. ${where}`]),
@@ -125,16 +137,21 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
   let view: ReactNode;
   if (pi === 0) view = <LiveConstitution c={project.constitution} project={project} />;
   else if (!f) view = <div className="sk-empty"><Icon n="file" s={28} /><h4>No specs yet</h4><p>Run <b>{project.commandPrefix}specify</b> in Claude Code to create specs/001-…/spec.md.</p></div>;
-  else if (st !== 'done') view = <NotStarted phase={phase} status={st} prefix={project.commandPrefix} spec={f} />;
-  else view = [null, <LiveSpec f={f} />, <LiveClarify f={f} />, <LivePlan f={f} project={project} />, <LiveTasks f={f} />, <LiveAnalyze f={f} />, <LiveImplement f={f} />][pi];
+  else if (st !== 'done') view = <NotStarted phase={phase} status={st} prefix={project.commandPrefix} spec={f} blockedBy={lockedBy && GATE_NAME[lockedBy]} onGoTo={lockedBy ? () => setSel(PHASES.findIndex(p => p.k === lockedBy)) : undefined} />;
+  else {
+    view = [null, <LiveSpec f={f} />, <LiveClarify f={f} />, <LivePlan f={f} project={project} />, <LiveTasks f={f} />, <LiveAnalyze f={f} />, <LiveImplement f={f} />][pi];
+    // Work done before the gate before it was approved stays visible, marked (specs/004 FR-006).
+    if (lockedBy) view = <><div className="sk-warn" role="status"><Icon n="alert" s={14} />Ran before {GATE_NAME[lockedBy]} was approved.</div>{view}</>;
+  }
 
   const msgs = f ? threads[f.slug] || [] : [];
   const setMsgs = (m: CopilotMsg[]) => f && onThreads({ ...threads, [f.slug]: m });
+  const copilotLocks = gatesOn && !tracking ? null : locks;
   const ask: AskFn = async hist => {
     try {
-      return { t: await backend.copilot(buildLiveContext(project, f!, phase), hist) };
+      return { t: await backend.copilot(buildLiveContext(project, f!, phase, copilotLocks), hist) };
     } catch (e) {
-      if (e instanceof OfflineError) return { t: liveOfflineAnswer(hist[hist.length - 1].t, project, f!), offline: true };
+      if (e instanceof OfflineError) return { t: liveOfflineAnswer(hist[hist.length - 1].t, project, f!, copilotLocks), offline: true };
       throw e;
     }
   };
@@ -178,9 +195,10 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
           <ul className="sk-list">{project.specs.map(x => {
             const s = phaseStatus(project, x);
             const i = s.indexOf('current');
+            const lx = locksOf(s, x.slug);
             return <li key={x.slug}><button className={'sk-feat' + (x === f ? ' on' : '')} aria-current={x === f ? 'true' : undefined} onClick={() => { setSlug(x.slug); setSel(null); }}>
               <span className="sk-id">{x.id}</span><b>{x.title}</b>
-              <span className="sk-bar" aria-hidden="true">{s.map((v, j) => <i key={j} className={cell(v, j, x.slug)[0]}></i>)}</span>
+              <span className="sk-bar" aria-hidden="true">{s.map((v, j) => <i key={j} className={cell(v, j, x.slug, lx[j])[0]}></i>)}</span>
               <span className="sk-featst">{i < 0 ? 'Done' : PHASES[i].n}{x.spec?.fields.Status ? ` · ${x.spec.fields.Status}` : ''}
                 {x.unmerged && x.branch && <span className="sk-branch" title={`${x.branch} · not merged into ${project.ref}`}>{shortBranch(x.branch)}</span>}</span>
             </button></li>;
@@ -199,7 +217,7 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
         </div>
         <div className="sk-rail" role="tablist" aria-label="Spec Kit steps">{PHASES.map((p, i) => {
           const s = status[i];
-          const [cls, label] = f ? cell(s, i, f.slug) : [LIVE_CLASS[s], LIVE_LABEL[s]];
+          const [cls, label] = f ? cell(s, i, f.slug, locks[i]) : [LIVE_CLASS[s], LIVE_LABEL[s]];
           return <button key={p.k} role="tab" aria-selected={i === pi} className={'sk-cell ' + cls} onClick={() => setSel(i)}>
             <span className="sk-num">{String(i + 1).padStart(2, '0')}</span>
             <b>{p.n}</b>
@@ -209,11 +227,14 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
         <div className="sk-doc" role="tabpanel">{view}</div>
         <div className="sk-cmd">
           {log.length > 0 && <div className="sk-log" ref={logRef} aria-live="polite">{log.map((l, i) => <div key={i} className={l.startsWith('›') ? 'in' : ''}>{l}</div>)}</div>}
-          {f?.unmerged && f.branch && <div className="sk-cmdhint">Run on <b>{f.branch}</b>: <code>git switch {f.branch}</code></div>}
+          {f?.unmerged && f.branch && !cmdLocked && <div className="sk-cmdhint">Run on <b>{f.branch}</b>: <code>git switch {f.branch}</code></div>}
+          {lockedBy && <div className="sk-cmdhint" role="status"><Icon n="lock" s={12} /> <button className="sk-hintlink" onClick={() => setSel(PHASES.findIndex(p => p.k === lockedBy))}>Approve {GATE_NAME[lockedBy]} first</button>: {phase.n} opens once it is approved.</div>}
+          {cmdLocked && !lockedBy && <div className="sk-cmdhint" role="status">{trackingError ? 'Approvals could not be checked, so no command is suggested.' : 'Loading approvals…'}</div>}
+          {gatesOn && project.gateCheck === 'missing' && <div className="sk-cmdhint">Commands aren't blocked in Claude Code for this repo. <a href={GATE_CHECK_HELP} target="_blank" rel="noreferrer">Install the gate check →</a></div>}
           <div className="sk-cmdrow">
             <Icon n="terminal" s={16} />
-            <input className="sk-cmdin" value={cmd} onChange={e => setCmd(e.target.value)} onKeyDown={e => e.key === 'Enter' && copy()} aria-label="Command" />
-            <button className="btn btn-primary" onClick={copy}>Copy<Icon n="arrow" s={12} /></button>
+            <input className="sk-cmdin" value={cmdLocked ? '' : cmd} readOnly={cmdLocked} placeholder={cmdLocked ? 'No command while this step is locked' : undefined} onChange={e => setCmd(e.target.value)} onKeyDown={e => e.key === 'Enter' && copy()} aria-label="Command" />
+            <button className="btn btn-primary" onClick={copy} disabled={cmdLocked}>Copy<Icon n="arrow" s={12} /></button>
           </div>
         </div>
       </main>
@@ -225,7 +246,7 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
         {rtab === 'ai' && f ? <Copilot label={<>Reading <b>{f.id}</b> · {phase.n} · {project.repo}</>} tag={`${f.id} · ${phase.n}`} audience="this spec" suggestions={LIVE_SUGGEST}
           placeholder={`Ask about ${f.title}…`} refPattern={liveRefPattern(f)} msgs={msgs} setMsgs={setMsgs} ask={ask} seed={null} clearSeed={() => {}}
           onRef={r => setSel(liveRefPhase(f, r))} /> : <>
-          {f && <GatePanel project={project} f={f} pi={pi} status={st} tracking={tracking} trackingError={trackingError} onDecide={decide} />}
+          {f && <GatePanel project={project} f={f} pi={pi} status={st} tracking={tracking} trackingError={trackingError} onDecide={decide} blockedBy={lockedBy} />}
           <div className={f ? 'sk-pad sk-rule' : 'sk-pad'}>
             {!f && <><Label>Step · {phase.n}</Label><p className="sk-what">{phase.what}</p></>}
             {f && <>

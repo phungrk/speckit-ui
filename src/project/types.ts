@@ -119,6 +119,10 @@ export interface Project {
   branchPrefixes: string[];
   /** `ref` was chosen in Settings or GITHUB_REF, so feat/ branches are not read (FR-010). */
   pinned: boolean;
+  /** Steps after an unapproved gate are locked unless the repo sets "approvalGates": "off" (specs/004). */
+  approvalGates: 'block' | 'off';
+  /** Whether the repo has the Claude Code gate check (.claude/hooks/speckit-gate.mjs) installed (specs/004 R7). */
+  gateCheck: 'installed' | 'missing';
 }
 
 /** One version of a spec folder, shared by every branch where the folder is identical. */

@@ -133,5 +133,5 @@ xử lý, nút Reopen gate không bấm được. Nếu thất bại, cổng gi�
 
 - Không cảnh báo "duyệt đã cũ" khi file của bước thay đổi sau khi duyệt.
 - Không thêm nhiều người duyệt cho một cổng hay phân quyền theo vai trò.
-- Không khoá bước sau cho tới khi cổng trước được duyệt.
+- ~~Không khoá bước sau cho tới khi cổng trước được duyệt.~~ Đã được thay bằng spec 004 (`specs/004-approval-gates-next`): bước sau bị khoá cho tới khi cổng trước được duyệt.
 - Không thay đổi giao diện hay hành vi của chế độ demo.

@@ -9,6 +9,8 @@ export function buildOverview(project: Project, tracking: Tracking | null): Over
     const base = { repo: project.repo, slug: f.slug, title: f.title, branch: f.branch ?? null };
     const todo = tracking ? unapprovedGates(phaseStatus(project, f), tracking.issues[f.slug] ?? null) : [];
     if (todo.length) return [{ ...base, kind: 'approve', label: `Approve ${GATE_NAME[todo[0]]}`, step: PHASES.findIndex(p => p.k === todo[0]) }];
+    // Without approvals we can't tell whether the next command is locked, so none is suggested (specs/004).
+    if (!tracking && project.approvalGates === 'block') return [];
     const n = nextStep(project, f);
     return n ? [{ ...base, kind: n.phase === 6 ? 'implement' : 'run', label: n.text, step: n.phase }] : [];
   });

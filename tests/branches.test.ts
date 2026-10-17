@@ -196,6 +196,17 @@ describe('working with a branch version (US2)', () => {
     expect(String(created.body!.body)).toContain('/tree/feat/010-g/specs/010-g');
   });
 
+  it('a branch version is locked by its own unapproved gates (specs/004 FR-010)', async () => {
+    const r = repo();
+    r.branches['feat/011-h'] = { ...main, 'specs/011-h/spec.md': READY_SPEC('H'), 'specs/011-h/plan.md': PLAN };
+    const calls = fakeBranches('o/r', r);
+    const p = await getProject(src);
+    const h = p.specs.find(f => f.slug === '011-h')!;
+    expect(h.branch).toBe('feat/011-h');
+    await expect(decideGate(src, p, h, 'plan', 'approve', '')).rejects.toThrow('Approve Specify first.');
+    expect(calls.filter(c => c.method !== 'GET')).toEqual([]);
+  });
+
   it('GET /api/spec returns a version, main without a branch, 404 and 400 otherwise', async () => {
     fakeBranches('o/r', r2());
     const get = async (q: string) => {

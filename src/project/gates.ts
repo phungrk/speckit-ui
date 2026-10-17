@@ -157,3 +157,27 @@ export function unapprovedGates(status: string[], issue: GateIssue | null): Gate
   return GATE_KEYS.filter((k, i) => status[i + 1] === 'done' && !issue?.gates[k]?.approved);
 }
 
+
+// ---- Approval gates lock the steps after them (specs/004) ----
+
+/** Where the Claude Code gate check lives in a project repo, and the settings file that runs it. */
+export const GATE_HOOK_FILE = 'speckit-gate.mjs';
+export const GATE_HOOK_PATH = `.claude/hooks/${GATE_HOOK_FILE}`;
+export const CLAUDE_SETTINGS = '.claude/settings.json';
+
+/**
+ * The gate that locks each step (index as in PHASES), or null. A step is locked by the first
+ * unapproved gate among the steps before it that ran; steps that were not run never lock
+ * anything, and the constitution has no gate. The app, the server and the gate check share this.
+ */
+export function blockingGates(status: readonly string[], issue: Pick<GateIssue, 'gates'> | null, mode: 'block' | 'off' = 'block'): (GateKey | null)[] {
+  let first: GateKey | null = null;
+  return status.map((s, i) => {
+    const locked = mode === 'block' ? first : null;
+    const k = GATE_KEYS[i - 1];
+    if (k && !first && s === 'done' && !issue?.gates[k]?.approved) first = k;
+    return locked;
+  });
+}
+
+export const blockedReason = (k: GateKey) => `Approve ${GATE_NAME[k]} first.`;

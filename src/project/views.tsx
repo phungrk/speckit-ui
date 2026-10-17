@@ -20,8 +20,15 @@ function SubSections({ md, within, skip }: { md: string; within: RegExp; skip: R
   return <>{subs.map(s => <section key={s.title} className="sk-sec"><Label>{s.title}</Label><Markdown>{s.body}</Markdown></section>)}</>;
 }
 
-export function NotStarted({ phase, status, prefix, spec }: { phase: Phase; status: LiveStatus; prefix: string; spec: SpecFeature }) {
+export function NotStarted({ phase, status, prefix, spec, blockedBy, onGoTo }: { phase: Phase; status: LiveStatus; prefix: string; spec: SpecFeature; blockedBy?: string | null; onGoTo?: () => void }) {
   const cmd = prefix + phase.k;
+  // Locked behind an unapproved gate: say which, and name no command (specs/004 FR-002, FR-003).
+  if (blockedBy && status !== 'skipped') return <div className="sk-empty">
+    <Icon n="lock" s={28} />
+    <h4>Waiting for {blockedBy} approval</h4>
+    <p>{phase.n} opens once <b>{blockedBy}</b> is approved for <b>specs/{spec.slug}/</b>.</p>
+    {onGoTo && <div><button className="btn btn-secondary" onClick={onGoTo}>Go to {blockedBy}<Icon n="arrow" s={14} /></button></div>}
+  </div>;
   return <div className="sk-empty">
     <Icon n={status === 'pending' ? 'lock' : 'file'} s={28} />
     <h4>{status === 'skipped' ? `${phase.n} was not run for this spec` : `${phase.n} has not started`}</h4>

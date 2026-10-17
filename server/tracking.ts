@@ -1,7 +1,8 @@
 // Gate approvals (one GitHub issue per spec) and PR tracking across the root repo and its submodules.
 // Shared by the server and the static build; the HTTP handlers live in routes.ts.
-import { GATE_NAME, canApprove, gateChecks, issueTitle, newIssueBody, parseIssueBody, withGates } from '../src/project/gates.ts';
-import type { GateIssue, GateKey, Project, SpecFeature, SpecPR, TrackedRepo, Tracking } from '../src/project/types.ts';
+import { GATE_NAME, blockedReason, blockingGates, canApprove, gateChecks, issueTitle, newIssueBody, parseIssueBody, withGates } from '../src/project/gates.ts';
+import { phaseStatus } from '../src/project/status.ts';
+import { GATE_KEYS, type GateIssue, type GateKey, type Project, type SpecFeature, type SpecPR, type TrackedRepo, type Tracking } from '../src/project/types.ts';
 import { gh, json, pool, remember, type Source } from './github.ts';
 
 const TTL_MS = 30_000;
@@ -203,6 +204,11 @@ async function decide(src: Source, shown: Project, f: SpecFeature, gate: GateKey
 
   // The checks run again right before any write (constitution III).
   const checks = gateChecks(f, gate, tracking.prs[f.slug] || [], tracking);
+  // A gate can't be approved past an earlier unapproved one, checked on the issue just read (specs/004 FR-005).
+  if (action === 'approve') {
+    const blocker = blockingGates(phaseStatus(project, f), issue ? { gates: parseIssueBody(issue.body || '')?.gates ?? {} } : null, project.approvalGates)[GATE_KEYS.indexOf(gate) + 1];
+    if (blocker) throw new GateRefused(blockedReason(blocker));
+  }
   if (action === 'approve' && !canApprove(checks)) {
     throw new GateRefused(`${GATE_NAME[gate]} can't be approved yet: ${checks.filter(c => !c.ok && c.required).map(c => c.label).join('; ')}.`);
   }

@@ -1,6 +1,10 @@
 import type { Phase } from '../types';
 import { allTasks, nextStep, phaseStatus, PHASES, taskArea } from './phases';
-import type { Project, SpecFeature } from './types';
+import { GATE_NAME } from './gates';
+import type { GateKey, Project, SpecFeature } from './types';
+
+/** The gate locking each step (blockingGates), or null when approvals are not loaded and gates are on. */
+export type Locks = (GateKey | null)[] | null;
 
 export const LIVE_SUGGEST = [
   'What should I do next on this spec?',
@@ -27,12 +31,13 @@ export function liveRefPhase(f: SpecFeature, r: string) {
 const MAX_FILE = 20_000;
 const cap = (s: string) => (s.length > MAX_FILE ? s.slice(0, MAX_FILE) + '\n…[truncated]' : s);
 
-export function buildLiveContext(p: Project, f: SpecFeature, phase: Phase) {
+export function buildLiveContext(p: Project, f: SpecFeature, phase: Phase, locks: Locks = PHASES.map(() => null)) {
   const st = phaseStatus(p, f);
   const parts = [
     `Repository: ${p.repo} at ${p.ref} (${p.sha.slice(0, 7)}). Commands are invoked as ${p.commandPrefix}<step>.`,
     `Current spec: specs/${f.slug} "${f.title}". Step being viewed: ${phase.n}.`,
-    `Step status: ${PHASES.map((x, i) => `${x.n}=${st[i]}`).join(', ')}.`,
+    `Step status: ${PHASES.map((x, i) => `${x.n}=${st[i]}${locks?.[i] ? ` (locked: waiting for ${GATE_NAME[locks[i]!]} approval)` : ''}`).join(', ')}.`,
+    locks ? 'A locked step must not be suggested: its command is blocked until the gate before it is approved.' : 'Approvals are not loaded, so do not suggest running the next command; suggest checking approvals first.',
     `Other specs: ${p.specs.filter(x => x !== f).map(x => `${x.slug} (next: ${nextStep(p, x)?.text ?? 'done'})`).join('; ') || 'none'}.`,
     `Files in specs/${f.slug}/: ${f.files.join(', ')}.`
   ];
@@ -48,12 +53,16 @@ export function buildLiveContext(p: Project, f: SpecFeature, phase: Phase) {
 const bullets = (xs: string[]) => xs.map(x => '- ' + x).join('\n');
 
 /** Answers from the project files when the server has no Claude credentials. */
-export function liveOfflineAnswer(question: string, p: Project, f: SpecFeature): string {
+export function liveOfflineAnswer(question: string, p: Project, f: SpecFeature, locks: Locks = PHASES.map(() => null)): string {
   const q = question.toLowerCase();
   const tasks = allTasks(f);
   if (q.includes('next')) {
     const n = nextStep(p, f);
     if (!n) return `**${f.slug}** has every step done.`;
+    // A locked step is never suggested (specs/004 SC-001).
+    if (!locks) return 'Approvals are not loaded yet, so the next command may be locked. Open the Gate panel to check.';
+    const k = locks[n.phase];
+    if (k) return `Next: approve **${GATE_NAME[k]}** in the Gate panel. ${PHASES[n.phase].n} is locked until then.`;
     const open = tasks.filter(t => !t.done);
     return bullets([
       `Next step: **${PHASES[n.phase].n}**. Run \`${p.commandPrefix}${PHASES[n.phase].k}\` in Claude Code.`,

@@ -228,20 +228,32 @@ export function parseGitmodules(raw: string): { path: string; repo: string | nul
   });
 }
 
-/** Optional `.specify/speckit-ui.json`: `{ "mergeOrder": ["edge", "wedding-front"] }` (submodule paths or owner/repo). */
 /** Branch prefixes read for unmerged specs when the repo sets none (specs/003). */
 export const DEFAULT_BRANCH_PREFIXES = ['feat/'];
 
 const strings = (v: unknown): string[] | null => (Array.isArray(v) && v.every(x => typeof x === 'string') ? v : null);
 
-export function parseUiConfig(raw: string | null): { mergeOrder: string[]; branchPrefixes: string[] } {
+export interface UiConfig {
+  mergeOrder: string[];
+  branchPrefixes: string[];
+  /** "off" turns the approval gate lock off for this repo (specs/004 R6). */
+  approvalGates: 'block' | 'off';
+}
+
+/**
+ * Optional `.specify/speckit-ui.json`, e.g.
+ * `{ "mergeOrder": ["edge", "wedding-front"], "branchPrefixes": ["feat/"], "approvalGates": "off" }`.
+ * Every field has a default.
+ */
+export function parseUiConfig(raw: string | null): UiConfig {
   try {
     const cfg = JSON.parse(raw || '{}');
     return {
       mergeOrder: Array.isArray(cfg.mergeOrder) ? cfg.mergeOrder.filter((x: unknown) => typeof x === 'string') : [],
-      branchPrefixes: strings(cfg.branchPrefixes) ?? DEFAULT_BRANCH_PREFIXES
+      branchPrefixes: strings(cfg.branchPrefixes) ?? DEFAULT_BRANCH_PREFIXES,
+      approvalGates: cfg.approvalGates === 'off' ? 'off' : 'block'
     };
   } catch {
-    return { mergeOrder: [], branchPrefixes: DEFAULT_BRANCH_PREFIXES };
+    return { mergeOrder: [], branchPrefixes: DEFAULT_BRANCH_PREFIXES, approvalGates: 'block' };
   }
 }

@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && vite build --config vite.hook.config.ts",
     "start": "node --env-file-if-exists=.env --env-file-if-exists=.env.local server/index.ts",
     "typecheck": "tsc -b",
     "test": "vitest run",
