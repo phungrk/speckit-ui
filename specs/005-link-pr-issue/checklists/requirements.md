@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,5 +31,5 @@
 
 ## Notes
 
-- Three [NEEDS CLARIFICATION] markers (Q1–Q3) wait for the user's answers.
+- Q1–Q3 answered 2026-10-17 (A, A, A) and recorded under Clarifications in spec.md.
 - The spec names GitHub-visible terms (issue, PR, `owner/repo#N`), because they are the product's domain. It names no framework or library.

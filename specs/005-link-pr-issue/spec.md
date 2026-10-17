@@ -8,6 +8,14 @@
 
 **Input**: User description: "khi tạo PR để giải quyết issue, hãy tạo link giữa PR và issue, đồng thời khi PR được merged thì issue cũng được đóng"
 
+## Clarifications
+
+### Session 2026-10-17
+
+- Q: "Issue" là issue theo dõi của spec, hay cả issue thường? → A: Chỉ issue theo dõi của spec (nhãn `speckit`).
+- Q: Một spec có nhiều PR thì PR nào đóng issue khi merge? → A: Chỉ PR ở repo gốc đóng issue. PR ở repo submodule chỉ liên kết.
+- Q: Khi Claude Code tạo PR thiếu dòng liên kết thì sao? → A: Bước kiểm tra chặn việc tạo PR, và nêu đúng dòng cần thêm.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - PR được liên kết với issue ngay khi tạo (Priority: P1)
@@ -64,7 +72,7 @@ PR của spec được merge vào nhánh chính. Issue theo dõi của spec đư
 - **FR-001**: Khi một PR của spec được tạo theo luồng mà tính năng này hỗ trợ, mô tả PR MUST chứa liên kết tới issue theo dõi của spec, ở dạng GitHub nhận ra là liên kết giữa PR và issue.
 - **FR-002**: Nếu spec chưa có issue theo dõi, việc tạo PR MUST không bị chặn. Người tạo MUST được nhắc là chưa có issue để liên kết.
 - **FR-003**: speckit-ui MUST cho biết, với mỗi PR của spec, PR đó có liên kết với issue theo dõi hay không, và cách thêm liên kết nếu thiếu.
-- **FR-004**: Khi PR liên kết được merge vào nhánh mặc định, issue theo dõi MUST được đóng [NEEDS CLARIFICATION: Q2 — một spec có nhiều PR thì PR nào đóng issue? Đề xuất: PR của repo gốc], theo quy tắc sau:
+- **FR-004**: Khi PR liên kết được merge vào nhánh mặc định, issue theo dõi MUST được đóng, theo quy tắc sau:
   - mọi PR của spec đều liên kết với issue, để trang issue thấy đủ PR;
   - nhưng chỉ PR của repo gốc được đóng issue khi merge;
   - PR ở repo submodule chỉ liên kết, không đóng.
@@ -76,7 +84,7 @@ PR của spec được merge vào nhánh chính. Issue theo dõi của spec đư
 - **FR-007**: Liên kết MUST đúng cả với spec trên nhánh chưa merge (spec 003) và trong repo có submodule (liên kết chéo repo bằng `owner/repo#N`).
 - **FR-008**: Cơ chế liên kết MUST áp dụng cho cả PR do Claude Code tạo và PR do người dùng tạo bằng tay theo hướng dẫn.
   - speckit-ui MUST cung cấp đúng dòng liên kết cho từng spec để sao chép vào mô tả PR.
-  - Bước kiểm tra trong Claude Code của spec 004 MUST chặn [NEEDS CLARIFICATION: Q3 — chặn hay chỉ nhắc? Đề xuất: chặn] việc Claude Code tạo PR cho một spec có issue theo dõi mà mô tả PR thiếu dòng liên kết. Thông báo chặn MUST nêu dòng cần thêm.
+  - Bước kiểm tra trong Claude Code của spec 004 MUST chặn việc Claude Code tạo PR cho một spec có issue theo dõi mà mô tả PR thiếu dòng liên kết. Thông báo chặn MUST nêu dòng cần thêm.
 
 ### Key Entities
 
@@ -104,6 +112,6 @@ PR của spec được merge vào nhánh chính. Issue theo dõi của spec đư
 ## Non-Goals
 
 - speckit-ui không tạo PR và không sửa mô tả PR.
-- Không liên kết hay đóng các issue khác ngoài issue theo dõi có nhãn `speckit`, ví dụ issue báo lỗi do người dùng tạo [NEEDS CLARIFICATION: Q1 — "issue" là issue theo dõi của spec, hay cả issue thường? Đề xuất: chỉ issue theo dõi].
+- Không liên kết hay đóng các issue khác ngoài issue theo dõi có nhãn `speckit`, ví dụ issue báo lỗi do người dùng tạo.
 - Không tự duyệt cổng Implement khi merge.
 - Không đổi định dạng issue theo dõi.
