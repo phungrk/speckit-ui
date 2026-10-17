@@ -97,6 +97,8 @@ describe('unmerged specs in the list (US1)', () => {
     const p = await loadProject({ ...src, ref: 'main' });
     expect(p.specs.map(f => f.slug)).toEqual(['001-a', '002-b']);
     expect(p.branches).toEqual([]);
+    expect(p.pinned).toBe(true);
+    expect((await loadProject(src)).pinned).toBe(false);
   });
 
   it('works when branches cannot be listed (404)', async () => {

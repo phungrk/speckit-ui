@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Copilot, type AskFn, type CopilotMsg } from '../copilot/Copilot';
-import type { Backend } from '../backend';
+import { STATIC, type Backend } from '../backend';
 import { OfflineError } from '../copilot/api';
 import { Icon, Label } from '../ui';
 import { LIVE_SUGGEST, buildLiveContext, liveOfflineAnswer, liveRefPattern, liveRefPhase } from './copilot';
@@ -148,7 +148,7 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
 
   return <div className="sk sk-live">
     <nav className="nav sk-nav">
-      <div className="nav-brand">Speckit</div>
+      <div className="nav-brand" title={`Build ${__BUILD__}`}>Speckit</div>
       <div className="sk-proj">
         <select className="sk-repo-switch" aria-label="Repository" value={project.repo} onChange={e => e.target.value === '*' ? onAllRepos() : onSwitch(e.target.value)}>
           <option value={project.repo}>{project.repo}</option>
@@ -174,6 +174,7 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
             <ul className="sk-list">{next.map(n => <li key={n.slug}><button className="sk-qitem" onClick={() => { setSlug(n.slug); setSel(n.step); }}><b>{n.label}</b><span>{n.slug}{n.branch ? ` · ${shortBranch(n.branch)}` : ''}</span><Icon n="arrow" s={14} /></button></li>)}</ul>}
         </div>
         <div className="sk-pad sk-rule"><div className="sk-rowh"><Label>Specs · {project.specs.length}</Label></div>
+          {project.pinned && <div className="sk-warn" role="status"><Icon n="alert" s={14} /><span>Pinned to <b>{project.ref}</b>, so specs on {project.branchPrefixes.join(', ') || 'feat/'} branches are not listed. {STATIC ? 'Clear Branch in Settings › Advanced' : 'Unset GITHUB_REF'} to list them.</span></div>}
           <ul className="sk-list">{project.specs.map(x => {
             const s = phaseStatus(project, x);
             const i = s.indexOf('current');

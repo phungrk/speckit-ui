@@ -59,6 +59,7 @@ export function Connect({ initial, error, busy, onConnect }: Props) {
         <li>Gate approvals are written to issues in each repository as the token's owner.</li>
         <li>Revoke the token on GitHub at any time to cut off access. <b>Disconnect</b> removes it from this browser.</li>
       </ul>
+      <p className="text-muted sk-build">Build {__BUILD__}</p>
     </div>
   </div>;
 }

@@ -161,7 +161,8 @@ Spec Kit writes each spec on its own branch before it is merged. Unless a branch
   - Steps, files and gate checks use that branch's content, including its submodule pointers for the Implement gate.
   - Approvals go to the spec's single tracking issue.
   - The command bar reminds you to run the command on that branch (`git switch feat/…`).
-- **Pinned branch:** pinning a branch (Branch under Advanced, or `GITHUB_REF`) reads only that branch, as before.
+- **Pinned branch:** pinning a branch (Branch under Advanced, or `GITHUB_REF`) reads only that branch, as before. The Specs list then says so at the top, so missing unmerged specs are not a surprise.
+- **Which build am I on?** The commit the app was built from shows at the bottom of the Connect/Settings screen, and as the tooltip of the Speckit logo.
 
 ## Gates and approvals
 
