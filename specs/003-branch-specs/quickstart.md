@@ -22,7 +22,7 @@ Test mới dùng GitHub giả lập gồm:
 
 1. Connect, rồi mở repo.
    - Kỳ vọng: panel Specs có 001, 002, 003 (`003-x`), 004 (`004-y`), cả hai `005-…` kèm cảnh báo trùng số. Không có 006 (US1-AS5, US1-AS6, FR-007).
-   - Kỳ vọng: 003 chỉ hiện một lần, có ghi chú ở 2 nhánh (US3-AS1).
+   - Kỳ vọng: 003 chỉ hiện một lần, có ghi chú ở 2 nhánh, và mang tên nhánh `feat/003-x` chứ không phải `feat/004-y` (US3-AS1, R4).
    - Kỳ vọng: nhánh lỗi có cảnh báo, các spec khác vẫn đủ (FR-008).
 2. Chọn 004.
    - Kỳ vọng: các bước theo nội dung của `feat/004-y`; link file trỏ nhánh đó; thanh lệnh nhắc `git switch feat/004-y` (US2).
