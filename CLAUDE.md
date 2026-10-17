@@ -5,12 +5,15 @@ what it does and how each mode works.
 
 ## Rules
 
-The development rules live in `.specify/memory/constitution.md` (v1.0.0). Read it before changing
+The development rules live in `.specify/memory/constitution.md` (v1.1.0). Read it before changing
 code. In short:
 
 - Git is the source of truth. The app's only write is to tracking issues labelled `speckit`.
 - Keys belong to the user (non-negotiable): never in the repo, build, logs or URLs. The static
-  build's CSP limits network calls to `api.github.com` and `api.anthropic.com`.
+  build's CSP limits network calls to `api.github.com` and `api.anthropic.com`. On the server,
+  tokens stay server-side (env or in-memory sign-in session); the browser only gets an HttpOnly cookie.
+- Every mode uses the current user's own GitHub access: Pages token, server sign-in (GitHub App),
+  or a local token in `.env.local` (git-ignored; token mode listens on 127.0.0.1 only).
 - Three modes (demo, server, static) share one behaviour. Say which modes a change touches.
 - Demo mode stays pixel-identical to the design. Use Modernist tokens and classes only.
 - Tests use synthetic fixtures and mocked GitHub/Anthropic. This repo is public: never copy
@@ -19,7 +22,7 @@ code. In short:
 ## Commands
 
 ```bash
-npm run dev          # app + API at http://localhost:5173
+npm run dev          # app + API at http://localhost:5173 (reads .env, then .env.local)
 npm test             # Vitest
 npm run typecheck
 npm run build        # server build

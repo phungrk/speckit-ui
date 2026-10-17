@@ -1,14 +1,14 @@
 <!--
 Sync Impact Report
-- Version change: (template) → 1.0.0
-- Modified principles: n/a (bản đầu tiên)
-- Added sections: Core Principles I–VII, Ràng buộc kỹ thuật, Quy trình phát triển, Governance
+- Version change: 1.0.0 → 1.1.0 (MINOR: mở rộng nguyên tắc II cho bản server có đăng nhập)
+- Modified principles: II. Khoá thuộc về người dùng. Bản có server được giữ khoá trong biến môi
+  trường hoặc trong phiên đăng nhập ở bộ nhớ của tiến trình server; trình duyệt chỉ giữ mã phiên
+  trong cookie HttpOnly. Không nới lỏng điều nào: khoá vẫn không bao giờ xuống trình duyệt.
+- Added sections: none
 - Removed sections: none
-- Templates: .specify/templates/{spec,plan,tasks}-template.md dùng bản mặc định của Spec Kit 0.15.1;
-  mục "Constitution Check" trong plan được /speckit-plan điền từ các nguyên tắc dưới đây ✅
-- Nguồn chưng cất: README.md (Security, GitHub Pages, Gates), các quyết định trong PR #1–#5,
-  vite.config.ts (CSP), .github/workflows/pages.yml
-- Follow-up TODOs: none
+- Lý do: specs/002-multi-repo-workspace (đăng nhập GitHub App), analysis.md mục C1
+- Templates: không cần sửa; plan-template đọc nguyên tắc lúc chạy ✅
+- Follow-up: CLAUDE.md ghi version 1.1.0; plan.md của 002 dẫn tới bản 1.1.0 ✅
 -->
 
 # speckit-ui Constitution
@@ -44,7 +44,9 @@ và ghi vào repo sẽ xung đột với quy trình PR của chính họ.
   Remember), và chỉ được gửi tới `api.github.com` và `api.anthropic.com`. CSP trong
   `vite.config.ts` PHẢI thực thi điều này; thêm điểm đến mới PHẢI cập nhật CSP và mục Security
   trong README trong cùng PR.
-- Bản có server: khoá chỉ nằm trong biến môi trường của server, không bao giờ gửi xuống trình duyệt.
+- Bản có server: khoá chỉ nằm phía server, trong biến môi trường hoặc trong phiên đăng nhập lưu ở
+  bộ nhớ của tiến trình server, và KHÔNG BAO GIỜ gửi xuống trình duyệt. Trình duyệt chỉ giữ mã phiên
+  ngẫu nhiên trong cookie `HttpOnly`. Phiên PHẢI có hạn, và đăng xuất PHẢI xoá phiên ở server.
   Endpoint ghi PHẢI chặn request khác origin.
 - Nội dung đọc từ repo (markdown, tên spec, comment) KHÔNG được render thành HTML thô hay script.
 - Quyền token được tài liệu hoá theo nguyên tắc tối thiểu (README → GitHub mode); tính năng cần
@@ -155,4 +157,4 @@ thứ phải bảo trì và bảo mật.
 - Gate "Constitution Check" trong `/speckit-plan` PHẢI pass. Vi phạm có chủ đích phải ghi vào
   Complexity Tracking kèm lý do; `/speckit-analyze` coi vi phạm không được biện minh là CRITICAL.
 
-**Version**: 1.0.0 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-10-17
+**Version**: 1.1.0 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-10-17

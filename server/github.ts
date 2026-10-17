@@ -1,6 +1,6 @@
-// Reads a Spec Kit project from GitHub (REST API) and serves it as /api/project.
-import type { IncomingMessage, ServerResponse } from 'node:http';
-import type { Project, ProjectResponse, SpecFeature } from '../src/project/types.ts';
+// Reads Spec Kit projects from GitHub (REST API). Shared by the server and the static build,
+// so nothing here uses Node APIs; the HTTP handlers live in routes.ts.
+import type { AccessibleRepo, DetectResult, DetectTarget, Project, RepoListing, SpecFeature } from '../src/project/types.ts';
 import { commandPrefix, parseAnalysis, parseChecklist, parseConstitution, parseGitmodules, parsePlan, parseSpec, parseTasks, parseUiConfig } from './parse.ts';
 
 const API = 'https://api.github.com';
@@ -8,7 +8,20 @@ const RECHECK_MS = 30_000; // how long a loaded commit is served before checking
 const CONCURRENCY = 8;
 const DOCS = ['research.md', 'data-model.md', 'quickstart.md'];
 
-export interface Source { owner: string; repo: string; ref?: string; token?: string }
+export interface Source {
+  owner: string;
+  repo: string;
+  ref?: string;
+  token?: string;
+  /** Whose access this is: the login on the server, a token fingerprint elsewhere. Part of every cache key. */
+  identity?: string;
+}
+
+/** Short fingerprint of a token, so caches are per user without keeping the token in a key. */
+export async function identityFor(token: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
+  return [...new Uint8Array(digest)].slice(0, 4).map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 export function sourceFromEnv(env = process.env): Source | null {
   const m = (env.GITHUB_REPO || '').trim().match(/^([\w.-]+)\/([\w.-]+)$/);
@@ -34,10 +47,11 @@ export async function gh(src: Source, path: string, raw = false, write?: { metho
     }
   });
   if (res.ok) return res;
-  const name = `${src.owner}/${src.repo}`;
-  if (res.status === 404) throw new GitHubError(`GitHub returned 404 for ${name}${path.includes('/contents/') ? ' ' + decodeURIComponent(path.split('/contents/')[1].split('?')[0]) : ''}. Check GITHUB_REPO, GITHUB_REF, and that GITHUB_TOKEN can read this repository.`, 404);
-  if (res.status === 401) throw new GitHubError('GITHUB_TOKEN was rejected by GitHub (401).', 401);
-  if (res.status === 403 || res.status === 429) throw new GitHubError(`GitHub refused the request (${res.status}). The token may lack access${write ? ' (writing to issues needs Issues: Read and write)' : ''}, or the rate limit is exhausted.`, res.status);
+  const name = path.match(/^\/repos\/([^/]+\/[^/?]+)/)?.[1] ?? `${src.owner}/${src.repo}`;
+  if (res.status === 404) throw new GitHubError(`GitHub returned 404 for ${name}${path.includes('/contents/') ? ' ' + decodeURIComponent(path.split('/contents/')[1].split('?')[0]) : ''}. The repository or branch may not exist, or your token cannot read it.`, 404);
+  if (res.status === 401) throw new GitHubError('GitHub rejected the token (401).', 401);
+  if (res.status === 429 || (res.status === 403 && res.headers.get('x-ratelimit-remaining') === '0')) throw new GitHubError('GitHub rate limit reached. Try again in a few minutes.', 429);
+  if (res.status === 403) throw new GitHubError(`GitHub refused the request (403). The token may lack access to ${name}${write ? ' (writing to issues needs Issues: Read and write)' : ''}.`, 403);
   throw new GitHubError(`GitHub API error ${res.status} for ${path}.`, res.status);
 }
 
@@ -130,48 +144,133 @@ async function loadAt(src: Source, ref: string, sha: string, committedAt: string
   };
 }
 
-// Cache: serve the last load for RECHECK_MS, then re-check the branch head and reload only if it moved.
-let cache: { key: string; project: Project; checkedAt: number } | null = null;
-let inflight: Promise<Project> | null = null;
+// ---- Caches, keyed by identity|owner/repo@ref so users and repos never share an entry ----
 
+export const MAX_CACHED = 8;
+
+/** Insert or refresh `key` as the newest entry, dropping the oldest beyond MAX_CACHED. */
+export function remember<V>(map: Map<string, V>, key: string, value: V) {
+  map.delete(key);
+  map.set(key, value);
+  while (map.size > MAX_CACHED) map.delete(map.keys().next().value!);
+}
+
+const projectKey = (src: Source) => `${src.identity ?? ''}|${src.owner}/${src.repo}@${src.ref || ''}`;
+const projects = new Map<string, { project: Project; checkedAt: number }>();
+const inflight = new Map<string, Promise<Project>>();
+const detected = new Map<string, boolean>();
+
+/** Forget every loaded project and Spec Kit check (Disconnect, Sign out). */
+export function clearProjectCache() {
+  projects.clear();
+  inflight.clear();
+  detected.clear();
+}
+
+/** Serve a load for RECHECK_MS, then re-check the branch head and reload only if it moved. */
 export async function getProject(src: Source, refresh = false): Promise<Project> {
-  const key = `${src.owner}/${src.repo}@${src.ref || ''}`;
-  if (cache?.key === key && !refresh && Date.now() - cache.checkedAt < RECHECK_MS) return cache.project;
-  if (inflight) return inflight;
-  inflight = (async () => {
+  const key = projectKey(src);
+  const hit = projects.get(key);
+  if (hit && !refresh && Date.now() - hit.checkedAt < RECHECK_MS) return hit.project;
+  const running = inflight.get(key);
+  if (running) return running;
+  const load = (async () => {
     try {
-      if (cache?.key === key) {
-        const commit = await json<{ sha: string }>(src, `/repos/${src.owner}/${src.repo}/commits/${encodeURIComponent(cache.project.ref)}`);
-        if (commit.sha === cache.project.sha) {
-          cache.checkedAt = Date.now();
-          return cache.project;
+      if (hit) {
+        const commit = await json<{ sha: string }>(src, `/repos/${src.owner}/${src.repo}/commits/${encodeURIComponent(hit.project.ref)}`);
+        if (commit.sha === hit.project.sha) {
+          remember(projects, key, { project: hit.project, checkedAt: Date.now() });
+          return hit.project;
         }
       }
       const project = await loadProject(src);
-      cache = { key, project, checkedAt: Date.now() };
+      remember(projects, key, { project, checkedAt: Date.now() });
       return project;
     } finally {
-      inflight = null;
+      inflight.delete(key);
     }
   })();
-  return inflight;
+  inflight.set(key, load);
+  return load;
 }
 
-export async function handleProject(req: IncomingMessage, res: ServerResponse) {
-  const send = (status: number, data: ProjectResponse) => {
-    res.statusCode = status;
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Cache-Control', 'no-store');
-    res.end(JSON.stringify(data));
-  };
-  if (req.method !== 'GET') return send(405, { configured: true, error: 'Method not allowed.' });
-  const src = sourceFromEnv();
-  if (!src) return send(200, { configured: false });
-  try {
-    const refresh = new URL(req.url || '/', 'http://x').searchParams.has('refresh');
-    return send(200, { configured: true, project: await getProject(src, refresh) });
-  } catch (e) {
-    if (!(e instanceof GitHubError)) console.error('Project load failed:', e);
-    return send(e instanceof GitHubError ? 502 : 500, { configured: true, error: e instanceof Error ? e.message : 'Could not load the project.' });
+// ---- Repositories the user can read ----
+
+interface GhRepo { full_name: string; private: boolean; default_branch: string; pushed_at: string | null }
+
+export const MAX_REPO_PAGES = 10;
+const PER_PAGE = 100;
+
+const toRepo = (r: GhRepo): AccessibleRepo => ({ fullName: r.full_name, private: r.private, defaultBranch: r.default_branch, pushedAt: r.pushed_at ?? '', speckit: null, pinned: false });
+
+/**
+ * Every repo the token can read, most recently pushed first, up to 1,000.
+ * Fine-grained tokens only see the repos chosen for them; GitHub App user tokens (ghu_…) are
+ * listed per installation, which is the App's reach intersected with the user's access.
+ */
+export async function listRepos(src: Pick<Source, 'token'>): Promise<RepoListing> {
+  const s: Source = { owner: '', repo: '', ...src };
+  const out: GhRepo[] = [];
+  let truncated = false;
+  if (src.token?.startsWith('ghu_')) {
+    const { installations } = await json<{ installations: { id: number }[] }>(s, `/user/installations?per_page=${PER_PAGE}`);
+    let pages = 0;
+    for (const inst of installations) {
+      for (let page = 1; ; page++) {
+        if (++pages > MAX_REPO_PAGES) { truncated = true; break; }
+        const r = await json<{ repositories: GhRepo[] }>(s, `/user/installations/${inst.id}/repositories?per_page=${PER_PAGE}&page=${page}`);
+        out.push(...r.repositories);
+        if (r.repositories.length < PER_PAGE) break;
+      }
+      if (truncated) break;
+    }
+  } else {
+    for (let page = 1; page <= MAX_REPO_PAGES; page++) {
+      const res = await gh(s, `/user/repos?per_page=${PER_PAGE}&sort=pushed&page=${page}`);
+      const r = await res.json() as GhRepo[];
+      out.push(...r);
+      // GitHub sends a Link header whenever there is more than one page; only rel="next" means another.
+      if (!res.headers.get('link')?.includes('rel="next"')) break;
+      if (page === MAX_REPO_PAGES) truncated = true;
+    }
   }
+  const seen = new Set<string>();
+  const repos = out.filter(r => !seen.has(r.full_name) && seen.add(r.full_name)).map(toRepo)
+    .sort((a, b) => b.pushedAt.localeCompare(a.pushedAt)).slice(0, MAX_REPO_PAGES * PER_PAGE);
+  return { repos, truncated, fetchedAt: new Date().toISOString() };
 }
+
+export const DETECT_CONCURRENCY = 6;
+
+/**
+ * Whether each repo is a Spec Kit project (has .specify/ at its root). One call per repo,
+ * cached by pushedAt so a new push re-checks it.
+ */
+export async function detectSpeckit(src: Pick<Source, 'token' | 'identity'>, targets: DetectTarget[]): Promise<DetectResult> {
+  const s: Source = { owner: '', repo: '', ...src };
+  const results: Record<string, boolean> = {};
+  const errors: Record<string, string> = {};
+  await pool(targets, DETECT_CONCURRENCY, async t => {
+    const key = `${src.identity ?? ''}|${t.fullName}@${t.pushedAt ?? ''}`;
+    const known = detected.get(key);
+    if (known !== undefined) { results[t.fullName] = known; return; }
+    try {
+      await gh(s, `/repos/${t.fullName.split('/').map(encodeURIComponent).join('/')}/contents/.specify`);
+      results[t.fullName] = true;
+    } catch (e) {
+      results[t.fullName] = false;
+      if (e instanceof GitHubError && e.status === 404) { remember(detected, key, false); return; }
+      errors[t.fullName] = e instanceof Error ? e.message : 'Not accessible';
+      return;
+    }
+    remember(detected, key, true);
+  });
+  return { results, errors };
+}
+
+const group = (r: AccessibleRepo) => (r.pinned ? 0 : r.speckit === true ? 1 : r.speckit === null ? 2 : 3);
+
+/** Pinned, then Spec Kit, then not yet checked, then plain repos; newest push first within each. */
+export const sortRepos = (repos: AccessibleRepo[], pins: string[]): AccessibleRepo[] =>
+  repos.map(r => ({ ...r, pinned: pins.includes(r.fullName) }))
+    .sort((a, b) => group(a) - group(b) || b.pushedAt.localeCompare(a.pushedAt));

@@ -1,0 +1,41 @@
+// Per-user display preferences on this device: pinned repos and where the user was in each repo.
+// Not project state (constitution I). Keys are namespaced by login so people sharing a browser
+// don't see each other's pins. Every access tolerates blocked storage.
+
+export const MAX_PINS = 20;
+
+export interface LastViewed { spec: string | null; step: number | null }
+
+/** local: kept across restarts · session: forgotten when the tab closes (Pages without Remember) */
+export type PrefsStorage = 'local' | 'session';
+
+export interface Prefs {
+  getPins(): string[];
+  /** Saves at most MAX_PINS unique repos and returns what was saved. */
+  setPins(pins: string[]): string[];
+  togglePin(repo: string): string[];
+  getLast(repo: string): LastViewed | null;
+  setLast(repo: string, v: LastViewed): void;
+  getLastRepo(): string | null;
+  setLastRepo(repo: string): void;
+}
+
+export function prefsFor(login: string, where: PrefsStorage): Prefs {
+  const store = (): Storage | null => { try { return where === 'local' ? localStorage : sessionStorage; } catch { return null; } };
+  const key = (k: string) => `sk.u.${login}.${k}`;
+  const read = <T,>(k: string): T | null => { try { const v = store()?.getItem(key(k)); return v ? JSON.parse(v) as T : null; } catch { return null; } };
+  const write = (k: string, v: unknown) => { try { store()?.setItem(key(k), JSON.stringify(v)); } catch { /* preferences are best effort */ } };
+
+  const getPins = () => { const v = read<unknown>('pins'); return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []; };
+  const setPins = (pins: string[]) => { const v = [...new Set(pins)].slice(0, MAX_PINS); write('pins', v); return v; };
+  const lastAll = () => { const v = read<Record<string, LastViewed>>('last'); return v && typeof v === 'object' ? v : {}; };
+  return {
+    getPins,
+    setPins,
+    togglePin: repo => { const p = getPins(); return setPins(p.includes(repo) ? p.filter(x => x !== repo) : [...p, repo]); },
+    getLast: repo => lastAll()[repo] ?? null,
+    setLast: (repo, v) => write('last', { ...lastAll(), [repo]: v }),
+    getLastRepo: () => { const v = read<unknown>('lastRepo'); return typeof v === 'string' ? v : null; },
+    setLastRepo: repo => write('lastRepo', repo)
+  };
+}

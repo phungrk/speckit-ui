@@ -162,3 +162,58 @@ export type TrackingResponse =
   | { configured: false }
   | { configured: true; tracking: Tracking }
   | { configured: true; error: string };
+
+// ---- Several repositories per session (specs/002-multi-repo-workspace) ----
+
+/** Who is using the app. Every read and write uses this person's own GitHub access. */
+export interface CurrentUser {
+  login: string;
+  /** Pages: token typed in the browser · signin: server sign-in · token: local .env.local token */
+  mode: 'pages' | 'signin' | 'token';
+  avatarUrl: string | null;
+}
+
+/** A repository the current user can read. */
+export interface AccessibleRepo {
+  /** owner/name */
+  fullName: string;
+  private: boolean;
+  defaultBranch: string;
+  pushedAt: string;
+  /** null until checked */
+  speckit: boolean | null;
+  pinned: boolean;
+}
+
+export interface RepoListing {
+  repos: AccessibleRepo[];
+  /** The 1,000-repo cap was reached. */
+  truncated: boolean;
+  fetchedAt: string;
+}
+
+/** One thing to do next on the overview of pinned repos. */
+export interface OverviewItem {
+  repo: string;
+  slug: string;
+  title: string;
+  kind: 'approve' | 'run' | 'implement';
+  label: string;
+  /** Step index 0–6 to open. */
+  step: number;
+}
+
+export interface SessionResponse {
+  mode: 'pages' | 'signin' | 'token' | 'demo';
+  user: { login: string; avatarUrl: string | null } | null;
+  defaultRepo?: string | null;
+  error?: string;
+}
+
+export interface DetectTarget { fullName: string; pushedAt?: string | null }
+
+export interface DetectResult {
+  results: Record<string, boolean>;
+  /** Repos that could not be checked, with the reason. */
+  errors: Record<string, string>;
+}

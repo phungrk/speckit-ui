@@ -1,8 +1,8 @@
 // Gate approvals (one GitHub issue per spec) and PR tracking across the root repo and its submodules.
-import type { IncomingMessage, ServerResponse } from 'node:http';
+// Shared by the server and the static build; the HTTP handlers live in routes.ts.
 import { GATE_NAME, canApprove, gateChecks, issueTitle, newIssueBody, parseIssueBody, withGates } from '../src/project/gates.ts';
-import { GATE_KEYS, type GateIssue, type GateKey, type Project, type SpecFeature, type SpecPR, type TrackedRepo, type Tracking, type TrackingResponse } from '../src/project/types.ts';
-import { GitHubError, getProject, gh, json, pool, sourceFromEnv, type Source } from './github.ts';
+import type { GateIssue, GateKey, Project, SpecFeature, SpecPR, TrackedRepo, Tracking } from '../src/project/types.ts';
+import { gh, json, pool, remember, type Source } from './github.ts';
 
 const TTL_MS = 30_000;
 const LABEL = 'speckit';
@@ -28,7 +28,7 @@ export const prMatches = (pr: Pick<GhPull, 'head' | 'body' | 'title'>, slug: str
 // Whether a submodule pointer already contains a merge commit never changes, so cache it for good.
 const bumpCache = new Map<string, boolean | null>();
 async function isBumped(src: Source, repo: string, merge: string, pointer: string): Promise<boolean | null> {
-  const key = `${repo}@${merge}...${pointer}`;
+  const key = `${src.identity ?? ''}|${repo}@${merge}...${pointer}`;
   if (bumpCache.has(key)) return bumpCache.get(key)!;
   let v: boolean | null;
   try {
@@ -85,13 +85,21 @@ export async function loadTracking(src: Source, project: Project): Promise<Track
   };
 }
 
-let cache: { key: string; tracking: Tracking; at: number } | null = null;
+const repoPrefix = (src: Source) => `${src.identity ?? ''}|${root(src)}@`;
+const trackings = new Map<string, { tracking: Tracking; at: number }>();
+
+/** Forget all tracking data (Disconnect, Sign out). */
+export function clearTrackingCache() {
+  trackings.clear();
+  bumpCache.clear();
+}
 
 export async function getTracking(src: Source, project: Project, refresh = false): Promise<Tracking> {
-  const key = `${root(src)}@${project.sha}`;
-  if (!refresh && cache?.key === key && Date.now() - cache.at < TTL_MS) return cache.tracking;
+  const key = repoPrefix(src) + project.sha;
+  const hit = trackings.get(key);
+  if (!refresh && hit && Date.now() - hit.at < TTL_MS) return hit.tracking;
   const tracking = await loadTracking(src, project);
-  cache = { key, tracking, at: Date.now() };
+  remember(trackings, key, { tracking, at: Date.now() });
   return tracking;
 }
 
@@ -136,61 +144,7 @@ export async function decideGate(src: Source, project: Project, f: SpecFeature, 
       : `↺ **${GATE_NAME[gate]}** reopened by ${who}.${note ? `\n\n> ${note}` : ''}`;
   await gh(src, `${base}/issues/${issue.number}/comments`, false, { method: 'POST', body: { body: text } });
 
-  cache = null;
+  // Only this user's entries for this repo are stale now.
+  for (const k of [...trackings.keys()]) if (k.startsWith(repoPrefix(src))) trackings.delete(k);
   return toGateIssue(updated)?.[1] ?? { number: updated.number, url: updated.html_url, state: updated.state, gates };
-}
-
-const send = (res: ServerResponse, status: number, data: unknown) => {
-  res.statusCode = status;
-  res.setHeader('Content-Type', 'application/json');
-  res.setHeader('Cache-Control', 'no-store');
-  res.end(JSON.stringify(data));
-};
-
-export async function handleTracking(req: IncomingMessage, res: ServerResponse) {
-  const src = sourceFromEnv();
-  if (!src) return send(res, 200, { configured: false } satisfies TrackingResponse);
-  try {
-    const refresh = new URL(req.url || '/', 'http://x').searchParams.has('refresh');
-    const project = await getProject(src, refresh);
-    return send(res, 200, { configured: true, tracking: await getTracking(src, project, refresh) } satisfies TrackingResponse);
-  } catch (e) {
-    if (!(e instanceof GitHubError)) console.error('Tracking load failed:', e);
-    return send(res, 502, { configured: true, error: e instanceof Error ? e.message : 'Could not load tracking.' } satisfies TrackingResponse);
-  }
-}
-
-/** Writes are only accepted from this app's own pages (blocks cross-site form posts and fetches). */
-export function sameOrigin(req: IncomingMessage): boolean {
-  const origin = req.headers.origin;
-  if (!origin) return (req.headers['sec-fetch-site'] ?? 'same-origin') === 'same-origin';
-  try { return new URL(origin).host === req.headers.host; } catch { return false; }
-}
-
-export async function handleGate(req: IncomingMessage, res: ServerResponse) {
-  if (req.method !== 'POST') return send(res, 405, { error: 'Method not allowed.' });
-  if (!sameOrigin(req) || !(req.headers['content-type'] || '').startsWith('application/json')) return send(res, 403, { error: 'Forbidden.' });
-  const src = sourceFromEnv();
-  if (!src) return send(res, 400, { error: 'GITHUB_REPO is not set.' });
-  let body: { slug?: unknown; gate?: unknown; action?: unknown; note?: unknown };
-  try {
-    let raw = '';
-    for await (const chunk of req) { raw += chunk; if (raw.length > 8_000) throw new Error('too large'); }
-    body = JSON.parse(raw);
-  } catch { return send(res, 400, { error: 'Body must be JSON.' }); }
-  const { slug, gate, action, note } = body;
-  if (typeof slug !== 'string' || !GATE_KEYS.includes(gate as GateKey) || !['approve', 'changes', 'reopen'].includes(action as string) || (note !== undefined && typeof note !== 'string')) {
-    return send(res, 400, { error: 'Expected { slug, gate, action: approve | changes | reopen, note? }.' });
-  }
-  try {
-    const project = await getProject(src);
-    const f = project.specs.find(x => x.slug === slug);
-    if (!f) return send(res, 404, { error: `No spec ${slug} at ${project.sha.slice(0, 7)}.` });
-    const issue = await decideGate(src, project, f, gate as GateKey, action as GateAction, ((note as string) || '').trim().slice(0, 2000));
-    return send(res, 200, { issue, tracking: await getTracking(src, project, true) });
-  } catch (e) {
-    if (e instanceof GateRefused) return send(res, 409, { error: e.message });
-    if (!(e instanceof GitHubError)) console.error('Gate update failed:', e);
-    return send(res, e instanceof GitHubError ? 502 : 500, { error: e instanceof Error ? e.message : 'Could not update the gate.' });
-  }
 }

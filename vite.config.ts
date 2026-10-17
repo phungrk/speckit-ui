@@ -1,8 +1,6 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
-import { handleCopilot } from './server/copilot.ts';
-import { handleProject } from './server/github.ts';
-import { handleGate, handleTracking } from './server/tracking.ts';
+import { handleApi, listenHost } from './server/routes.ts';
 
 const CSP = [
   "default-src 'self'",
@@ -17,7 +15,7 @@ const CSP = [
 ].join('; ');
 
 export default defineConfig(({ mode }) => {
-  // Expose .env to the API handlers (server-side only; nothing is prefixed VITE_).
+  // Expose .env and .env.local to the API handlers (server-side only; nothing is prefixed VITE_).
   Object.assign(process.env, loadEnv(mode, process.cwd(), ''));
   const isStatic = process.env.VITE_STATIC === '1';
   return {
@@ -37,11 +35,16 @@ export default defineConfig(({ mode }) => {
       {
         // Serve the API from the dev server so `npm run dev` is all you need.
         name: 'speckit-api',
+        // Token mode stays on this machine with `npm run dev -- --host` too (R6).
+        config(c, { command }) {
+          if (command !== 'serve') return;
+          const h = c.server?.host;
+          const { host, warning } = listenHost(h === true ? '0.0.0.0' : h || 'localhost');
+          if (warning) console.warn(warning);
+          return { server: { host } };
+        },
         configureServer(server) {
-          server.middlewares.use('/api/copilot', (req, res) => void handleCopilot(req, res));
-          server.middlewares.use('/api/project', (req, res) => void handleProject(req, res));
-          server.middlewares.use('/api/tracking', (req, res) => void handleTracking(req, res));
-          server.middlewares.use('/api/gates', (req, res) => void handleGate(req, res));
+          server.middlewares.use((req, res, next) => { if (!handleApi(req, res)) next(); });
         }
       }
     ]
