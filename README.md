@@ -165,6 +165,10 @@ Approvals are stored in **one GitHub issue per spec** in the root repo of the op
 - Approving Implement closes the issue.
 - You can also tick a box directly on GitHub; the app reads it on the next refresh.
 - The server re-runs the checks before writing, so a failing gate can't be approved through the API.
+- The gate shows the approval as soon as GitHub confirms the write. The app uses GitHub's answer to the write itself, and for a few minutes prefers it over GitHub's issue list, which can lag. If someone edits the issue on GitHub afterwards, the newer copy wins.
+- Approving twice records once: the button locks while saving, decisions for the same spec run one at a time, and a gate that is already approved, by you or someone else, is reported as *Already approved* without another write.
+- Reads revalidate with GitHub (`cache: no-cache`), so the browser never shows a cached copy of the issue list.
+- **Limitation:** on the Pages build, if two browsers approve the *first* gate of a spec within a few seconds, before GitHub's list shows the new issue, each may create a tracking issue.
 
 In the rail, a step whose files are done shows **To approve** until its gate is approved, then **Approved**. **Next up** lists the first pending approval for each spec before its next command.
 

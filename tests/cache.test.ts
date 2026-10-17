@@ -62,31 +62,31 @@ describe('gate writes go to the repo that is open', () => {
   });
   const writes = (calls: { method: string; path: string }[]) => calls.filter(c => c.method !== 'GET').map(c => `${c.method} ${c.path}`);
 
-  it('a tracking write invalidates only its own repo', async () => {
+  it('a tracking write updates only its own repo', async () => {
     const calls = fakeGitHub(repos());
     const pa = await getProject(src('a')), pb = await getProject(src('b'));
     await getTracking(src('a'), pa);
-    await getTracking(src('b'), pb);
-    await decideGate(src('a'), pa, pa.specs[0], 'specify', 'reopen', '');
+    const before = await getTracking(src('b'), pb);
+    await decideGate(src('a'), pa, pa.specs[0], 'specify', 'changes', 'fix it');
     const lists = (r: string) => calls.filter(c => c.method === 'GET' && c.path === `/repos/o/${r}/issues`).length;
     const [a0, b0] = [lists('a'), lists('b')];
-    await getTracking(src('a'), pa);
-    await getTracking(src('b'), pb);
-    expect(lists('a')).toBe(a0 + 1);
-    expect(lists('b')).toBe(b0);
+    // A's cached tracking already holds the write, so no re-list is needed; B is untouched.
+    expect((await getTracking(src('a'), pa)).issues['001-x'].gates.specify).toEqual({ approved: false });
+    expect(await getTracking(src('b'), pb)).toBe(before);
+    expect([lists('a'), lists('b')]).toEqual([a0, b0]);
   });
 
   it('POST /api/gates writes in the repo from the body, not GITHUB_REPO (FR-009)', async () => {
     const calls = fakeGitHub(repos());
     const res = fakeRes();
-    await route(fakeReq('POST', {}, { repo: 'o/b', slug: '001-x', gate: 'specify', action: 'reopen' }), res, new URL('http://h/api/gates'), { GITHUB_TOKEN: 't', GITHUB_REPO: 'o/a' });
+    await route(fakeReq('POST', {}, { repo: 'o/b', slug: '001-x', gate: 'specify', action: 'changes', note: 'fix it' }), res, new URL('http://h/api/gates'), { GITHUB_TOKEN: 't', GITHUB_REPO: 'o/a' });
     expect(res.out.status).toBe(200);
     expect(writes(calls)).toEqual(['PATCH /repos/o/b/issues/1', 'POST /repos/o/b/issues/1/comments']);
   });
 
   it('the browser backend writes in the repo it is given', async () => {
     const calls = fakeGitHub(repos());
-    await browserBackend({ repo: 'o/a', ref: '', githubToken: 't', anthropicKey: '', remember: false }).decide('o/b', '001-x', 'specify', 'reopen', '');
+    await browserBackend({ repo: 'o/a', ref: '', githubToken: 't', anthropicKey: '', remember: false }).decide('o/b', '001-x', 'specify', 'changes', 'fix it');
     expect(writes(calls)).toEqual(['PATCH /repos/o/b/issues/1', 'POST /repos/o/b/issues/1/comments']);
   });
 });

@@ -1,9 +1,12 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { canApprove, gateChecks, mergeOrderProblems, newIssueBody, parseIssueBody, unapprovedGates, withGates } from '../src/project/gates';
 import { parseGitmodules, parseUiConfig } from '../server/parse';
 import { route, sameOrigin } from '../server/routes';
-import { GateRefused, decideGate, loadTracking, prMatches, trackedRepos } from '../server/tracking';
+import { GateRefused, RECENT_MS, applyIssue, clearTrackingCache, decideGate, getTracking, loadTracking, prMatches, trackedRepos } from '../server/tracking';
+import { clearProjectCache, getProject, type Source } from '../server/github';
+import { browserBackend } from '../src/backend';
+import { READY_SPEC, fakeGitHub as fakeRepos, fakeReq, fakeRes, type Call as FakeCall, type FakeRepo } from './fakeGitHub';
 import type { Project, SpecFeature, SpecPR } from '../src/project/types';
 
 const feature = (over: Partial<SpecFeature> = {}): SpecFeature => ({
@@ -82,7 +85,7 @@ describe('tracking issue body', () => {
     expect(parseIssueBody('Just a bug')).toBeNull();
   });
   it('lists done steps that still need approval', () => {
-    expect(unapprovedGates(['done', 'done', 'skipped', 'done', 'current', 'pending', 'pending'], { number: 1, url: '', state: 'open', gates: { specify: { approved: true } } })).toEqual(['plan']);
+    expect(unapprovedGates(['done', 'done', 'skipped', 'done', 'current', 'pending', 'pending'], { number: 1, url: '', state: 'open', gates: { specify: { approved: true } }, updatedAt: null })).toEqual(['plan']);
   });
 });
 
@@ -160,10 +163,11 @@ describe('loadTracking', () => {
 });
 
 describe('decideGate', () => {
+  beforeEach(() => clearTrackingCache());
   afterEach(() => vi.unstubAllGlobals());
   it('creates the tracking issue on first approval, ticks the gate and comments', async () => {
     const calls = fakeGitHub();
-    const issue = await decideGate(src, project(), feature(), 'plan', 'approve', '');
+    const { issue } = await decideGate(src, project(), feature(), 'plan', 'approve', '');
     expect(issue).toMatchObject({ number: 5, state: 'open', gates: { plan: { approved: true, by: 'mai' } } });
     const writes = calls.filter(c => c.method !== 'GET');
     expect(writes.map(c => `${c.method} ${c.path}`)).toEqual(['POST /repos/a/root/issues', 'PATCH /repos/a/root/issues/5', 'POST /repos/a/root/issues/5/comments']);
@@ -179,10 +183,10 @@ describe('decideGate', () => {
   it('closes the issue when Implement is approved, and reopens on request', async () => {
     const body = newIssueBody('007-cards', 'x');
     const calls = fakeGitHub({ issues: [{ number: 4, state: 'open', html_url: 'i4', body }], rootOpen: false });
-    const shipped = await decideGate(src, project(feature(), 'ptr2'), feature(), 'implement', 'approve', '');
+    const { issue: shipped } = await decideGate(src, project(feature(), 'ptr2'), feature(), 'implement', 'approve', '');
     expect(shipped.state).toBe('closed');
     expect(calls.find(c => c.method === 'PATCH')!.body).toMatchObject({ state: 'closed', state_reason: 'completed' });
-    const reopened = await decideGate(src, project(feature(), 'ptr2'), feature(), 'implement', 'reopen', 'regression');
+    const { issue: reopened } = await decideGate(src, project(feature(), 'ptr2'), feature(), 'implement', 'reopen', 'regression');
     expect(reopened.state).toBe('open');
     expect(reopened.gates.implement).toEqual({ approved: false });
     expect(String(calls.filter(c => c.path.endsWith('/comments')).at(-1)!.body!.body)).toContain('> regression');
@@ -207,5 +211,181 @@ describe('write protection', () => {
       await route(req(headers), res, new URL('http://h/api/gates'), { GITHUB_TOKEN: 't', GITHUB_REPO: 'a/root' });
       expect(res.statusCode).toBe(403);
     }
+  });
+});
+
+// ---- specs/001: the gate shows the decision at once, and only once ----
+
+describe('gate decisions against a lagging GitHub (specs/001)', () => {
+  const me = (identity = 'u1'): Source => ({ owner: 'o', repo: 'r', token: 't', identity });
+  const repo = (over: Partial<FakeRepo> = {}): Record<string, FakeRepo> => ({ 'o/r': { specs: { '001-x': READY_SPEC('X') }, staleIssueList: true, ...over } });
+  const posts = (calls: FakeCall[], suffix: string) => calls.filter(c => c.method !== 'GET' && c.path.endsWith(suffix)).length;
+  const load = async (s = me()) => { const p = await getProject(s); return { p, f: p.specs[0] }; };
+
+  beforeEach(() => { clearTrackingCache(); clearProjectCache(); });
+  afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
+
+  it('applyIssue returns new tracking and leaves its input alone', () => {
+    const t = { fetchedAt: '', user: null, repos: [], issues: {}, prs: {}, warnings: [] };
+    const i = { number: 1, url: 'u', state: 'open' as const, gates: { plan: { approved: true } }, updatedAt: 'x' };
+    expect(applyIssue(t, '001-x', i).issues['001-x']).toBe(i);
+    expect(t.issues).toEqual({});
+  });
+
+  it('reads GitHub with cache: no-cache, writes without', async () => {
+    const calls = fakeRepos(repo({ staleIssueList: false }));
+    const { p, f } = await load();
+    await decideGate(me(), p, f, 'specify', 'approve', '');
+    expect(calls.filter(c => c.method === 'GET').every(c => c.cache === 'no-cache')).toBe(true);
+    expect(calls.filter(c => c.method !== 'GET').every(c => c.cache === undefined)).toBe(true);
+  });
+
+  it('shows the approval at once and keeps it while the list is stale (US1, FR-004)', async () => {
+    const calls = fakeRepos(repo());
+    const { p, f } = await load();
+    const d = await decideGate(me(), p, f, 'specify', 'approve', '');
+    expect(d.unchanged).toBe(false);
+    expect(d.tracking.issues['001-x'].gates.specify).toMatchObject({ approved: true, by: 'mai' });
+    // A refresh re-lists the stale issue list; the fresh write still wins.
+    const t = await getTracking(me(), p, true);
+    expect(t.issues['001-x'].gates.specify).toMatchObject({ approved: true });
+    expect(posts(calls, '/issues')).toBe(1);
+  });
+
+  it('a newer copy on GitHub wins over the remembered write', async () => {
+    const repos = repo({ staleIssueList: false });
+    fakeRepos(repos);
+    const { p, f } = await load();
+    await decideGate(me(), p, f, 'specify', 'approve', '');
+    // Someone unticks the box on GitHub afterwards.
+    const issue = repos['o/r'].issues![0];
+    issue.body = issue.body.replace('- [x] Specify', '- [ ] Specify');
+    issue.updated_at = new Date(Date.parse(issue.updated_at!) + 60_000).toISOString();
+    expect((await getTracking(me(), p, true)).issues['001-x'].gates.specify?.approved).toBe(false);
+  });
+
+  it('forgets a remembered write after RECENT_MS', async () => {
+    fakeRepos(repo());
+    const { p, f } = await load();
+    await decideGate(me(), p, f, 'specify', 'approve', '');
+    vi.useFakeTimers({ now: Date.now() + RECENT_MS + 1000 });
+    // The stale list still has no issue for the spec, and the write has expired.
+    expect((await getTracking(me(), p, true)).issues['001-x']).toBeUndefined();
+  });
+
+  it('POST /api/gates and the browser backend return the write, not a re-read (FR-009)', async () => {
+    const calls = fakeRepos(repo());
+    const res = fakeRes();
+    await route(fakeReq('POST', {}, { repo: 'o/r', slug: '001-x', gate: 'specify', action: 'approve' }), res, new URL('http://h/api/gates'), { GITHUB_TOKEN: 't' });
+    const body = JSON.parse(res.out.body);
+    expect(res.out.status).toBe(200);
+    expect(body.unchanged).toBe(false);
+    expect(body.tracking.issues['001-x'].gates.specify.approved).toBe(true);
+    expect(calls.filter(c => c.path.endsWith('/pulls')).length).toBe(1);
+
+    clearTrackingCache(); clearProjectCache();
+    fakeRepos(repo());
+    const r = await browserBackend({ repo: '', ref: '', githubToken: 't', anthropicKey: '', remember: false }).decide('o/r', '001-x', 'specify', 'approve', '');
+    expect(r.tracking.issues['001-x'].gates.specify?.approved).toBe(true);
+  });
+
+  it('approving Implement returns the closed issue (G1)', async () => {
+    const done = '# Tasks\n\n## Phase 1\n\n- [x] T001 [US1] Do it in `a/b.ts`\n';
+    fakeRepos(repo({ staleIssueList: false }), u => (u.pathname.endsWith('/contents/specs/001-x/tasks.md') ? new Response(done) : undefined));
+    const { p, f } = await load();
+    const d = await decideGate(me(), p, { ...f, tasks: [{ name: 'P', tasks: [{ id: 'T001', done: true, parallel: false, story: 'US1', text: 'x', path: 'a/b.ts' }] }] }, 'implement', 'approve', '');
+    expect(d.issue.state).toBe('closed');
+    expect(d.tracking.issues['001-x'].state).toBe('closed');
+  });
+
+  it('five rapid approvals write once (SC-002)', async () => {
+    const calls = fakeRepos(repo());
+    const { p, f } = await load();
+    const all = await Promise.all(Array.from({ length: 5 }, () => decideGate(me(), p, f, 'specify', 'approve', '')));
+    expect(posts(calls, '/issues')).toBe(1);
+    expect(calls.filter(c => c.method === 'PATCH').length).toBe(1);
+    expect(posts(calls, '/comments')).toBe(1);
+    expect(all.filter(d => d.unchanged).length).toBe(4);
+  });
+
+  it('approving a gate someone else approved writes nothing and names them (FR-007, C1)', async () => {
+    const body = newIssueBody('001-x', 'u', { specify: { approved: true, by: 'lan', at: '2026-10-16' } });
+    const calls = fakeRepos(repo({ issues: [{ number: 7, state: 'open', html_url: 'i7', body }] }));
+    const { p, f } = await load();
+    // Even when the checks would now fail, the answer is "already approved", not 409.
+    const d = await decideGate(me(), p, { ...f, spec: null }, 'specify', 'approve', '');
+    expect(d.unchanged).toBe(true);
+    expect(d.issue.gates.specify).toMatchObject({ approved: true, by: 'lan' });
+    expect(calls.filter(c => c.method !== 'GET')).toEqual([]);
+  });
+
+  it('a second gate right after the first approval reuses the new issue, for any user (U1)', async () => {
+    const calls = fakeRepos(repo());
+    const { p, f } = await load();
+    await decideGate(me('u1'), p, f, 'specify', 'approve', '');
+    await decideGate(me('u1'), p, f, 'clarify', 'approve', '');
+    await decideGate(me('u2'), p, f, 'clarify', 'reopen', '');
+    expect(posts(calls, '/issues')).toBe(1);
+    expect(calls.filter(c => c.method === 'PATCH').map(c => c.path)).toEqual(['/repos/o/r/issues/1', '/repos/o/r/issues/1', '/repos/o/r/issues/1']);
+  });
+
+  it('a refused write, a failing check or a network error never shows an approval (SC-004)', async () => {
+    const unapproved = () => [{ number: 1, state: 'open', html_url: 'i1', body: newIssueBody('001-x', 'u') }];
+    const approvedNow = async (p: Awaited<ReturnType<typeof load>>['p']) => {
+      fakeRepos(repo({ staleIssueList: false, issues: unapproved() }));
+      return (await getTracking(me(), p, true)).issues['001-x']?.gates.specify?.approved ?? false;
+    };
+
+    // GitHub refuses the write (no Issues: write).
+    fakeRepos(repo({ issues: unapproved(), patchStatus: 403 }));
+    let { p, f } = await load();
+    await expect(decideGate(me(), p, f, 'specify', 'approve', '')).rejects.toThrow(/403/);
+    expect(await approvedNow(p)).toBe(false);
+
+    // The gate's checks fail: refused before any write.
+    clearTrackingCache(); clearProjectCache();
+    const calls = fakeRepos(repo({ issues: unapproved() }));
+    ({ p, f } = await load());
+    await expect(decideGate(me(), p, { ...f, spec: null }, 'specify', 'approve', '')).rejects.toThrow(GateRefused);
+    expect(calls.filter(c => c.method !== 'GET')).toEqual([]);
+    expect(await approvedNow(p)).toBe(false);
+
+    // The network drops.
+    clearTrackingCache(); clearProjectCache();
+    fakeRepos(repo({ issues: unapproved() }));
+    ({ p, f } = await load());
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('Failed to fetch'); }));
+    await expect(decideGate(me(), p, f, 'specify', 'approve', '')).rejects.toThrow();
+    expect(await approvedNow(p)).toBe(false);
+  });
+
+  it('a failed comment after the PATCH reports an error, then the next try is unchanged (I1)', async () => {
+    const repos = repo({ commentStatus: 500 });
+    const calls = fakeRepos(repos);
+    const { p, f } = await load();
+    await expect(decideGate(me(), p, f, 'specify', 'approve', '')).rejects.toThrow();
+    expect((await getTracking(me(), p, true)).issues['001-x'].gates.specify?.approved).toBe(true);
+    repos['o/r'].commentStatus = undefined;
+    const d = await decideGate(me(), p, f, 'specify', 'approve', '');
+    expect(d.unchanged).toBe(true);
+    expect(calls.filter(c => c.method === 'PATCH').length).toBe(1);
+  });
+
+  it('reopen shows at once, is idempotent, and a failed reopen keeps the approval (US4)', async () => {
+    const approved = newIssueBody('001-x', 'u', { specify: { approved: true, by: 'mai', at: '2026-10-16' } });
+    const repos = repo({ issues: [{ number: 1, state: 'open', html_url: 'i1', body: approved }] });
+    const calls = fakeRepos(repos);
+    const { p, f } = await load();
+    const d = await decideGate(me(), p, f, 'specify', 'reopen', '');
+    expect(d.tracking.issues['001-x'].gates.specify?.approved).toBe(false);
+    expect((await getTracking(me(), p, true)).issues['001-x'].gates.specify?.approved).toBe(false);
+    expect((await decideGate(me(), p, f, 'specify', 'reopen', '')).unchanged).toBe(true);
+    expect(calls.filter(c => c.method === 'PATCH').length).toBe(1);
+
+    clearTrackingCache(); clearProjectCache();
+    fakeRepos(repo({ staleIssueList: false, issues: [{ number: 1, state: 'open', html_url: 'i1', body: approved }], patchStatus: 403 }));
+    const again = await load();
+    await expect(decideGate(me(), again.p, again.f, 'specify', 'reopen', '')).rejects.toThrow(/403/);
+    expect((await getTracking(me(), again.p, true)).issues['001-x'].gates.specify?.approved).toBe(true);
   });
 });

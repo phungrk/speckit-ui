@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Icon, Label } from '../ui';
 import { canApprove, gateChecks } from './gates';
 import { PHASES, type LiveStatus } from './phases';
@@ -6,6 +6,8 @@ import type { GateAction } from './trackingApi';
 import { GATE_KEYS, type GateKey, type Project, type SpecFeature, type SpecPR, type Tracking } from './types';
 
 const PR_STATE: Record<SpecPR['state'], string> = { open: 'Open', draft: 'Draft', merged: 'Merged', closed: 'Closed' };
+/** How long after a decision further clicks in the gate are ignored. */
+const QUIET_MS = 800;
 
 interface Props {
   project: Project;
@@ -14,12 +16,23 @@ interface Props {
   status: LiveStatus;
   tracking: Tracking | null;
   trackingError: string | null;
-  onDecide: (gate: GateKey, action: GateAction, note: string) => Promise<string | null>;
+  onDecide: (gate: GateKey, action: GateAction, note: string) => Promise<DecideResult>;
+}
+
+export interface DecideResult {
+  error: string | null;
+  /** The gate was already in the requested state (for example, approved by someone else). */
+  unchanged: boolean;
 }
 
 export function GatePanel({ project, f, pi, status, tracking, trackingError, onDecide }: Props) {
   const [busy, setBusy] = useState(false);
+  // Set synchronously, so a second click before React re-renders is ignored (specs/001 FR-003).
+  const inFlight = useRef(false);
+  // Clicks still arriving from a burst right after a decision must not hit the button that replaced it.
+  const quietUntil = useRef(0);
   const [error, setError] = useState<string | null>(null);
+  const [already, setAlready] = useState<GateKey | null>(null);
   const [noteFor, setNoteFor] = useState<'changes' | null>(null);
   const [note, setNote] = useState('');
   const phase = PHASES[pi];
@@ -33,11 +46,21 @@ export function GatePanel({ project, f, pi, status, tracking, trackingError, onD
   const order = (tracking?.repos ?? []).map(r => r.repo);
 
   const decide = async (action: GateAction) => {
-    setBusy(true); setError(null);
-    const err = await onDecide(gate, action, action === 'changes' ? note : '');
-    setBusy(false);
-    if (err) setError(err);
-    else { setNoteFor(null); setNote(''); }
+    if (inFlight.current || Date.now() < quietUntil.current) return;
+    inFlight.current = true;
+    setBusy(true); setError(null); setAlready(null);
+    try {
+      const r = await onDecide(gate, action, action === 'changes' ? note : '');
+      if (r.error) setError(r.error);
+      else {
+        setNoteFor(null); setNote('');
+        if (r.unchanged && action === 'approve') setAlready(gate);
+      }
+    } finally {
+      inFlight.current = false;
+      quietUntil.current = Date.now() + QUIET_MS;
+      setBusy(false);
+    }
   };
 
   return <>
@@ -54,13 +77,14 @@ export function GatePanel({ project, f, pi, status, tracking, trackingError, onD
             : !tracking ? <p className="sk-ns-cursor" style={{ fontSize: 13 }}>Loading approvals…</p>
             : approval?.approved
               ? <div className="sk-gateact">
-                <div className="sk-pass" style={{ marginBottom: 'var(--space-3)' }}><Icon n="check" s={14} />Approved{approval.by ? ` by @${approval.by}` : ''}{approval.at ? ` · ${approval.at}` : ''}</div>
-                <button className="btn btn-secondary btn-block" disabled={busy} onClick={() => decide('reopen')}>Reopen gate</button>
+                <div className="sk-pass" style={{ marginBottom: already === gate ? 'var(--space-1)' : 'var(--space-3)' }}><Icon n="check" s={14} />Approved{approval.by ? ` by @${approval.by}` : ''}{approval.at ? ` · ${approval.at}` : ''}</div>
+                {already === gate && <p className="sk-meta" role="status" style={{ marginBottom: 'var(--space-3)' }}>Already approved. Nothing new was recorded.</p>}
+                <button key="reopen" className="btn btn-secondary btn-block" disabled={busy} onClick={() => decide('reopen')}>{busy ? 'Saving…' : 'Reopen gate'}</button>
               </div>
               : <div className="sk-gateact">
                 {!ok && status === 'done' && <div className="sk-warn"><Icon n="alert" s={14} />Fix the failing checks before approving.</div>}
                 {status !== 'done' && <div className="sk-warn"><Icon n="alert" s={14} />{phase.n} has no output yet. Run {project.commandPrefix}{phase.k} first.</div>}
-                <button className="btn btn-primary btn-block" disabled={busy || !ok || status !== 'done'} onClick={() => decide('approve')}>{busy ? 'Saving…' : phase.k === 'implement' ? 'Verify & ship' : `Approve ${phase.n}`}<Icon n="arrow" s={14} /></button>
+                <button key="approve" className="btn btn-primary btn-block" disabled={busy || !ok || status !== 'done'} onClick={() => decide('approve')}>{busy ? 'Saving…' : phase.k === 'implement' ? 'Verify & ship' : `Approve ${phase.n}`}<Icon n="arrow" s={14} /></button>
                 {issue && (noteFor === 'changes'
                   ? <div className="sk-note">
                     <textarea className="input" rows={3} value={note} onChange={e => setNote(e.target.value)} placeholder="What needs to change?" aria-label="Requested changes" autoFocus></textarea>

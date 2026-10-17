@@ -4,7 +4,7 @@ import type { Backend } from '../backend';
 import { OfflineError } from '../copilot/api';
 import { Icon, Label } from '../ui';
 import { LIVE_SUGGEST, buildLiveContext, liveOfflineAnswer, liveRefPattern, liveRefPhase } from './copilot';
-import { GatePanel } from './GatePanel';
+import { GatePanel, type DecideResult } from './GatePanel';
 import { buildOverview } from './overview';
 import { LIVE_CLASS, LIVE_LABEL, PHASES, blobUrl, phaseStatus, type LiveStatus } from './phases';
 import type { LastViewed } from './prefs';
@@ -63,11 +63,18 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
   });
   useEffect(() => { void loadTracking(false); }, []);
   const refreshAll = () => { onRefresh(); void loadTracking(true); };
-  const decide = async (gate: GateKey, action: GateAction, note: string) => {
-    try { setTracking(await backend.decide(project.repo, f!.slug, gate, action, note)); return null; } catch (e) {
-      if (e instanceof SignInRequired) { onAuthLost(); return 'Sign in again to approve.'; }
-      // Read access without Issues write: say so for this repo only, and leave Approve usable (G1).
-      return accessProblem(e, 'write', project.repo) ?? (e instanceof Error ? e.message : 'Gate update failed.');
+  const decide = async (gate: GateKey, action: GateAction, note: string): Promise<DecideResult> => {
+    try {
+      // The tracking that comes back already holds this decision, so the gate, the rail,
+      // Next up and the progress bars all change in this one render (specs/001 FR-001, FR-005).
+      const r = await backend.decide(project.repo, f!.slug, gate, action, note);
+      setTracking(r.tracking);
+      setTrackingError(null);
+      return { error: null, unchanged: r.unchanged };
+    } catch (e) {
+      if (e instanceof SignInRequired) { onAuthLost(); return { error: 'Sign in again to approve.', unchanged: false }; }
+      // Read access without Issues write: say so for this repo only, and leave Approve usable.
+      return { error: accessProblem(e, 'write', project.repo) ?? (e instanceof Error ? e.message : 'Gate update failed.'), unchanged: false };
     }
   };
   const issueOf = (s: string) => tracking?.issues[s] ?? null;

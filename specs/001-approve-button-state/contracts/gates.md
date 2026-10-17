@@ -27,7 +27,7 @@ Response 200:
 
 1. Ứng dụng chỉ báo thành công sau khi GitHub đã nhận cả PATCH lẫn comment.
 2. Hai lệnh cho cùng `repo|slug` trong một tiến trình chạy nối tiếp nhau, và lệnh thứ hai thấy kết quả của lệnh thứ nhất.
-3. `getTracking` trong 2 phút sau khi ghi không trả trạng thái cổng cũ hơn lần ghi đó (so bằng `updatedAt`).
+3. `getTracking` trong 5 phút sau khi ghi (dài hơn 2 phút của SC-003) không trả trạng thái cổng cũ hơn lần ghi đó (so bằng `updatedAt`).
 4. Lệnh đọc GitHub gửi `cache: 'no-cache'`, nên trình duyệt không dùng bản cũ trong cache HTTP.
 5. **Ghi được một phần (I1):** khi PATCH đã được GitHub nhận nhưng việc đăng comment lỗi, lệnh vẫn trả lỗi.
    - Giao diện báo lỗi, và nút Approve dùng lại được.

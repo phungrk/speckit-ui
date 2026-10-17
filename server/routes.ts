@@ -167,8 +167,8 @@ async function handleGate(req: IncomingMessage, res: ServerResponse, access: Acc
   const project = await getProject(src);
   const f = project.specs.find(x => x.slug === slug);
   if (!f) throw new HttpError(404, `No spec ${slug} in ${project.repo} at ${project.sha.slice(0, 7)}.`);
-  const issue = await decideGate(src, project, f, gate as GateKey, action as GateAction, ((note as string) || '').trim().slice(0, 2000));
-  return send(res, 200, { issue, tracking: await getTracking(src, project, true) });
+  // The write's own result goes back: re-reading GitHub's list here could return the gate as it was (specs/001).
+  return send(res, 200, await decideGate(src, project, f, gate as GateKey, action as GateAction, ((note as string) || '').trim().slice(0, 2000)));
 }
 
 const POSTS = new Set(['/api/repos/detect', '/api/gates', '/api/copilot', '/auth/logout']);
