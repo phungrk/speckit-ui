@@ -78,13 +78,15 @@ Cấu trúc hiện có: SPA trong `src/`, logic GitHub dùng chung trong `server
   - a failing branch adds a warning while the other specs stay (FR-008);
   - a fixed `ref` reads only that branch (FR-010);
   - a refresh with nothing changed makes only the main commit and branch-list calls;
-  - after a new push to a branch, the next refresh shows the new file (SC-001).
+  - after a new push to a branch, the next refresh shows the new file (SC-001);
+  - a deleted branch's specs disappear on the next refresh, and a force-push back to an older SHA shows the older content (G1).
 
 ### Implementation for User Story 1
 
 - [ ] T008 [US1] Implement `loadBranches(src, main, prefixes)` in `server/github.ts`:
   - per branch, read the root tree and compare the `specs` tree SHA with main's; when it differs, read the `specs` tree and load only folders whose SHA differs or that main lacks, via `loadSpecDir`, 8 at a time (R2);
-  - record a `BranchInfo` per branch, with errors as warnings.
+  - record a `BranchInfo` per branch, with errors as warnings;
+  - keep the branch's submodule pointers (root-tree entries of type `commit`) on each branch version, so the Implement gate checks the branch's own pointers (analysis C1).
 - [ ] T009 [US1] In `loadProject` in `server/github.ts`, when `src.ref` is not set and `branchPrefixes` is not empty:
   - call `loadBranches`;
   - group main and branch versions by slug into `variants`, merging variants with the same tree SHA;
@@ -114,7 +116,9 @@ Cấu trúc hiện có: SPA trong `src/`, logic GitHub dùng chung trong `server
   - `decideGate` with `branch` runs the checks on that variant's content (approving fails when only main's version would pass, and the reverse);
   - a new tracking issue links `tree/feat/b/specs/…`;
   - `GET /api/spec` returns the variant, 404 for an unknown slug and 400 for a branch outside `branchPrefixes`;
-  - `browserBackend.spec` matches the server result.
+  - `browserBackend.spec` matches the server result;
+  - the Implement gate of a branch version uses that branch's submodule pointers, not main's (C1);
+  - `GET /api/spec` without `branch`, or with the default branch, returns main's version (U1).
 
 ### Implementation for User Story 2
 
@@ -123,7 +127,8 @@ Cấu trúc hiện có: SPA trong `src/`, logic GitHub dùng chung trong `server
 - [ ] T016 [US2] Wire the branch into gate decisions in `server/tracking.ts`, `server/routes.ts` and `src/backend.ts`:
   - `POST /api/gates` in `server/routes.ts` accepts `branch`;
   - `Backend.decide` in `src/backend.ts` takes an optional `branch`;
-  - `decideGate` in `server/tracking.ts` runs on the chosen variant, and its `specUrl` uses `f.branch ?? project.ref`.
+  - `decideGate` in `server/tracking.ts` runs on the chosen variant, and its `specUrl` uses `f.branch ?? project.ref`;
+  - for a branch version, `gateChecks` and `loadTracking` use the branch's submodule pointers (C1).
 - [ ] T017 [US2] Carry the branch in the address via `src/project/urlState.ts`:
   - add `branch` to `URL_KEYS` and `UrlState` in `src/project/urlState.ts`, and to `RETURN_KEYS` in `server/session.ts`;
   - in `src/Root.tsx` and `src/project/LiveWorkspace.tsx`, restore the version from `?branch=` and write it back on change (FR-009).

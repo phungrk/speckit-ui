@@ -21,6 +21,7 @@ Các kiểu bổ sung cho `src/project/types.ts`. Định dạng issue theo dõi
 | `onDefault` | boolean | Bản này trùng với nhánh chính |
 | `stage` | number | Số bước `done` theo `phaseStatus` |
 | `committedAt` | string \| null | Chỉ lấy khi cần phá hoà |
+| `pointers` | Record<string, string> | Con trỏ submodule (đường dẫn → commit) trên nhánh của bản này; dùng cho cổng Implement (C1) |
 
 Khi chọn bản khác bằng bộ chọn bản, giao diện xin bản đó qua tham số `branch` (R9). Server và bản Pages trả về `SpecFeature` của bản đó, không cần tải lại cả dự án.
 

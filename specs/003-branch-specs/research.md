@@ -60,7 +60,8 @@ Mỗi mục ghi quyết định, lý do và các phương án đã cân nhắc. 
 - **Decision**:
   - Issue theo dõi vẫn xác định theo slug (spec 001 và 002 không đổi).
   - `POST /api/gates` và `Backend.decide` nhận thêm `branch` tuỳ chọn. Server tìm đúng bản theo `slug` và `branch` để chạy lại kiểm tra cổng trên **đúng nội dung đó**.
-  - Link `specs/…` trong issue mới trỏ tới nhánh của bản đó.
+  - Link `specs/…` trong issue mới trỏ tới nhánh của bản đó, tại thời điểm tạo issue. Sau khi nhánh merge và bị xoá, link này hỏng; issue vẫn giữ lịch sử, và có thể sửa sau bằng spec riêng (analysis U2).
+  - Cổng Implement của một bản trên nhánh dùng con trỏ submodule của chính nhánh đó, đọc từ cây gốc đã lấy ở R2 (analysis C1).
   - PR được liên kết theo slug như hiện nay (`prMatches`), nên PR của nhánh `feat/NNN-slug` tự gắn vào spec.
 - **Rationale**: FR-005 yêu cầu ghi vào cùng nơi; nguyên tắc III yêu cầu kiểm tra lại đúng nội dung trước khi ghi.
 

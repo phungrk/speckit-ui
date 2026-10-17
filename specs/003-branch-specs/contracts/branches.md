@@ -21,7 +21,7 @@ Có `ref`: chỉ đọc nhánh đó như hiện nay. `branches` rỗng, mọi sp
 
 ## `GET /api/spec?repo=owner/name&slug=NNN-slug&branch=feat/x`
 
-Mới. Trả `{ "feature": SpecFeature }` của bản trên nhánh `branch`, để chuyển bản (US3-AS2) mà không phải tải lại cả dự án. Mã lỗi:
+Mới. Trả `{ "feature": SpecFeature }` của bản trên nhánh `branch`, để chuyển bản (US3-AS2) mà không phải tải lại cả dự án. Thiếu `branch`, hoặc `branch` là nhánh chính, thì trả bản trên nhánh chính. Mã lỗi:
 - `404`: không có slug này trên nhánh đó;
 - `400`: nhánh không khớp `branchPrefixes`;
 - còn lại giống `/api/project`.
@@ -34,7 +34,7 @@ Body thêm `"branch"` tuỳ chọn. Không có thì dùng bản đang hiển th�
 { "repo": "o/r", "slug": "003-branch-specs", "branch": "feat/003-branch-specs", "gate": "specify", "action": "approve" }
 ```
 
-Kiểm tra cổng chạy trên nội dung của đúng bản đó. Issue theo dõi vẫn là issue duy nhất của slug. Link spec trong issue mới trỏ tới nhánh của bản đó.
+Kiểm tra cổng chạy trên nội dung của đúng bản đó, gồm cả con trỏ submodule của nhánh khi kiểm tra cổng Implement. Issue theo dõi vẫn là issue duy nhất của slug. Link spec trong issue mới trỏ tới nhánh của bản đó.
 
 ## Địa chỉ trang
 
