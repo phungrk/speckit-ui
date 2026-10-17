@@ -9,14 +9,14 @@ const spec = (over: Partial<SpecFeature['spec'] & object> = {}): SpecFeature['sp
   stories: [{ id: 'US1', p: 'P1', title: 's', text: '', ac: [['a', 'b', 'c']] }], frs: [{ id: 'FR-001', text: 'x' }], sc: [{ id: 'SC-001', text: 'y' }], ...over
 });
 const feature = (slug: string, over: Partial<SpecFeature> = {}): SpecFeature => ({
-  id: slug.slice(0, 3), slug, title: slug.slice(4), files: [], spec: spec(), plan: null, tasks: null, analysis: null, checklists: [], docs: {}, ...over
+  id: slug.slice(0, 3), slug, title: slug.slice(4), files: [], spec: spec(), plan: null, tasks: null, analysis: null, checklists: [], docs: {}, branch: null, sha: '', unmerged: false, variants: [], ...over
 });
 const done = (n: number, of: number) => [{ name: 'P', tasks: Array.from({ length: of }, (_, i) => ({ id: `T${i}`, done: i < n, parallel: false, story: 'US1', text: 'x', path: 'a/b' })) }];
 
 const project = (specs: SpecFeature[]): Project => ({
   repo: 'o/a', ref: 'main', sha: 'abc1234', committedAt: null, fetchedAt: '', commandPrefix: '/speckit-',
   constitution: { title: 'C', version: '1', ratified: '', amended: '', principles: [], raw: '' } as unknown as Project['constitution'],
-  specs, submodules: [], warnings: []
+  specs, submodules: [], warnings: [], branches: [], skippedBranches: 0, branchPrefixes: ['feat/']
 });
 
 const tracking = (issues: Record<string, GateIssue>): Tracking => ({ fetchedAt: '', user: 'mai', repos: [], issues, prs: {}, warnings: [] });
@@ -31,7 +31,7 @@ describe('buildOverview', () => {
   it('puts a pending approval before the next command', () => {
     const p = project([feature('001-auth', { plan })]);
     const items = buildOverview(p, tracking({ '001-auth': issue('001-auth', ['specify']) }));
-    expect(items).toEqual([{ repo: 'o/a', slug: '001-auth', title: 'auth', kind: 'approve', label: 'Approve Plan', step: 3 }]);
+    expect(items).toEqual([{ repo: 'o/a', slug: '001-auth', title: 'auth', branch: null, kind: 'approve', label: 'Approve Plan', step: 3 }]);
   });
 
   it('shows the next command once every finished step is approved', () => {

@@ -4,7 +4,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { GATE_KEYS, type DetectTarget, type GateKey, type SessionResponse } from '../src/project/types.ts';
 import { handleCopilot } from './copilot.ts';
-import { GitHubError, detectSpeckit, getProject, identityFor, json, listRepos, type Source } from './github.ts';
+import { GitHubError, detectSpeckit, getProject, getSpecVariant, identityFor, json, listRepos, type Source } from './github.ts';
 import { appConfig, destroySession, getSession, handleCallback, handleLogin, handleLogout, sessionToken } from './session.ts';
 import { GateRefused, decideGate, getTracking, type GateAction } from './tracking.ts';
 
@@ -159,21 +159,30 @@ function detectTargets(body: Record<string, unknown>): DetectTarget[] {
 
 async function handleGate(req: IncomingMessage, res: ServerResponse, access: Access, env: Env) {
   const body = await readJson(req);
-  const { repo, slug, gate, action, note } = body;
-  if (typeof slug !== 'string' || !GATE_KEYS.includes(gate as GateKey) || !['approve', 'changes', 'reopen'].includes(action as string) || (note !== undefined && typeof note !== 'string')) {
-    throw new HttpError(400, 'Expected { repo, slug, gate, action: approve | changes | reopen, note? }.');
+  const { repo, slug, gate, action, note, branch } = body;
+  if (typeof slug !== 'string' || !GATE_KEYS.includes(gate as GateKey) || !['approve', 'changes', 'reopen'].includes(action as string) || (note !== undefined && typeof note !== 'string') || (branch != null && typeof branch !== 'string')) {
+    throw new HttpError(400, 'Expected { repo, slug, branch?, gate, action: approve | changes | reopen, note? }.');
   }
   const src = sourceFor(access, repo, undefined, env);
   const project = await getProject(src);
-  const f = project.specs.find(x => x.slug === slug);
-  if (!f) throw new HttpError(404, `No spec ${slug} in ${project.repo} at ${project.sha.slice(0, 7)}.`);
+  const f = await specVersion(src, project, slug, branch as string | undefined);
   // The write's own result goes back: re-reading GitHub's list here could return the gate as it was (specs/001).
   return send(res, 200, await decideGate(src, project, f, gate as GateKey, action as GateAction, ((note as string) || '').trim().slice(0, 2000)));
 }
 
+/** The version of a spec on `branch`, or the shown one; 400 for a branch outside branchPrefixes (contracts/branches.md). */
+async function specVersion(src: Source, project: Awaited<ReturnType<typeof getProject>>, slug: string, branch?: string | null) {
+  if (branch && branch !== project.ref && !project.branchPrefixes.some(p => branch.startsWith(p))) {
+    throw new HttpError(400, `Branch ${branch} is not read here (branch prefixes: ${project.branchPrefixes.join(', ') || 'none'}).`);
+  }
+  const f = branch === undefined || branch === null ? project.specs.find(x => x.slug === slug) : await getSpecVariant(src, project, slug, branch);
+  if (!f) throw new HttpError(404, `No spec ${slug}${branch ? ` on ${branch}` : ''} in ${project.repo}.`);
+  return f;
+}
+
 const POSTS = new Set(['/api/repos/detect', '/api/gates', '/api/copilot', '/auth/logout']);
 const JSON_WRITES = new Set(['/api/repos/detect', '/api/gates']);
-const ROUTES = new Set(['/api/session', '/api/repos', '/api/repos/detect', '/api/project', '/api/tracking', '/api/gates', '/api/copilot', '/auth/login', '/auth/callback', '/auth/logout']);
+const ROUTES = new Set(['/api/session', '/api/repos', '/api/repos/detect', '/api/project', '/api/spec', '/api/tracking', '/api/gates', '/api/copilot', '/auth/login', '/auth/callback', '/auth/logout']);
 
 /** Serves the API. Returns false when the path is not an API route. */
 export function handleApi(req: IncomingMessage, res: ServerResponse, env: Env = process.env): boolean {
@@ -204,7 +213,7 @@ export async function route(req: IncomingMessage, res: ServerResponse, url: URL,
     if (mode === 'signin' && !getSession(req)) return send(res, 401, { error: 'Sign in required.' });
     return handleCopilot(req, res);
   }
-  const data = path === '/api/project' || path === '/api/tracking';
+  const data = path === '/api/project' || path === '/api/tracking' || path === '/api/spec';
   // Without any GitHub configuration the app shows the sample workspace.
   if (mode === 'demo' && data) return send(res, 200, { configured: false });
 
@@ -220,6 +229,11 @@ export async function route(req: IncomingMessage, res: ServerResponse, url: URL,
     const refresh = q.has('refresh');
     const project = await getProject(src, refresh);
     if (path === '/api/project') return send(res, 200, { configured: true, project });
+    if (path === '/api/spec') {
+      const slug = q.get('slug');
+      if (!slug) throw new HttpError(400, 'Expected ?slug=NNN-slug.');
+      return send(res, 200, { configured: true, feature: await specVersion(src, project, slug, q.get('branch') || null) });
+    }
     return send(res, 200, { configured: true, tracking: await getTracking(src, project, refresh) });
   } catch (e) {
     return fail(res, e, access, extra);

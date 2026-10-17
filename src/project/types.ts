@@ -87,6 +87,14 @@ export interface SpecFeature {
   checklists: ChecklistSummary[];
   /** Raw markdown of supporting docs that exist: research.md, data-model.md, quickstart.md. */
   docs: Record<string, string>;
+  /** Branch this version was read from; null for the default branch (specs/003). */
+  branch: string | null;
+  /** Commit of this version, for file links. */
+  sha: string;
+  /** Read from a feat/ branch and different from the default branch. */
+  unmerged: boolean;
+  /** Every version of this slug; the first is the one shown. */
+  variants: SpecVariant[];
 }
 
 export interface Project {
@@ -103,6 +111,37 @@ export interface Project {
   submodules: Submodule[];
   /** Files that were listed but could not be read. */
   warnings: string[];
+  /** feat/ branches read for unmerged specs; empty when a branch is pinned (specs/003). */
+  branches: BranchInfo[];
+  /** Branches left out by the 30-branch limit. */
+  skippedBranches: number;
+  /** Branch name prefixes read, from .specify/speckit-ui.json (default ["feat/"]). */
+  branchPrefixes: string[];
+}
+
+/** One version of a spec folder, shared by every branch where the folder is identical. */
+export interface SpecVariant {
+  /** Branches holding this exact version; the default branch's name when it is on it. */
+  branches: string[];
+  /** Git tree SHA of specs/NNN-slug in this version. */
+  treeSha: string;
+  /** Commit of the first branch in `branches`. */
+  sha: string;
+  onDefault: boolean;
+  /** Steps done (Specify to Implement); the version that went furthest is shown first. */
+  stage: number;
+  committedAt: string | null;
+  /** Submodule pointers (path → commit) on this version's branch, for the Implement gate. */
+  pointers: Record<string, string>;
+}
+
+export interface BranchInfo {
+  name: string;
+  sha: string;
+  specsTreeSha: string | null;
+  /** Spec folders on this branch that differ from the default branch. */
+  unmergedSlugs: string[];
+  error: string | null;
 }
 
 export type ProjectResponse =
@@ -198,6 +237,8 @@ export interface RepoListing {
 export interface OverviewItem {
   repo: string;
   slug: string;
+  /** Branch of an unmerged spec; null on the default branch. */
+  branch: string | null;
   title: string;
   kind: 'approve' | 'run' | 'implement';
   label: string;

@@ -197,11 +197,11 @@ describe('parsers', () => {
 });
 
 const feature = (over: Partial<SpecFeature> = {}): SpecFeature => ({
-  id: '002', slug: '002-recurring', title: 'Recurring transfers', files: ['spec.md'], spec: parseSpec(SPEC), plan: null, tasks: null, analysis: null, checklists: [], docs: {}, ...over
+  id: '002', slug: '002-recurring', title: 'Recurring transfers', files: ['spec.md'], spec: parseSpec(SPEC), plan: null, tasks: null, analysis: null, checklists: [], docs: {}, branch: null, sha: '', unmerged: false, variants: [], ...over
 });
 const project = (specs: SpecFeature[]): Project => ({
   repo: 'acme/app', ref: 'main', sha: 'abc1234def', committedAt: null, fetchedAt: new Date().toISOString(), commandPrefix: '/speckit-',
-  constitution: parseConstitution(CONSTITUTION), specs, submodules: [], warnings: []
+  constitution: parseConstitution(CONSTITUTION), specs, submodules: [], warnings: [], branches: [], skippedBranches: 0, branchPrefixes: ['feat/']
 });
 
 describe('phase status', () => {

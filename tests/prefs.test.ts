@@ -80,7 +80,7 @@ describe('url state', () => {
   });
 
   it('reads repo, spec, step and view', () => {
-    expect(readUrl('?repo=o/a&spec=001-x&step=plan')).toEqual({ repo: 'o/a', spec: '001-x', step: 3, view: null });
+    expect(readUrl('?repo=o/a&spec=001-x&step=plan')).toEqual({ repo: 'o/a', spec: '001-x', branch: null, step: 3, view: null });
     expect(readUrl('?view=overview')).toMatchObject({ view: 'overview' });
     expect(readUrl('?view=evil')).toMatchObject({ view: null });
   });

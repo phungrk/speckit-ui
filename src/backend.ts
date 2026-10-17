@@ -1,13 +1,13 @@
 // Where GitHub mode gets its data: the speckit-ui server (npm run dev / npm start), or, in the
 // static GitHub Pages build, GitHub and Claude called straight from the browser with the viewer's own keys.
 // Every call names its repository; the user's own access decides what they can open.
-import { GitHubError, clearProjectCache, detectSpeckit, getProject, identityFor, json, listRepos, type Source } from '../server/github';
+import { GitHubError, clearProjectCache, detectSpeckit, getProject, getSpecVariant, identityFor, json, listRepos, type Source } from '../server/github';
 import { clearTrackingCache, decideGate, getTracking } from '../server/tracking';
 import type { CopilotMsg } from './copilot/Copilot';
 import { OfflineError, requestCopilot, toTurns } from './copilot/api';
 import type { Decided, GateAction } from './project/trackingApi';
 import { api, fetchTracking, postGate } from './project/trackingApi';
-import type { DetectResult, DetectTarget, GateKey, Project, ProjectResponse, RepoListing, SessionResponse, Tracking } from './project/types';
+import type { DetectResult, DetectTarget, GateKey, Project, ProjectResponse, RepoListing, SessionResponse, SpecFeature, Tracking } from './project/types';
 
 /** Built for GitHub Pages: no server, keys come from the viewer. */
 export const STATIC = import.meta.env.VITE_STATIC === '1';
@@ -21,8 +21,10 @@ export interface Backend {
   /** null when the server has no GitHub configuration (demo mode). */
   project(repo: string, refresh: boolean): Promise<Project | null>;
   tracking(repo: string, refresh: boolean): Promise<Tracking | null>;
+  /** The version of a spec on `branch` (the default branch when empty), for switching versions (specs/003). */
+  spec(repo: string, slug: string, branch: string | null): Promise<SpecFeature>;
   /** Resolves once GitHub has the decision; the tracking it returns already shows it. */
-  decide(repo: string, slug: string, gate: GateKey, action: GateAction, note: string): Promise<Decided>;
+  decide(repo: string, slug: string, gate: GateKey, action: GateAction, note: string, branch?: string | null): Promise<Decided>;
   /** Throws OfflineError when no Claude credentials are available. */
   copilot(context: string, hist: CopilotMsg[]): Promise<string>;
   /** Forget everything loaded in this tab (Disconnect, Sign out). */
@@ -41,6 +43,10 @@ export const serverBackend: Backend = {
     if (!data.configured) return null;
     if ('error' in data) throw new Error(data.error);
     return data.project;
+  },
+  async spec(repo, slug, branch) {
+    const data = await api<{ feature: SpecFeature }>(`/api/spec?repo=${encodeURIComponent(repo)}&slug=${encodeURIComponent(slug)}${branch ? `&branch=${encodeURIComponent(branch)}` : ''}`);
+    return data.feature;
   },
   tracking: fetchTracking,
   decide: postGate,
@@ -117,11 +123,18 @@ export function browserBackend(settings: Settings): Backend {
     async detect(repos) { return detectSpeckit({ token, identity: await who() }, repos); },
     async project(repo, refresh) { return getProject(await source(repo), refresh); },
     async tracking(repo, refresh) { const src = await source(repo); return getTracking(src, await getProject(src), refresh); },
-    async decide(repo, slug, gate, action, note) {
+    async spec(repo, slug, branch) {
       const src = await source(repo);
       const project = await getProject(src);
-      const f = project.specs.find(x => x.slug === slug);
-      if (!f) throw new Error(`No spec ${slug} at ${project.sha.slice(0, 7)}.`);
+      const f = await getSpecVariant(src, project, slug, branch);
+      if (!f) throw new Error(`No spec ${slug}${branch ? ` on ${branch}` : ''} in ${project.repo}.`);
+      return f;
+    },
+    async decide(repo, slug, gate, action, note, branch) {
+      const src = await source(repo);
+      const project = await getProject(src);
+      const f = branch ? await getSpecVariant(src, project, slug, branch) : project.specs.find(x => x.slug === slug);
+      if (!f) throw new Error(`No spec ${slug}${branch ? ` on ${branch}` : ''} at ${project.sha.slice(0, 7)}.`);
       const { tracking, unchanged } = await decideGate(src, project, f, gate, action, note.trim().slice(0, 2000));
       return { tracking, unchanged };
     },

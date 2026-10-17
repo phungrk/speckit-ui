@@ -229,11 +229,19 @@ export function parseGitmodules(raw: string): { path: string; repo: string | nul
 }
 
 /** Optional `.specify/speckit-ui.json`: `{ "mergeOrder": ["edge", "wedding-front"] }` (submodule paths or owner/repo). */
-export function parseUiConfig(raw: string | null): { mergeOrder: string[] } {
+/** Branch prefixes read for unmerged specs when the repo sets none (specs/003). */
+export const DEFAULT_BRANCH_PREFIXES = ['feat/'];
+
+const strings = (v: unknown): string[] | null => (Array.isArray(v) && v.every(x => typeof x === 'string') ? v : null);
+
+export function parseUiConfig(raw: string | null): { mergeOrder: string[]; branchPrefixes: string[] } {
   try {
     const cfg = JSON.parse(raw || '{}');
-    return { mergeOrder: Array.isArray(cfg.mergeOrder) ? cfg.mergeOrder.filter((x: unknown) => typeof x === 'string') : [] };
+    return {
+      mergeOrder: Array.isArray(cfg.mergeOrder) ? cfg.mergeOrder.filter((x: unknown) => typeof x === 'string') : [],
+      branchPrefixes: strings(cfg.branchPrefixes) ?? DEFAULT_BRANCH_PREFIXES
+    };
   } catch {
-    return { mergeOrder: [] };
+    return { mergeOrder: [], branchPrefixes: DEFAULT_BRANCH_PREFIXES };
   }
 }

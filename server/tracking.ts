@@ -98,7 +98,9 @@ export async function loadTracking(src: Source, project: Project): Promise<Track
   for (const f of project.specs) {
     prs[f.slug] = await Promise.all(repos.flatMap((r, i) => pulls[i].filter(p => prMatches(p, f.slug)).map(async p => {
       const state: SpecPR['state'] = p.merged_at ? 'merged' : p.state === 'closed' ? 'closed' : p.draft ? 'draft' : 'open';
-      const bumped = state === 'merged' && r.path && r.pointer && p.merge_commit_sha ? await isBumped(src, r.repo, p.merge_commit_sha, r.pointer) : null;
+      // A spec on a feat/ branch is checked against that branch's own submodule pointers (specs/003 C1).
+      const pointer = r.path ? (f.variants?.[0]?.pointers?.[r.path] ?? r.pointer) : r.pointer;
+      const bumped = state === 'merged' && r.path && pointer && p.merge_commit_sha ? await isBumped(src, r.repo, p.merge_commit_sha, pointer) : null;
       return { repo: r.repo, number: p.number, title: p.title, url: p.html_url, state, mergedAt: p.merged_at, headRef: p.head.ref, bumped };
     })));
   }
@@ -180,10 +182,12 @@ export function decideGate(src: Source, project: Project, f: SpecFeature, gate: 
   return oneAtATime(`${root(src)}|${f.slug}`, () => decide(src, project, f, gate, action, note));
 }
 
-async function decide(src: Source, project: Project, f: SpecFeature, gate: GateKey, action: GateAction, note: string): Promise<GateDecision> {
+async function decide(src: Source, shown: Project, f: SpecFeature, gate: GateKey, action: GateAction, note: string): Promise<GateDecision> {
+  // Decide on the version being looked at, which may be another branch's (specs/003 R6).
+  const project = shown.specs.includes(f) ? shown : { ...shown, specs: shown.specs.map(s => (s.slug === f.slug ? f : s)) };
   const tracking = await getTracking(src, project, true);
   const base = `/repos/${root(src)}`;
-  const specUrl = `https://github.com/${root(src)}/tree/${project.ref}/specs/${f.slug}`;
+  const specUrl = `https://github.com/${root(src)}/tree/${f.branch ?? project.ref}/specs/${f.slug}`;
   const known = tracking.issues[f.slug]?.number ?? knownIssues.get(`${root(src)}|${f.slug}`);
   // Read the issue itself: unlike the list, it is never behind.
   let issue = known ? await json<GhIssue>(src, `${base}/issues/${known}`) : null;

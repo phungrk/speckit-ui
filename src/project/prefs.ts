@@ -4,7 +4,12 @@
 
 export const MAX_PINS = 20;
 
-export interface LastViewed { spec: string | null; step: number | null }
+export interface LastViewed {
+  spec: string | null;
+  step: number | null;
+  /** Branch of the version being looked at, for specs on several branches (specs/003). */
+  branch?: string | null;
+}
 
 /** local: kept across restarts · session: forgotten when the tab closes (Pages without Remember) */
 export type PrefsStorage = 'local' | 'session';
