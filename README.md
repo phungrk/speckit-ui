@@ -156,6 +156,14 @@ The browser sends the current workspace context and the conversation to `POST /a
 
 AI only suggests. Approvals always stay with people. The *Before you approve* brief in the gate is computed from data and makes no model call.
 
+## Development
+
+This repo is developed with Spec Kit 0.15.1 (Claude integration).
+
+- **Rules:** the constitution in `.specify/memory/constitution.md` holds the development rules. `CLAUDE.md` is a summary for coding agents.
+- **When to use the full flow:** changes to keys, token permissions or network destinations; a new kind of write; changes affecting two or more modes. Medium features in one mode run specify + plan only. Small fixes go straight to a PR.
+- **Dogfooding:** speckit-ui manages its own specs. Point the Pages site at `phungrk/speckit-ui` to approve its gates in the app.
+
 ## Layout
 
 ```
