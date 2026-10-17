@@ -1,6 +1,6 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
-import { handleApi } from './server/routes.ts';
+import { handleApi, listenHost } from './server/routes.ts';
 
 const CSP = [
   "default-src 'self'",
@@ -35,6 +35,14 @@ export default defineConfig(({ mode }) => {
       {
         // Serve the API from the dev server so `npm run dev` is all you need.
         name: 'speckit-api',
+        // Token mode stays on this machine with `npm run dev -- --host` too (R6).
+        config(c, { command }) {
+          if (command !== 'serve') return;
+          const h = c.server?.host;
+          const { host, warning } = listenHost(h === true ? '0.0.0.0' : h || 'localhost');
+          if (warning) console.warn(warning);
+          return { server: { host } };
+        },
         configureServer(server) {
           server.middlewares.use((req, res, next) => { if (!handleApi(req, res)) next(); });
         }

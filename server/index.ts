@@ -3,23 +3,13 @@ import { createReadStream, existsSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { handleApi, serverMode } from './routes.ts';
+import { handleApi, listenHost, serverMode } from './routes.ts';
 
 const DIST = resolve(fileURLToPath(new URL('../dist', import.meta.url)));
 const PORT = Number(process.env.PORT) || 8787;
 const MODE = serverMode();
-// A token-mode server acts as the token's owner for everyone who reaches it, so it stays on this machine.
-const LOCAL = '127.0.0.1';
-let HOST = process.env.HOST?.trim() || (MODE === 'token' ? LOCAL : undefined);
-if (MODE === 'token' && HOST !== LOCAL && HOST !== 'localhost') {
-  if (process.env.ALLOW_REMOTE_TOKEN_MODE === '1') {
-    console.warn(`Token mode on ${HOST}: everyone who can reach this server acts as the GITHUB_TOKEN owner.`);
-  } else {
-    console.warn(`Token mode: refusing to listen on ${HOST}. Everyone who could reach it would act as the GITHUB_TOKEN owner.
-Listening on ${LOCAL} instead. Set up sign-in (GITHUB_APP_CLIENT_ID/SECRET) to share the server, or set ALLOW_REMOTE_TOKEN_MODE=1.`);
-    HOST = LOCAL;
-  }
-}
+const { host: HOST, warning } = listenHost(process.env.HOST?.trim() || undefined);
+if (warning) console.warn(warning);
 const TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css',
   '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.ico': 'image/x-icon', '.json': 'application/json'

@@ -106,7 +106,7 @@ Cấu trúc hiện có của repo: SPA trong `src/`, server Node trong `server/`
   - a missing or rejected token is reported with the `.env.local` hint (R6, FR-016).
 - [X] T019 [US1] Create `src/project/RepoPicker.tsx`:
   - repo list with a "Spec Kit" or "Checking…" label;
-  - detection requested for visible rows first;
+  - detection for pinned repos and the 30 most recently pushed right after listing, then for visible rows (R2);
   - manual `owner/name` input (FR-007);
   - auto-open when exactly one Spec Kit repo exists (US1-AS3);
   - an empty state when none is found (US1-AS4);
@@ -248,8 +248,9 @@ Cấu trúc hiện có của repo: SPA trong `src/`, server Node trong `server/`
   - scenarios 1, 2 and 4 with GitHub writes intercepted;
   - scenario 3 against a mocked GitHub App flow;
   - record the wall-clock times of scenario 1 step 2 (SC-002, ≤5 s), step 4 (SC-001, ≤10 s) and step 6 (SC-005, ≤10 s) against real GitHub (read-only), and put them in the PR description.
-- [X] T046 Check demo-mode pixel parity against the design at 1440×900 and 924×540, on the main screen and the New spec dialog (constitution IV)
-- [X] T047 Run all four quality gates: `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages` (constitution V)
+- [X] T046 Check demo-mode pixel parity against the design at 1440×900 and 924×540, on the main screen and the New spec dialog, for the build from `src/App.tsx` and `src/styles/` (constitution IV)
+- [X] T047 Run all four quality gates from `package.json`: `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages` (constitution V)
+- [X] T048 Apply the token-mode listen guard to the dev server too: share `listenHost()` in `server/routes.ts` between `server/index.ts` and a `config` hook in `vite.config.ts`, so `npm run dev -- --host` stays on `127.0.0.1` unless `ALLOW_REMOTE_TOKEN_MODE=1`; test in `tests/repos.test.ts` (R6, analysis.md G5)
 
 ---
 

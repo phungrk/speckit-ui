@@ -19,6 +19,24 @@ export function serverMode(env: Env = process.env): Mode {
   return 'demo';
 }
 
+export const LOCAL_HOST = '127.0.0.1';
+const isLocal = (host: string) => host === LOCAL_HOST || host === 'localhost' || host === '::1';
+
+/**
+ * Where the server may listen (R6). A token-mode server acts as the token's owner for everyone who
+ * reaches it, so it stays on this machine unless ALLOW_REMOTE_TOKEN_MODE=1. Used by `npm start` and `npm run dev`.
+ */
+export function listenHost(requested: string | undefined, env: Env = process.env): { host: string | undefined; warning: string | null } {
+  if (serverMode(env) !== 'token') return { host: requested, warning: null };
+  if (!requested || isLocal(requested)) return { host: requested || LOCAL_HOST, warning: null };
+  if (env.ALLOW_REMOTE_TOKEN_MODE === '1') return { host: requested, warning: `Token mode on ${requested}: everyone who can reach this server acts as the GITHUB_TOKEN owner.` };
+  return {
+    host: LOCAL_HOST,
+    warning: `Token mode: refusing to listen on ${requested}. Everyone who could reach it would act as the GITHUB_TOKEN owner.
+Listening on ${LOCAL_HOST} instead. Set up sign-in (GITHUB_APP_CLIENT_ID/SECRET) to share the server, or set ALLOW_REMOTE_TOKEN_MODE=1.`
+  };
+}
+
 const REPO_RE = /^([\w.-]+)\/([\w.-]+)$/;
 const defaultRepo = (env: Env) => (REPO_RE.test(env.GITHUB_REPO?.trim() || '') ? env.GITHUB_REPO!.trim() : null);
 

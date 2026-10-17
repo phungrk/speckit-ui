@@ -123,7 +123,7 @@ danh sách repo, không cần màn hình nhập token.
 
 ### Edge Cases
 
-- Người dùng có quyền với rất nhiều repo (hàng trăm): danh sách vẫn mở được nhanh; việc kiểm tra repo nào là dự án Spec Kit không được chặn người dùng chọn repo.
+- Người dùng có quyền với rất nhiều repo (hàng trăm): danh sách vẫn mở trong thời gian của SC-002; việc kiểm tra repo nào là dự án Spec Kit không được chặn người dùng chọn repo.
 - Một repo bị thu hồi quyền hoặc bị xoá sau khi đã ghim hoặc đã mở: ứng dụng báo repo không còn truy cập được, bỏ nó khỏi danh sách đang dùng, và không làm hỏng các repo khác.
 - Repo là submodule của một dự án khác (ví dụ tohong-back) và không có Spec Kit: hiện là repo thường, không đánh dấu là dự án.
 - Người dùng có quyền đọc nhưng không có quyền ghi issue ở một repo: vẫn xem được dự án; cổng duyệt báo thiếu quyền ở riêng repo đó.
@@ -182,6 +182,7 @@ danh sách repo, không cần màn hình nhập token.
 - **Theo constitution, đây là thay đổi phải đi đủ quy trình Spec Kit**: đổi cách giữ khoá ở bản server (nguyên tắc II), thêm cách đăng nhập mới, và ảnh hưởng nhiều chế độ.
 - Bản server cần người vận hành đăng ký sẵn một ứng dụng đăng nhập GitHub cho tổ chức. Đây là cấu hình một lần, không phải việc của từng người dùng.
 - Cấu hình hiện tại cố định một repo cho bản server được giữ lại làm repo mở mặc định, không còn là giới hạn.
+- Chạy local bắt buộc có token của người dùng (FR-016). Bản server không còn đọc repo public khi không có token như trước: mọi lần đọc đều theo quyền của một người dùng cụ thể (FR-013).
 - Repo "là dự án Spec Kit" khi có cấu hình Spec Kit ở gốc repo.
 - Thiết bị chỉ ghi nhớ danh sách ghim và repo mở gần nhất; không có dữ liệu repo nào được lưu lâu dài trên thiết bị.
 - Khoá Copilot (nếu có) dùng chung cho mọi repo trong phiên.

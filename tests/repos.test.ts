@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DETECT_CONCURRENCY, clearProjectCache, detectSpeckit, listRepos, sortRepos } from '../server/github';
-import { MISSING_TOKEN, route } from '../server/routes';
+import { MISSING_TOKEN, listenHost, route } from '../server/routes';
 import type { AccessibleRepo, SessionResponse } from '../src/project/types';
 import { fakeGitHub, fakeReq, fakeRes } from './fakeGitHub';
 
@@ -118,5 +118,25 @@ describe('/api/session in token mode', () => {
 
   it('is demo mode without any GitHub configuration', async () => {
     expect((await session({})).body).toEqual({ mode: 'demo', user: null });
+  });
+});
+
+describe('listenHost (R6)', () => {
+  const token = { GITHUB_TOKEN: 't' };
+  it('keeps token mode on this machine', () => {
+    expect(listenHost(undefined, token)).toEqual({ host: '127.0.0.1', warning: null });
+    expect(listenHost('localhost', token)).toEqual({ host: 'localhost', warning: null });
+    const wide = listenHost('0.0.0.0', token);
+    expect(wide.host).toBe('127.0.0.1');
+    expect(wide.warning).toMatch(/refusing to listen on 0\.0\.0\.0/);
+  });
+  it('listens wider only with ALLOW_REMOTE_TOKEN_MODE=1, and warns', () => {
+    const r = listenHost('0.0.0.0', { ...token, ALLOW_REMOTE_TOKEN_MODE: '1' });
+    expect(r.host).toBe('0.0.0.0');
+    expect(r.warning).toMatch(/acts as the GITHUB_TOKEN owner/);
+  });
+  it('leaves sign-in and demo servers alone', () => {
+    expect(listenHost('0.0.0.0', { GITHUB_APP_CLIENT_ID: 'a', GITHUB_APP_CLIENT_SECRET: 'b', GITHUB_TOKEN: 't' })).toEqual({ host: '0.0.0.0', warning: null });
+    expect(listenHost(undefined, {})).toEqual({ host: undefined, warning: null });
   });
 });

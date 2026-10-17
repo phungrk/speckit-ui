@@ -70,7 +70,7 @@ GITHUB_TOKEN=github_pat_…
 
 Both `npm run dev` and `npm start` read `.env` and then `.env.local`, which wins. If the token is missing or GitHub rejects it, the app shows a screen saying where to put it.
 
-In token mode the server refuses to listen beyond `127.0.0.1` (`HOST=0.0.0.0` is ignored with a warning), because everyone who could reach it would act as the token's owner. Set `ALLOW_REMOTE_TOKEN_MODE=1` only if you accept that.
+In token mode the server refuses to listen beyond `127.0.0.1` (`HOST=0.0.0.0` with `npm start`, or `npm run dev -- --host`, is ignored with a warning), because everyone who could reach it would act as the token's owner. Set `ALLOW_REMOTE_TOKEN_MODE=1` only if you accept that.
 
 For the token, use a fine-grained personal access token. Give it, for each repository you work on:
 

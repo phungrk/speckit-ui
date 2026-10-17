@@ -98,11 +98,13 @@ specs/002-multi-repo-workspace/
 
 ```text
 server/
-├── github.ts        # SỬA: listRepos(), detectSpeckit(); cache Map theo identity|repo@ref; inflight theo khoá
-├── tracking.ts      # SỬA: cache theo khoá; decideGate nhận repo
+├── github.ts        # SỬA: listRepos(), detectSpeckit(); cache Map theo identity|repo@ref; inflight theo khoá; bỏ handler HTTP
+├── tracking.ts      # SỬA: cache theo khoá; decideGate nhận repo; bỏ handler HTTP
+├── routes.ts        # MỚI: mọi route /api/* và /auth/*; chọn chế độ; quyền theo từng request; listenHost() (127.0.0.1)
 ├── session.ts       # MỚI (đợt B): kho phiên trong bộ nhớ, GitHub App web flow, làm mới token
-├── index.ts         # SỬA: route /auth/*, /api/session, /api/repos*; chọn chế độ; ràng buộc 127.0.0.1
+├── index.ts         # SỬA: dùng routes.ts và listenHost()
 └── copilot.ts       # Không đổi
+vite.config.ts       # SỬA: dùng routes.ts; listenHost() cho dev server
 
 src/
 ├── backend.ts       # SỬA: Backend có session(), repos(), detect(); mọi lời gọi nhận repo
@@ -110,16 +112,24 @@ src/
 ├── Connect.tsx      # SỬA: repo thành tuỳ chọn (mục Advanced)
 ├── project/
 │   ├── prefs.ts         # MỚI: ghim, lastViewed, lastRepo theo login (try/catch)
+│   ├── urlState.ts      # MỚI: đọc và ghi ?repo=&spec=&step=&view=, bước số ↔ tên
+│   ├── repoLoader.ts    # MỚI: tải theo repo, kết quả muộn bị bỏ; accessProblem()
+│   ├── overview.ts      # MỚI: buildOverview(), dùng chung cho Next up và tổng quan
+│   ├── SessionNav.tsx   # MỚI: thanh điều hướng và nút phiên dùng chung
 │   ├── RepoPicker.tsx   # MỚI: danh sách, tìm kiếm, ghim, nhãn Spec Kit, nhập tay
 │   ├── Overview.tsx     # MỚI: tổng quan repo đã ghim (allSettled)
-│   ├── SignIn.tsx       # MỚI (đợt B): màn hình đăng nhập bản server
+│   ├── SignIn.tsx       # MỚI (đợt B): màn hình đăng nhập bản server; màn hình hướng dẫn token
 │   └── LiveWorkspace.tsx # SỬA: bộ chọn repo trên nav; Copilot thread theo repo
 └── styles/live.css  # SỬA: kiểu cho các màn hình mới (token Modernist)
 
 tests/
-├── repos.test.ts    # MỚI: liệt kê, phân trang, nhận diện, sắp xếp, cache theo khoá
-├── prefs.test.ts    # MỚI: ghim, lastViewed, storage bị chặn
-└── session.test.ts  # MỚI (đợt B): login/callback/state/logout/làm mới, không lộ token
+├── fakeGitHub.ts      # MỚI: GitHub giả lập dùng chung
+├── cache.test.ts      # MỚI: cache theo khoá, ghi đúng repo
+├── repos.test.ts      # MỚI: liệt kê, phân trang, nhận diện, sắp xếp, /api/session, listenHost
+├── prefs.test.ts      # MỚI: ghim, lastViewed, storage bị chặn, urlState
+├── repoLoader.test.ts # MỚI: latest wins, lỗi truy cập theo repo
+├── overview.test.ts   # MỚI: buildOverview
+└── session.test.ts    # MỚI (đợt B): login/callback/state/logout/làm mới, không lộ token
 
 .gitignore           # SỬA: .env.local, .env.*.local
 .env.example         # SỬA: GITHUB_APP_CLIENT_ID/SECRET, ALLOW_REMOTE_TOKEN_MODE; GITHUB_REPO là mặc định

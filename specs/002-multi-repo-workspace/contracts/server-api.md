@@ -22,6 +22,8 @@ Cho biết chế độ chạy và người dùng hiện tại. Không bao giờ 
 - Chế độ `token` khi token sai hoặc thiếu: `{ "mode": "token", "user": null, "error": "GitHub rejected GITHUB_TOKEN (401). Put a valid fine-grained token in .env.local, …" }`
 - Không cấu hình gì: `{ "mode": "demo", "user": null }`
 
+Kiểu `SessionResponse` trong `src/project/types.ts` còn có giá trị `mode: "pages"`. Giá trị này chỉ do backend trình duyệt của bản Pages trả về, server không bao giờ trả.
+
 ### `GET /auth/login?return=<query>`
 
 Chỉ có ở chế độ sign-in. Tạo `state` ngẫu nhiên, lưu vào cookie tạm `sk_oauth` (HttpOnly, 10 phút) cùng `return`, rồi trả `302` tới trang uỷ quyền của GitHub App.

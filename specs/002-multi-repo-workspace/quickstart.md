@@ -43,8 +43,8 @@ Kỳ vọng: mọi test đều qua. Test mới dùng GitHub giả lập và fixt
    - Kỳ vọng: vào thẳng danh sách repo, không có màn hình nhập token.
 3. Sửa token cho sai, rồi khởi động lại.
    - Kỳ vọng: màn hình hướng dẫn nêu tên file `.env.local` và quyền cần cấp.
-4. `npm start` với `HOST=0.0.0.0` và không có thông tin App.
-   - Kỳ vọng: server từ chối lắng nghe ngoài `127.0.0.1` và in cảnh báo, trừ khi đặt `ALLOW_REMOTE_TOKEN_MODE=1` (R6).
+4. `npm start` với `HOST=0.0.0.0`, và `npm run dev -- --host`, khi không có thông tin App.
+   - Kỳ vọng: cả hai đều từ chối lắng nghe ngoài `127.0.0.1` và in cảnh báo, trừ khi đặt `ALLOW_REMOTE_TOKEN_MODE=1` (R6).
 
 ## Kịch bản 3: Bản server có đăng nhập (US5)
 
