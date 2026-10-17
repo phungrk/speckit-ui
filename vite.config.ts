@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+import { execSync } from 'node:child_process';
 import { handleApi, listenHost } from './server/routes.ts';
 
 const CSP = [
@@ -21,6 +22,8 @@ export default defineConfig(({ mode }) => {
   return {
     // GitHub Pages serves the app from /<repo>/.
     base: process.env.VITE_BASE || '/',
+    // The commit the app was built from, shown in Settings so a stale page is easy to spot.
+    define: { __BUILD__: JSON.stringify(buildCommit()) },
     plugins: [
       react(),
       {
@@ -50,3 +53,8 @@ export default defineConfig(({ mode }) => {
     ]
   };
 });
+
+function buildCommit() {
+  if (process.env.GITHUB_SHA) return process.env.GITHUB_SHA.slice(0, 7);
+  try { return execSync('git rev-parse --short=7 HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); } catch { return 'dev'; }
+}

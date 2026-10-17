@@ -201,7 +201,7 @@ const feature = (over: Partial<SpecFeature> = {}): SpecFeature => ({
 });
 const project = (specs: SpecFeature[]): Project => ({
   repo: 'acme/app', ref: 'main', sha: 'abc1234def', committedAt: null, fetchedAt: new Date().toISOString(), commandPrefix: '/speckit-',
-  constitution: parseConstitution(CONSTITUTION), specs, submodules: [], warnings: [], branches: [], skippedBranches: 0, branchPrefixes: ['feat/']
+  constitution: parseConstitution(CONSTITUTION), specs, submodules: [], warnings: [], branches: [], skippedBranches: 0, branchPrefixes: ['feat/'], pinned: false
 });
 
 describe('phase status', () => {

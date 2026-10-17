@@ -23,7 +23,7 @@ export function SessionButtons({ user, onDisconnect, onSettings, onSignOut }: Se
 /** Top bar for the repo list and the overview. */
 export function SessionNav({ title, user, children, ...actions }: SessionActions & { title: string; user: CurrentUser; children?: ReactNode }) {
   return <nav className="nav sk-nav">
-    <div className="nav-brand">Speckit</div>
+    <div className="nav-brand" title={`Build ${__BUILD__}`}>Speckit</div>
     <div className="sk-proj">{title}</div>
     <div className="sk-spacer"></div>
     {children}

@@ -43,6 +43,7 @@
 .sk-connect-form .field{margin:0}.sk-connect-hint{font-size:13px;margin:6px 0 0;color:color-mix(in srgb,var(--color-text) 65%,transparent);text-wrap:pretty}
 .sk-connect-check{display:flex;align-items:center;gap:8px;font-size:14px}.sk-connect-check input{accent-color:var(--color-accent);width:16px;height:16px}
 .sk-connect-foot{border-top:2px solid var(--color-divider);padding-top:var(--space-4);font-size:13px}.sk-connect-foot ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+.sk-build{margin:var(--space-3) 0 0;font-size:12px}
 @media (max-width:760px){.sk-connect{padding:var(--space-4)}.sk-connect-row{grid-template-columns:1fr}}
 /* Several repos per session (specs/002): repo list, switcher, overview, sign-in. Modernist tokens only. */
 .sk-page{height:auto;min-height:100vh}

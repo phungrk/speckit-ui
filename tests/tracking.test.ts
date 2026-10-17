@@ -109,7 +109,7 @@ describe('repo config', () => {
 const src = { owner: 'a', repo: 'root', token: 't' };
 const project = (f = feature(), pointer = 'ptr'): Project => ({
   repo: 'a/root', ref: 'main', sha: 'abc1234', committedAt: null, fetchedAt: '', commandPrefix: '/speckit.', constitution: null,
-  specs: [f], submodules: [{ path: 'edge', repo: 'a/back', sha: pointer }], warnings: [], branches: [], skippedBranches: 0, branchPrefixes: ['feat/']
+  specs: [f], submodules: [{ path: 'edge', repo: 'a/back', sha: pointer }], warnings: [], branches: [], skippedBranches: 0, branchPrefixes: ['feat/'], pinned: false
 });
 
 interface Call { method: string; path: string; body?: Record<string, unknown> }

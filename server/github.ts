@@ -172,7 +172,8 @@ async function loadAt(src: Source, ref: string, sha: string, committedAt: string
     warnings,
     branches: [],
     skippedBranches: 0,
-    branchPrefixes: ui.branchPrefixes
+    branchPrefixes: ui.branchPrefixes,
+    pinned: !!src.ref
   };
   const dirShas = Object.fromEntries(specs.flatMap(f => { const t = treeShas.get(`specs/${f.slug}`); return t ? [[f.slug, t]] : []; }));
   const mainPointers = Object.fromEntries([...pointers].flatMap(([p, v]) => (v ? [[p, v]] : [])));

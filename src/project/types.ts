@@ -117,6 +117,8 @@ export interface Project {
   skippedBranches: number;
   /** Branch name prefixes read, from .specify/speckit-ui.json (default ["feat/"]). */
   branchPrefixes: string[];
+  /** `ref` was chosen in Settings or GITHUB_REF, so feat/ branches are not read (FR-010). */
+  pinned: boolean;
 }
 
 /** One version of a spec folder, shared by every branch where the folder is identical. */
