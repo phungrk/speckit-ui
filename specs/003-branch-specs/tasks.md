@@ -27,13 +27,13 @@ Cấu trúc hiện có: SPA trong `src/`, logic GitHub dùng chung trong `server
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-- [ ] T001 [P] Extend `fakeGitHub` in `tests/fakeGitHub.ts` with a `branches` option. It maps a branch name to `{ files: Record<path, text> }` and serves:
+- [X] T001 [P] Extend `fakeGitHub` in `tests/fakeGitHub.ts` with a `branches` option. It maps a branch name to `{ files: Record<path, text> }` and serves:
   - `GET /branches` with paging and a `Link` header;
   - `GET git/trees/{commitSha}` for the root tree, `git/trees/{treeSha}` for `specs/` and for each spec folder, and `?recursive=1`, all with content-derived SHAs, so identical folders share a SHA;
   - `GET commits/{sha}` with a commit date;
   - raw contents at a ref;
   - a `failBranch` option that answers 500 for one branch.
-- [ ] T002 [P] Add `branchPrefixes` to `parseUiConfig` in `server/parse.ts`: default `["feat/"]`; `[]` allowed; ignore anything that is not an array of strings (R8)
+- [X] T002 [P] Add `branchPrefixes` to `parseUiConfig` in `server/parse.ts`: default `["feat/"]`; `[]` allowed; ignore anything that is not an array of strings (R8)
 
 ---
 
@@ -41,19 +41,19 @@ Cấu trúc hiện có: SPA trong `src/`, logic GitHub dùng chung trong `server
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Add the following types to `src/project/types.ts` (data-model.md):
+- [X] T003 Add the following types to `src/project/types.ts` (data-model.md):
   - on `SpecFeature`: `branch: string | null`, `sha: string`, `unmerged: boolean` and `variants: SpecVariant[]`;
   - new types `SpecVariant` and `BranchInfo`;
   - on `Project`: `branches: BranchInfo[]` and `skippedBranches: number`.
 
   Single-branch loads in `server/github.ts` fill the defaults: `branch: null`, `sha: project.sha`, `unmerged: false`, and one variant.
-- [ ] T004 Extract `loadSpecDir(src, commitSha, dir, files)` from `loadAt` in `server/github.ts`. It returns a `SpecFeature` for one `specs/NNN-slug` folder, cached in an LRU of 64 keyed by the folder's tree SHA when known (R3). `loadAt` keeps its behaviour by calling it.
-- [ ] T005 Add `listBranches(src, prefixes)` to `server/github.ts`:
+- [X] T004 Extract `loadSpecDir(src, commitSha, dir, files)` from `loadAt` in `server/github.ts`. It returns a `SpecFeature` for one `specs/NNN-slug` folder, cached in an LRU of 64 keyed by the folder's tree SHA when known (R3). `loadAt` keeps its behaviour by calling it.
+- [X] T005 Add `listBranches(src, prefixes)` to `server/github.ts`:
   - read `GET /repos/{o}/{r}/branches?per_page=100`, at most 3 pages;
   - keep names starting with one of `prefixes`;
   - sort by name descending and keep 30;
   - return `{ branches: { name, sha }[], skipped }` (R1).
-- [ ] T006 [P] Write `tests/branches.test.ts` foundational cases:
+- [X] T006 [P] Write `tests/branches.test.ts` foundational cases:
   - `parseUiConfig` defaults, `[]` and invalid values;
   - `listBranches` filters by prefix, ignores `fix/…`, caps at 30 and reports `skipped`;
   - `loadSpecDir` serves a second load of the same tree SHA from cache with no fetch.
@@ -70,7 +70,7 @@ Cấu trúc hiện có: SPA trong `src/`, logic GitHub dùng chung trong `server
 
 ### Tests for User Story 1
 
-- [ ] T007 [P] [US1] Add tests in `tests/branches.test.ts`:
+- [X] T007 [P] [US1] Add tests in `tests/branches.test.ts`:
   - `loadProject` lists main and `feat/` specs with `branch` and `unmerged` set;
   - a merged branch costs exactly 1 tree call;
   - a branch without `specs/` is skipped silently;
@@ -83,22 +83,22 @@ Cấu trúc hiện có: SPA trong `src/`, logic GitHub dùng chung trong `server
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Implement `loadBranches(src, main, prefixes)` in `server/github.ts`:
+- [X] T008 [US1] Implement `loadBranches(src, main, prefixes)` in `server/github.ts`:
   - per branch, read the root tree and compare the `specs` tree SHA with main's; when it differs, read the `specs` tree and load only folders whose SHA differs or that main lacks, via `loadSpecDir`, 8 at a time (R2);
   - record a `BranchInfo` per branch, with errors as warnings;
   - keep the branch's submodule pointers (root-tree entries of type `commit`) on each branch version, so the Implement gate checks the branch's own pointers (analysis C1).
-- [ ] T009 [US1] In `loadProject` in `server/github.ts`, when `src.ref` is not set and `branchPrefixes` is not empty:
+- [X] T009 [US1] In `loadProject` in `server/github.ts`, when `src.ref` is not set and `branchPrefixes` is not empty:
   - call `loadBranches`;
   - group main and branch versions by slug into `variants`, merging variants with the same tree SHA;
   - show the branch version when one exists (US3 refines the choice);
   - set `branch`, `sha` and `unmerged`, plus `Project.branches` and `skippedBranches`;
   - add a warning when branches were skipped.
-- [ ] T010 [US1] In `getProject` in `server/github.ts`, re-use a cached project only when the main commit and every listed branch SHA are unchanged, and re-read only changed branches (R3)
-- [ ] T011 [US1] Show the branch for unmerged specs in `src/project/LiveWorkspace.tsx` and the overview:
+- [X] T010 [US1] In `getProject` in `server/github.ts`, re-use a cached project only when the main commit and every listed branch SHA are unchanged, and re-read only changed branches (R3)
+- [X] T011 [US1] Show the branch for unmerged specs in `src/project/LiveWorkspace.tsx` and the overview:
   - in `src/project/LiveWorkspace.tsx`, add a `tag` with the branch name (without `feat/`) on unmerged rows of the Specs list;
   - add a `branch` field to `OverviewItem` in `src/project/types.ts` and fill it in `src/project/overview.ts`;
   - show the branch next to the slug in Next up and in `src/project/Overview.tsx`.
-- [ ] T012 [P] [US1] Add the branch tag style for `.sk-feat` rows in `src/styles/live.css`, using Modernist tokens only and working at phone width
+- [X] T012 [P] [US1] Add the branch tag style for `.sk-feat` rows in `src/styles/live.css`, using Modernist tokens only and working at phone width
 
 **Checkpoint**: User Story 1 works on its own: unmerged specs appear in the list.
 
@@ -112,7 +112,7 @@ Cấu trúc hiện có: SPA trong `src/`, logic GitHub dùng chung trong `server
 
 ### Tests for User Story 2
 
-- [ ] T013 [P] [US2] Add tests in `tests/branches.test.ts`:
+- [X] T013 [P] [US2] Add tests in `tests/branches.test.ts`:
   - `decideGate` with `branch` runs the checks on that variant's content (approving fails when only main's version would pass, and the reverse);
   - a new tracking issue links `tree/feat/b/specs/…`;
   - `GET /api/spec` returns the variant, 404 for an unknown slug and 400 for a branch outside `branchPrefixes`;
@@ -122,17 +122,17 @@ Cấu trúc hiện có: SPA trong `src/`, logic GitHub dùng chung trong `server
 
 ### Implementation for User Story 2
 
-- [ ] T014 [US2] Make `blobUrl` in `src/project/phases.ts` take the version's `sha`. Use `f.sha` for the file and folder links in `src/project/LiveWorkspace.tsx` and `src/project/views.tsx`.
-- [ ] T015 [US2] Add `getSpecVariant(src, project, slug, branch)` to `server/github.ts`. Add `GET /api/spec` to `server/routes.ts` and `spec(repo, slug, branch)` to `Backend` in `src/backend.ts` (contracts/branches.md).
-- [ ] T016 [US2] Wire the branch into gate decisions in `server/tracking.ts`, `server/routes.ts` and `src/backend.ts`:
+- [X] T014 [US2] Make `blobUrl` in `src/project/phases.ts` take the version's `sha`. Use `f.sha` for the file and folder links in `src/project/LiveWorkspace.tsx` and `src/project/views.tsx`.
+- [X] T015 [US2] Add `getSpecVariant(src, project, slug, branch)` to `server/github.ts`. Add `GET /api/spec` to `server/routes.ts` and `spec(repo, slug, branch)` to `Backend` in `src/backend.ts` (contracts/branches.md).
+- [X] T016 [US2] Wire the branch into gate decisions in `server/tracking.ts`, `server/routes.ts` and `src/backend.ts`:
   - `POST /api/gates` in `server/routes.ts` accepts `branch`;
   - `Backend.decide` in `src/backend.ts` takes an optional `branch`;
   - `decideGate` in `server/tracking.ts` runs on the chosen variant, and its `specUrl` uses `f.branch ?? project.ref`;
   - for a branch version, `gateChecks` and `loadTracking` use the branch's submodule pointers (C1).
-- [ ] T017 [US2] Carry the branch in the address via `src/project/urlState.ts`:
+- [X] T017 [US2] Carry the branch in the address via `src/project/urlState.ts`:
   - add `branch` to `URL_KEYS` and `UrlState` in `src/project/urlState.ts`, and to `RETURN_KEYS` in `server/session.ts`;
   - in `src/Root.tsx` and `src/project/LiveWorkspace.tsx`, restore the version from `?branch=` and write it back on change (FR-009).
-- [ ] T018 [US2] For an unmerged spec, show "Run on `feat/x`: `git switch feat/x`" above the command row in `src/project/LiveWorkspace.tsx`. The copied text stays the `/speckit-…` command (FR-011).
+- [X] T018 [US2] For an unmerged spec, show "Run on `feat/x`: `git switch feat/x`" above the command row in `src/project/LiveWorkspace.tsx`. The copied text stays the `/speckit-…` command (FR-011).
 
 **Checkpoint**: User Stories 1 and 2 work together. This is the MVP.
 
@@ -144,16 +144,16 @@ Cấu trúc hiện có: SPA trong `src/`, logic GitHub dùng chung trong `server
 
 **Independent Test**: Spec 003 có trên `feat/003-x` và `feat/004-y`, với cùng SHA: hiện một lần, kèm 2 nhánh. Spec có plan trên nhánh nhưng chỉ có spec trên `main`: hiện bản của nhánh. Hai slug `005-…` khác nhau: cả hai hiện, kèm cảnh báo (quickstart.md kịch bản 1, bước 1).
 
-- [ ] T019 [P] [US3] Add tests in `tests/branches.test.ts`:
+- [X] T019 [P] [US3] Add tests in `tests/branches.test.ts`:
   - same slug on main and a branch: one row showing the version with more done steps;
   - two branches with the same tree SHA: one variant listing both branches;
   - a stage tie is broken by the newer commit, with `commits/{sha}` fetched only for the tie;
   - `005-a` and `005-b` both appear, with a duplicate-number warning (FR-007).
-- [ ] T020 [US3] Implement version choice in `server/github.ts`:
+- [X] T020 [US3] Implement version choice in `server/github.ts`:
   - `stage` = number of `done` steps from `phaseStatus`;
   - ties go to the newer `committedAt`, fetched lazily and cached, then to branch name;
   - add the duplicate-number warning (R4, R5).
-- [ ] T021 [US3] In the spec header of `src/project/LiveWorkspace.tsx`, show a version selector (`select`, styled like `.sk-repo-switch`) when `variants.length > 1`:
+- [X] T021 [US3] In the spec header of `src/project/LiveWorkspace.tsx`, show a version selector (`select`, styled like `.sk-repo-switch`) when `variants.length > 1`:
   - it lists each version with its branches;
   - choosing one loads it with `backend.spec` and updates `?branch=` (US3-AS2).
 
@@ -161,14 +161,14 @@ Cấu trúc hiện có: SPA trong `src/`, logic GitHub dùng chung trong `server
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T022 [P] Add a "Specs on feat/ branches" section to `README.md`:
+- [X] T022 [P] Add a "Specs on feat/ branches" section to `README.md`:
   - which branches are read and how many;
   - `branchPrefixes`;
   - how versions are chosen;
   - pinning a branch turns this off.
-- [ ] T023 Run quickstart scenarios 1 and 2 from `specs/003-branch-specs/quickstart.md` with Playwright against a synthetic multi-branch GitHub, on Pages and on the server build. Record the timings for 20 branches (SC-002).
-- [ ] T024 [P] Check demo-mode pixel parity of `src/App.tsx` against `main` at 1440×900 and 924×540, on the main screen and the New spec dialog (constitution IV)
-- [ ] T025 Run all four quality gates from `package.json`: `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages` (constitution V)
+- [X] T023 Run quickstart scenarios 1 and 2 from `specs/003-branch-specs/quickstart.md` with Playwright against a synthetic multi-branch GitHub, on Pages and on the server build. Record the timings for 20 branches (SC-002).
+- [X] T024 [P] Check demo-mode pixel parity of `src/App.tsx` against `main` at 1440×900 and 924×540, on the main screen and the New spec dialog (constitution IV)
+- [X] T025 Run all four quality gates from `package.json`: `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages` (constitution V)
 
 ---
 
@@ -228,3 +228,16 @@ Task: "T012 branch tag style in src/styles/live.css"
 
 - Branch: `feat/003-branch-specs`. The PR description mentions `specs/003-branch-specs`.
 - Save `/speckit-analyze` output as `specs/003-branch-specs/analysis.md` before implementing.
+
+## Implementation notes
+
+- T008: implemented as `withBranches(src, main, heads)`. Branch reads return errors in `BranchHeads.error` and clone main's variants, so the cached default-branch project is never changed.
+- T010: on a refresh, `/branches` is listed alongside the `commits/{default}` check, not after it. It is listed again only if the default branch changed `branchPrefixes`.
+- T014: `blobUrl` already took a `{repo, sha}`; callers pass `{ repo, sha: f.sha || project.sha }`.
+- T020: when one folder is carried by several branches, the version is named after the branch whose name contains the slug, then the lowest name (`003-search` → `feat/003-search`, not `feat/004-share`). The `sha` and submodule pointers come from that branch.
+- T023, synthetic acme/alpha with 80 ms per GitHub call:
+  - Pages, all steps pass. 5 feat/ branches: first list in 1.6 s. 20 feat/ branches: 2.1 s (SC-002 limit 10 s). A refresh with nothing new costs 2 project calls (`/branches`, `/commits/main`) and about 0.13–0.23 s (limit 3 s).
+  - Server, token mode: the list, the branch name, the approval issue link and `/api/spec` (200/400/200/404) all pass.
+  - At 390 px the page is 429 px wide on `main` as well. The nav causes it, not 003; it is left for a separate fix.
+- T024: demo is identical to `main` at 1440×900 and 924×540, on the main screen and the New spec dialog.
+- T025: 136 tests, typecheck, build and build:pages pass.

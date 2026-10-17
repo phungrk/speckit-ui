@@ -307,6 +307,13 @@ async function withBranches(src: Source, main: Project, heads: BranchHeads): Pro
   const specs: SpecFeature[] = [];
   for (const slug of [...bySlug.keys()].sort()) {
     const list = bySlug.get(slug)!;
+    // A version carried by several branches is named after the one made for it (feat/003-x for 003-x).
+    for (const { variant: v } of list) {
+      if (v.onDefault || v.branches.length < 2) continue;
+      v.branches.sort((a, b) => Number(b.includes(slug)) - Number(a.includes(slug)) || a.localeCompare(b));
+      const r = reads.find(x => x.info.name === v.branches[0]);
+      if (r) { v.sha = r.info.sha; v.pointers = { ...trees0.pointers, ...r.pointers }; }
+    }
     const top = Math.max(...list.map(x => x.variant.stage));
     const tied = list.filter(x => x.variant.stage === top);
     // Dates are only needed to break a tie between versions that went equally far.
@@ -390,6 +397,9 @@ export async function getProject(src: Source, refresh = false): Promise<Project>
   const load = (async () => {
     try {
       let main: Project | null = null;
+      const list = (prefixes: string[]) => listBranches(src, prefixes).catch(branchListFailed);
+      // On a refresh the branch heads are listed alongside the default branch check, not after it.
+      const early = hit && !src.ref ? list(hit.main.branchPrefixes) : null;
       if (hit) {
         const commit = await json<{ sha: string }>(src, `/repos/${src.owner}/${src.repo}/commits/${encodeURIComponent(hit.main.ref)}`);
         if (commit.sha === hit.main.sha) main = hit.main;
@@ -397,7 +407,8 @@ export async function getProject(src: Source, refresh = false): Promise<Project>
       main ??= await loadMain(src);
       let project = main, heads = '';
       if (!src.ref) {
-        const h = await listBranches(src, main.branchPrefixes).catch(branchListFailed);
+        const same = early && main.branchPrefixes.join('\n') === hit!.main.branchPrefixes.join('\n');
+        const h = await (same ? early : list(main.branchPrefixes));
         heads = headsKey(h);
         project = hit && hit.main === main && hit.heads === heads ? hit.project : await withBranches(src, main, h);
       }
