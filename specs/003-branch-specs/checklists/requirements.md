@@ -32,6 +32,7 @@
 ## Notes
 
 - Tên nhánh (`feat/`, `fix/`, `chore/`) và file cấu hình `.specify/speckit-ui.json` là thuật ngữ của chính quy trình người dùng đang làm, không phải chi tiết cài đặt. Spec 002 cũng dùng cách viết này.
-- Có hai quyết định được đặt mặc định thay vì để `[NEEDS CLARIFICATION]`. Nên xác nhận bằng `/speckit-clarify` trước `/speckit-plan`:
-  - FR-002: đọc những nhánh nào;
-  - FR-006: khi một spec có ở nhiều nhánh thì hiện bản nào.
+- Hai quyết định đã được chốt trong mục Clarifications (session 2026-10-17):
+  - chỉ đọc các nhánh `feat/` (FR-002);
+  - gọi chúng là "nhánh chưa merge".
+- FR-006 (một spec có ở nhiều nhánh thì hiện bản đi xa nhất trong quy trình) giữ mặc định. Người dùng đã xác nhận các trường hợp hai nhánh có spec.
