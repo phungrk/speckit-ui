@@ -1,0 +1,27 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 30,
+            "command": "command -v node >/dev/null || { echo 'speckit gate: node not found' >&2; exit 2; }; node \"$CLAUDE_PROJECT_DIR/.claude/hooks/speckit-gate.mjs\""
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 30,
+            "command": "command -v node >/dev/null || { echo 'speckit gate: node not found' >&2; exit 2; }; node \"$CLAUDE_PROJECT_DIR/.claude/hooks/speckit-gate.mjs\""
+          }
+        ]
+      }
+    ]
+  }
+}
