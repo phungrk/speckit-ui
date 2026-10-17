@@ -92,7 +92,7 @@ Cấu trúc hiện có: SPA trong `src/`, logic GitHub dùng chung trong `server
   - set `branch`, `sha` and `unmerged`, plus `Project.branches` and `skippedBranches`;
   - add a warning when branches were skipped.
 - [ ] T010 [US1] In `getProject` in `server/github.ts`, re-use a cached project only when the main commit and every listed branch SHA are unchanged, and re-read only changed branches (R3)
-- [ ] T011 [US1] Show the branch for unmerged specs:
+- [ ] T011 [US1] Show the branch for unmerged specs in `src/project/LiveWorkspace.tsx` and the overview:
   - in `src/project/LiveWorkspace.tsx`, add a `tag` with the branch name (without `feat/`) on unmerged rows of the Specs list;
   - add a `branch` field to `OverviewItem` in `src/project/types.ts` and fill it in `src/project/overview.ts`;
   - show the branch next to the slug in Next up and in `src/project/Overview.tsx`.
@@ -120,11 +120,11 @@ Cấu trúc hiện có: SPA trong `src/`, logic GitHub dùng chung trong `server
 
 - [ ] T014 [US2] Make `blobUrl` in `src/project/phases.ts` take the version's `sha`. Use `f.sha` for the file and folder links in `src/project/LiveWorkspace.tsx` and `src/project/views.tsx`.
 - [ ] T015 [US2] Add `getSpecVariant(src, project, slug, branch)` to `server/github.ts`. Add `GET /api/spec` to `server/routes.ts` and `spec(repo, slug, branch)` to `Backend` in `src/backend.ts` (contracts/branches.md).
-- [ ] T016 [US2] Wire the branch into gate decisions:
+- [ ] T016 [US2] Wire the branch into gate decisions in `server/tracking.ts`, `server/routes.ts` and `src/backend.ts`:
   - `POST /api/gates` in `server/routes.ts` accepts `branch`;
   - `Backend.decide` in `src/backend.ts` takes an optional `branch`;
   - `decideGate` in `server/tracking.ts` runs on the chosen variant, and its `specUrl` uses `f.branch ?? project.ref`.
-- [ ] T017 [US2] Carry the branch in the address:
+- [ ] T017 [US2] Carry the branch in the address via `src/project/urlState.ts`:
   - add `branch` to `URL_KEYS` and `UrlState` in `src/project/urlState.ts`, and to `RETURN_KEYS` in `server/session.ts`;
   - in `src/Root.tsx` and `src/project/LiveWorkspace.tsx`, restore the version from `?branch=` and write it back on change (FR-009).
 - [ ] T018 [US2] For an unmerged spec, show "Run on `feat/x`: `git switch feat/x`" above the command row in `src/project/LiveWorkspace.tsx`. The copied text stays the `/speckit-…` command (FR-011).
