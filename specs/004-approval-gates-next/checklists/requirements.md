@@ -13,13 +13,13 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
 - [x] All acceptance scenarios are defined
 - [x] Edge cases are identified
-- [ ] Scope is clearly bounded
+- [x] Scope is clearly bounded
 - [x] Dependencies and assumptions identified
 
 ## Feature Readiness
@@ -31,5 +31,7 @@
 
 ## Notes
 
-- Còn 2 câu hỏi cần trả lời: FR-007 (có chặn lệnh ngay trong Claude Code không) và FR-011 (mặc định bật hay tắt). Hai mục chưa đạt ở trên phụ thuộc vào hai câu trả lời này.
+- Hai câu hỏi đã được trả lời trong mục Clarifications (session 2026-10-17):
+  - Q1: B. Khoá trong speckit-ui, và chặn lệnh trong Claude Code bằng bước kiểm tra cài vào repo dự án (FR-007, FR-012).
+  - Q2: A. Bật mặc định cho mọi repo; repo có thể tắt (FR-011).
 - Tên lệnh `/speckit-*` và Claude Code là thuật ngữ của quy trình người dùng, không phải chi tiết cài đặt.
