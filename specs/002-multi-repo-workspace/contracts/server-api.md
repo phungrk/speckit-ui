@@ -6,7 +6,7 @@ Mọi response là JSON và có `Cache-Control: no-store`. Lỗi trả về dạ
 
 ## Xác thực
 
-Ở chế độ **sign-in**, mọi endpoint `/api/*` (trừ `/api/session`) trả `401 { "error": "Sign in required." }` khi không có phiên hợp lệ.
+Ở chế độ **sign-in**, mọi endpoint `/api/*` (trừ `/api/session`, kể cả `/api/copilot`) trả `401 { "error": "Sign in required." }` khi không có phiên hợp lệ. Mọi route nằm trong `server/routes.ts`.
 
 Ở chế độ **token**, server dùng `GITHUB_TOKEN` từ `.env.local` hoặc `.env`, và chỉ lắng nghe trên `127.0.0.1` (R6).
 
@@ -19,7 +19,7 @@ Cho biết chế độ chạy và người dùng hiện tại. Không bao giờ 
 ```
 
 - Chế độ `signin` khi chưa đăng nhập: `{ "mode": "signin", "user": null }`
-- Chế độ `token` khi token sai hoặc thiếu: `{ "mode": "token", "user": null, "error": "GITHUB_TOKEN in .env.local was rejected by GitHub (401)." }`
+- Chế độ `token` khi token sai hoặc thiếu: `{ "mode": "token", "user": null, "error": "GitHub rejected GITHUB_TOKEN (401). Put a valid fine-grained token in .env.local, …" }`
 - Không cấu hình gì: `{ "mode": "demo", "user": null }`
 
 ### `GET /auth/login?return=<query>`
@@ -46,7 +46,7 @@ Chỉ nhận request cùng origin. Xoá phiên khỏi bộ nhớ, xoá cookie, t
 
 ### `POST /api/repos/detect`
 
-Body `{ "repos": ["owner/a", "owner/b"] }`, tối đa 30 repo mỗi lần. Request phải cùng origin và là JSON.
+Body `{ "repos": [{ "fullName": "owner/a", "pushedAt": "2026-10-17T02:33:27Z" }, "owner/b"] }`, tối đa 30 repo mỗi lần. Mỗi phần tử là tên `owner/name`, hoặc object kèm `pushedAt` để cache theo lần push (R2). Request phải cùng origin và là JSON.
 
 ```json
 { "results": { "owner/a": true, "owner/b": false } }
@@ -72,7 +72,7 @@ Mọi endpoint dữ liệu dùng quyền của người dùng hiện tại. Cach
 |---|---|
 | 400 | Thiếu hoặc sai `repo`, body không hợp lệ |
 | 401 | Chưa đăng nhập hoặc phiên đã kết thúc (chế độ sign-in) |
-| 403 | Request ghi không cùng origin |
+| 403 | Request ghi không cùng origin, hoặc GitHub từ chối (ví dụ ghi issue khi token không có quyền Issues ghi) |
 | 404 | Repo không tồn tại hoặc người dùng không có quyền (GitHub trả 404 cho cả hai) |
 | 409 | Cổng chưa đủ điều kiện duyệt (giữ nguyên hành vi hiện tại) |
 | 502 | GitHub lỗi hoặc giới hạn số lần gọi |

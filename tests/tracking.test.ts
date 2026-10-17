@@ -2,7 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { canApprove, gateChecks, mergeOrderProblems, newIssueBody, parseIssueBody, unapprovedGates, withGates } from '../src/project/gates';
 import { parseGitmodules, parseUiConfig } from '../server/parse';
-import { GateRefused, decideGate, handleGate, loadTracking, prMatches, sameOrigin, trackedRepos } from '../server/tracking';
+import { route, sameOrigin } from '../server/routes';
+import { GateRefused, decideGate, loadTracking, prMatches, trackedRepos } from '../server/tracking';
 import type { Project, SpecFeature, SpecPR } from '../src/project/types';
 
 const feature = (over: Partial<SpecFeature> = {}): SpecFeature => ({
@@ -203,7 +204,7 @@ describe('write protection', () => {
   it('rejects cross-site and non-JSON posts before reading the body', async () => {
     for (const headers of [{ host: 'h', origin: 'https://evil.example', 'content-type': 'application/json' }, { host: 'h', origin: 'http://h', 'content-type': 'text/plain' }]) {
       const res = { statusCode: 0, setHeader() {}, end: vi.fn() } as unknown as ServerResponse & { end: ReturnType<typeof vi.fn> };
-      await handleGate(req(headers), res);
+      await route(req(headers), res, new URL('http://h/api/gates'), { GITHUB_TOKEN: 't', GITHUB_REPO: 'a/root' });
       expect(res.statusCode).toBe(403);
     }
   });

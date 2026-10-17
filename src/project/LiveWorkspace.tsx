@@ -5,49 +5,70 @@ import { OfflineError } from '../copilot/api';
 import { Icon, Label } from '../ui';
 import { LIVE_SUGGEST, buildLiveContext, liveOfflineAnswer, liveRefPattern, liveRefPhase } from './copilot';
 import { GatePanel } from './GatePanel';
-import { GATE_NAME, unapprovedGates } from './gates';
-import { LIVE_CLASS, LIVE_LABEL, PHASES, blobUrl, nextStep, phaseStatus, type LiveStatus } from './phases';
-import type { GateAction } from './trackingApi';
-import type { GateKey, Project, Tracking } from './types';
+import { buildOverview } from './overview';
+import { LIVE_CLASS, LIVE_LABEL, PHASES, blobUrl, phaseStatus, type LiveStatus } from './phases';
+import type { LastViewed } from './prefs';
+import { accessProblem } from './repoLoader';
+import { SessionButtons, type SessionActions } from './SessionNav';
+import { SignInRequired, type GateAction } from './trackingApi';
+import type { CurrentUser, GateKey, Project, Tracking } from './types';
 import { LiveAnalyze, LiveClarify, LiveConstitution, LiveImplement, LivePlan, LiveSpec, LiveTasks, NotStarted } from './views';
-
-const load = <T,>(k: string, d: T): T => { try { const v = localStorage.getItem('sk.live.' + k); return v ? JSON.parse(v) as T : d; } catch { return d; } };
-const save = (k: string, v: unknown) => { try { localStorage.setItem('sk.live.' + k, JSON.stringify(v)); } catch { /* ignore */ } };
 
 const ago = (iso: string, now: number) => {
   const s = Math.max(0, Math.round((now - Date.parse(iso)) / 1000));
   return s < 60 ? 'just now' : s < 3600 ? `${Math.floor(s / 60)} min ago` : `${Math.floor(s / 3600)} h ago`;
 };
 
-interface Props {
-  project: Project;
-  backend: Backend;
-  refreshing: boolean;
-  onRefresh: () => void;
-  /** Static build only: forget the stored keys. */
-  onDisconnect?: () => void;
-  /** Static build only: back to the connect screen. */
-  onSettings?: () => void;
+export interface RepoChoices {
+  pinned: string[];
+  recent: string[];
+  /** Repos that could not be read, with the reason. */
+  unavailable: Record<string, string>;
 }
 
-export function LiveWorkspace({ project, backend, refreshing, onRefresh, onDisconnect, onSettings }: Props) {
-  const [slug, setSlug] = useState(() => load('slug', ''));
-  const [sel, setSel] = useState<number | null>(null);
+interface Props extends SessionActions {
+  /** One workspace per repo: Root mounts a fresh one (key = repo) on every switch. */
+  project: Project;
+  backend: Backend;
+  user: CurrentUser;
+  refreshing: boolean;
+  onRefresh: () => void;
+  /** Spec and step to open, restored from the URL or the last visit (FR-005). */
+  initial: LastViewed | null;
+  onPosition: (v: LastViewed) => void;
+  /** Copilot threads for this repo, by spec slug. Kept by Root so they survive switching away. */
+  threads: Record<string, CopilotMsg[]>;
+  onThreads: (t: Record<string, CopilotMsg[]>) => void;
+  repos: RepoChoices;
+  onSwitch: (repo: string) => void;
+  onAllRepos: () => void;
+  onOverview: () => void;
+  onAuthLost: () => void;
+}
+
+export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, initial, onPosition, threads, onThreads, repos, onSwitch, onAllRepos, onOverview, onAuthLost, ...actions }: Props) {
+  const [slug, setSlug] = useState(() => initial?.spec ?? '');
+  const [sel, setSel] = useState<number | null>(() => initial?.step ?? null);
   const [rtab, setRtab] = useState<'spec' | 'ai'>('spec');
   const [tracking, setTracking] = useState<Tracking | null>(null);
   const [trackingError, setTrackingError] = useState<string | null>(null);
-  const [threads, setThreads] = useState<Record<string, CopilotMsg[]>>({});
   const [cmd, setCmd] = useState('');
   const [log, setLog] = useState<string[]>([]);
   const [now, setNow] = useState(Date.now());
   const logRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => save('slug', slug), [slug]);
-  const loadTracking = (refresh: boolean) => backend.tracking(refresh).then(t => { setTracking(t); setTrackingError(null); }, (e: Error) => setTrackingError(e.message));
+  const loadTracking = (refresh: boolean) => backend.tracking(project.repo, refresh).then(t => { setTracking(t); setTrackingError(null); }, (e: Error) => {
+    if (e instanceof SignInRequired) onAuthLost();
+    else setTrackingError(e.message);
+  });
   useEffect(() => { void loadTracking(false); }, []);
   const refreshAll = () => { onRefresh(); void loadTracking(true); };
   const decide = async (gate: GateKey, action: GateAction, note: string) => {
-    try { setTracking(await backend.decide(f!.slug, gate, action, note)); return null; } catch (e) { return e instanceof Error ? e.message : 'Gate update failed.'; }
+    try { setTracking(await backend.decide(project.repo, f!.slug, gate, action, note)); return null; } catch (e) {
+      if (e instanceof SignInRequired) { onAuthLost(); return 'Sign in again to approve.'; }
+      // Read access without Issues write: say so for this repo only, and leave Approve usable (G1).
+      return accessProblem(e, 'write', project.repo) ?? (e instanceof Error ? e.message : 'Gate update failed.');
+    }
   };
   const issueOf = (s: string) => tracking?.issues[s] ?? null;
   /** Rail label and class for step i, folding in gate approvals once they have loaded. */
@@ -60,6 +81,7 @@ export function LiveWorkspace({ project, backend, refreshing, onRefresh, onDisco
   useEffect(() => { if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight; }, [log]);
 
   const f = project.specs.find(x => x.slug === slug) || project.specs[project.specs.length - 1];
+  useEffect(() => { onPosition({ spec: f?.slug ?? null, step: sel }); }, [f?.slug, sel]); // eslint-disable-line react-hooks/exhaustive-deps
   const status: LiveStatus[] = f ? phaseStatus(project, f) : PHASES.map((_, i) => (i === 0 && project.constitution ? 'done' : 'pending'));
   const current = Math.max(0, status.indexOf('current') === -1 ? 6 : status.indexOf('current'));
   const pi = sel ?? (f ? current : 0);
@@ -77,13 +99,8 @@ export function LiveWorkspace({ project, backend, refreshing, onRefresh, onDisco
       () => setLog(l => [...l, '› ' + c, `Copy failed. Select the command and copy it by hand. ${where}`]));
   };
 
-  // Pending approvals come first, then the next command to run.
-  const next = project.specs.flatMap(x => {
-    const todo = tracking ? unapprovedGates(phaseStatus(project, x), issueOf(x.slug)) : [];
-    if (todo.length) return [{ x, n: { phase: PHASES.findIndex(p => p.k === todo[0]), text: `Approve ${GATE_NAME[todo[0]]}`, detail: '' } }];
-    const n = nextStep(project, x);
-    return n ? [{ x, n }] : [];
-  });
+  // Pending approvals come first, then the next command to run (same list as the overview).
+  const next = buildOverview(project, tracking);
 
   let view: ReactNode;
   if (pi === 0) view = <LiveConstitution c={project.constitution} project={project} />;
@@ -92,7 +109,7 @@ export function LiveWorkspace({ project, backend, refreshing, onRefresh, onDisco
   else view = [null, <LiveSpec f={f} />, <LiveClarify f={f} />, <LivePlan f={f} project={project} />, <LiveTasks f={f} />, <LiveAnalyze f={f} />, <LiveImplement f={f} />][pi];
 
   const msgs = f ? threads[f.slug] || [] : [];
-  const setMsgs = (m: CopilotMsg[]) => f && setThreads(t => ({ ...t, [f.slug]: m }));
+  const setMsgs = (m: CopilotMsg[]) => f && onThreads({ ...threads, [f.slug]: m });
   const ask: AskFn = async hist => {
     try {
       return { t: await backend.copilot(buildLiveContext(project, f!, phase), hist) };
@@ -102,25 +119,39 @@ export function LiveWorkspace({ project, backend, refreshing, onRefresh, onDisco
     }
   };
 
+  const choices = {
+    pinned: repos.pinned.filter(r => r !== project.repo),
+    recent: repos.recent.filter(r => r !== project.repo && !repos.pinned.includes(r))
+  };
+
   const fields = f?.spec ? Object.entries(f.spec.fields).filter(([k]) => k !== 'Input') : [];
 
-  return <div className="sk">
+  return <div className="sk sk-live">
     <nav className="nav sk-nav">
       <div className="nav-brand">Speckit</div>
-      <div className="sk-proj"><a className="sk-plain" href={`https://github.com/${project.repo}`} target="_blank" rel="noreferrer">{project.repo}</a><span className="text-muted">/ specs</span></div>
+      <div className="sk-proj">
+        <select className="sk-repo-switch" aria-label="Repository" value={project.repo} onChange={e => e.target.value === '*' ? onAllRepos() : onSwitch(e.target.value)}>
+          <option value={project.repo}>{project.repo}</option>
+          {choices.pinned.length > 0 && <optgroup label="Pinned">{choices.pinned.map(r => <option key={r} value={r} disabled={!!repos.unavailable[r]}>{r}{repos.unavailable[r] ? ' (not accessible)' : ''}</option>)}</optgroup>}
+          {choices.recent.length > 0 && <optgroup label="Recent">{choices.recent.map(r => <option key={r} value={r}>{r}</option>)}</optgroup>}
+          <option value="*">All repos…</option>
+        </select>
+        <a className="sk-plain text-muted" href={`https://github.com/${project.repo}`} target="_blank" rel="noreferrer" title="Open on GitHub">/ specs</a>
+      </div>
       <div className="sk-spacer"></div>
+      <button className="btn btn-ghost sk-small" onClick={onOverview}>Overview</button>
+      <button className="btn btn-ghost sk-small" onClick={onAllRepos}>All repos</button>
       <a className="sk-sync" href={`https://github.com/${project.repo}/commit/${project.sha}`} target="_blank" rel="noreferrer" title={`Loaded ${new Date(project.fetchedAt).toLocaleString()}`}>
         <Icon n="branch" s={14} />{project.ref} @ {project.sha.slice(0, 7)}<span className="text-muted"> · {ago(project.fetchedAt, now)}</span>
       </a>
       <button className="btn btn-secondary sk-small" onClick={refreshAll} disabled={refreshing}>{refreshing ? 'Refreshing…' : 'Refresh'}</button>
-      {onSettings && <button className="btn btn-ghost sk-small" onClick={onSettings}>Settings</button>}
-      {onDisconnect && <button className="btn btn-ghost sk-small" onClick={onDisconnect} title="Remove the stored keys from this browser">Disconnect</button>}
+      <SessionButtons user={user} {...actions} />
     </nav>
     <div className="sk-body">
       <aside className="sk-side">
         <div className="sk-pad"><Label>Next up</Label>
           {next.length === 0 ? <p className="text-muted" style={{ fontSize: 13 }}>Every spec is done.</p> :
-            <ul className="sk-list">{next.map(({ x, n }) => <li key={x.slug}><button className="sk-qitem" onClick={() => { setSlug(x.slug); setSel(n.phase); }}><b>{n.text}</b><span>{x.slug}</span><Icon n="arrow" s={14} /></button></li>)}</ul>}
+            <ul className="sk-list">{next.map(n => <li key={n.slug}><button className="sk-qitem" onClick={() => { setSlug(n.slug); setSel(n.step); }}><b>{n.label}</b><span>{n.slug}</span><Icon n="arrow" s={14} /></button></li>)}</ul>}
         </div>
         <div className="sk-pad sk-rule"><div className="sk-rowh"><Label>Specs · {project.specs.length}</Label></div>
           <ul className="sk-list">{project.specs.map(x => {

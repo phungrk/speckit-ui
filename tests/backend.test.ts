@@ -45,14 +45,17 @@ describe('browser backend', () => {
     expect(parseRepo('acme/app')?.slice(1)).toEqual(['acme', 'app']);
     expect(parseRepo('https://github.com/acme/app.git')?.slice(1)).toEqual(['acme', 'app']);
     expect(parseRepo('acme')).toBeNull();
-    expect(() => browserBackend(settings({ repo: 'nope' }))).toThrow(/owner\/name/);
+  });
+
+  it('rejects a repository that is not owner/name', async () => {
+    await expect(browserBackend(settings()).project('nope', true)).rejects.toThrow(/owner\/name/);
   });
 
   it('calls GitHub with the viewer token and no User-Agent override in a browser', async () => {
     vi.stubGlobal('window', {});
     const fetch = vi.fn(async () => new Response('{}', { status: 404 }));
     vi.stubGlobal('fetch', fetch);
-    await expect(browserBackend(settings({ repo: 'acme/browser-test' })).project(true)).rejects.toThrow(/404/);
+    await expect(browserBackend(settings()).project('acme/browser-test', true)).rejects.toThrow(/404/);
     const headers = (fetch.mock.calls[0] as unknown as [string, RequestInit])[1].headers as Record<string, string>;
     expect(headers.Authorization).toBe('Bearer github_pat_x');
     expect(headers['User-Agent']).toBeUndefined();

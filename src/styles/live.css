@@ -44,3 +44,26 @@
 .sk-connect-check{display:flex;align-items:center;gap:8px;font-size:14px}.sk-connect-check input{accent-color:var(--color-accent);width:16px;height:16px}
 .sk-connect-foot{border-top:2px solid var(--color-divider);padding-top:var(--space-4);font-size:13px}.sk-connect-foot ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
 @media (max-width:760px){.sk-connect{padding:var(--space-4)}.sk-connect-row{grid-template-columns:1fr}}
+/* Several repos per session (specs/002): repo list, switcher, overview, sign-in. Modernist tokens only. */
+.sk-page{height:auto;min-height:100vh}
+.sk-who{font-size:12px;font-weight:600;white-space:nowrap;color:color-mix(in srgb,var(--color-text) 70%,transparent)}
+.sk-repo-switch{font:inherit;font-weight:600;color:inherit;background:transparent;border:0;border-bottom:2px solid var(--color-divider);padding:2px 0;max-width:min(320px,48vw);cursor:pointer}
+.sk-repo-switch:hover{color:var(--color-accent)}.sk-repo-switch:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
+.sk-repos{max-width:860px;width:100%;padding:var(--space-6) var(--space-8) var(--space-8);display:flex;flex-direction:column;gap:var(--space-4);box-sizing:border-box}
+.sk-repos-head h2{margin:0 0 var(--space-2)}
+.sk-repos-tools{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--space-4);border-top:2px solid var(--color-divider);padding-top:var(--space-4)}
+.sk-repos-tools .field{margin:0}.sk-repos-manual{display:flex;gap:var(--space-2)}.sk-repos-manual .input{flex:1;min-width:0}
+.sk-repolist{border-top:1px solid var(--color-divider);border-bottom:1px solid var(--color-divider)}
+.sk-repo{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:stretch}
+.sk-repo .sk-qitem b{overflow-wrap:anywhere}
+.sk-repo .sk-qitem .sk-repo-tag{grid-row:1/3;grid-column:2;align-self:center;justify-self:end;font-size:11px;white-space:nowrap;color:inherit}
+.sk-repo.off .sk-qitem{cursor:default}.sk-repo.off b{color:color-mix(in srgb,var(--color-text) 50%,transparent)}
+.sk-pin{all:unset;box-sizing:border-box;width:40px;display:grid;place-items:center;cursor:pointer;color:color-mix(in srgb,var(--color-text) 45%,transparent)}
+.sk-pin:hover{color:var(--color-accent);background:color-mix(in srgb,var(--color-text) 5%,transparent)}.sk-pin.on{color:var(--color-accent)}
+.sk-pin:focus-visible{outline:2px solid var(--color-accent);outline-offset:-2px}
+.sk-ov{border-top:2px solid var(--color-divider);padding-top:var(--space-3)}
+.sk-ov h3{margin:0;font-size:16px}
+.sk-ov-repo{all:unset;cursor:pointer;overflow-wrap:anywhere}.sk-ov-repo:hover{color:var(--color-accent)}.sk-ov-repo:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
+.sk-connect-adv summary{cursor:pointer;font-size:14px;font-weight:600}.sk-connect-adv[open] summary{margin-bottom:var(--space-3)}
+.sk-steps-list{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:var(--space-2);font-size:14px}
+@media (max-width:760px){.sk-repos{padding:var(--space-4)}.sk-repos-tools{grid-template-columns:1fr}.sk-live .sk-nav,.sk-page .sk-nav{flex-wrap:wrap}.sk-who{display:none}}

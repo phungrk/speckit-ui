@@ -29,9 +29,9 @@ Cấu trúc hiện có của repo: SPA trong `src/`, server Node trong `server/`
 
 **Purpose**: Cấu hình để token local không lọt vào git và server đọc được `.env.local`.
 
-- [ ] T001 Add `.env.local` and `.env.*.local` to `.gitignore` so local tokens are never committed (FR-016, R7)
-- [ ] T002 [P] Update `.env.example`: describe `GITHUB_REPO` as the default repo to open, add `GITHUB_APP_CLIENT_ID`, `GITHUB_APP_CLIENT_SECRET` and `ALLOW_REMOTE_TOKEN_MODE`, and say that personal tokens belong in `.env.local`
-- [ ] T003 [P] Change the `start` script in `package.json` to load `--env-file-if-exists=.env --env-file-if-exists=.env.local` so `.env.local` overrides `.env` (R7)
+- [X] T001 Add `.env.local` and `.env.*.local` to `.gitignore` so local tokens are never committed (FR-016, R7)
+- [X] T002 [P] Update `.env.example`: describe `GITHUB_REPO` as the default repo to open, add `GITHUB_APP_CLIENT_ID`, `GITHUB_APP_CLIENT_SECRET` and `ALLOW_REMOTE_TOKEN_MODE`, and say that personal tokens belong in `.env.local`
+- [X] T003 [P] Change the `start` script in `package.json` to load `--env-file-if-exists=.env --env-file-if-exists=.env.local` so `.env.local` overrides `.env` (R7)
 
 ---
 
@@ -41,31 +41,31 @@ Cấu trúc hiện có của repo: SPA trong `src/`, server Node trong `server/`
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Add `CurrentUser`, `AccessibleRepo`, `RepoListing` and `OverviewItem` types from data-model.md to `src/project/types.ts`
-- [ ] T005 Add `identityFor(token)` (first 8 hex chars of SHA-256 via `crypto.subtle`, which works in the browser and Node 22) and an optional `identity` field on `Source` in `server/github.ts` (R3)
-- [ ] T006 Replace the single-slot project cache and the shared `inflight` promise in `server/github.ts` with a `Map` keyed by `identity|owner/repo@ref`: at most 8 entries, evicting the oldest, and an in-flight promise per key. Export `clearProjectCache()`, which empties the map (R3, FR-006, FR-017)
-- [ ] T007 Replace the single-slot tracking cache in `server/tracking.ts` with a `Map` keyed by `identity|owner/repo@sha`, and invalidate only the affected key after `decideGate`. Export `clearTrackingCache()` (R3, FR-017)
-- [ ] T008 [P] Write `tests/cache.test.ts` covering:
+- [X] T004 Add `CurrentUser`, `AccessibleRepo`, `RepoListing` and `OverviewItem` types from data-model.md to `src/project/types.ts`
+- [X] T005 Add `identityFor(token)` (first 8 hex chars of SHA-256 via `crypto.subtle`, which works in the browser and Node 22) and an optional `identity` field on `Source` in `server/github.ts` (R3)
+- [X] T006 Replace the single-slot project cache and the shared `inflight` promise in `server/github.ts` with a `Map` keyed by `identity|owner/repo@ref`: at most 8 entries, evicting the oldest, and an in-flight promise per key. Export `clearProjectCache()`, which empties the map (R3, FR-006, FR-017)
+- [X] T007 Replace the single-slot tracking cache in `server/tracking.ts` with a `Map` keyed by `identity|owner/repo@sha`, and invalidate only the affected key after `decideGate`. Export `clearTrackingCache()` (R3, FR-017)
+- [X] T008 [P] Write `tests/cache.test.ts` covering:
   - switching repo while a load is in flight returns the right repo;
   - two identities never share an entry;
   - eviction after 8 entries;
   - a tracking write invalidates only its own repo;
   - `POST /api/gates` with `"repo": "o/b"` while `GITHUB_REPO=o/a` writes the issue in `o/b`, and the same holds for `browserBackend.decide` (FR-009);
   - `clearProjectCache()` and `clearTrackingCache()` leave no entries.
-- [ ] T009 Make `/api/project`, `/api/tracking` and `POST /api/gates` accept `repo` (and optional `ref`), defaulting to `GITHUB_REPO` and returning 400 when neither is set, per contracts/server-api.md, in `server/github.ts` and `server/tracking.ts`
-- [ ] T010 Extend the `Backend` interface in `src/backend.ts`:
+- [X] T009 Make `/api/project`, `/api/tracking` and `POST /api/gates` accept `repo` (and optional `ref`), defaulting to `GITHUB_REPO` and returning 400 when neither is set, per contracts/server-api.md, in `server/github.ts` and `server/tracking.ts`
+- [X] T010 Extend the `Backend` interface in `src/backend.ts`:
   - add `session()`, `repos()` and `detect(repos)`;
   - `browserBackend.session()` calls `GET /user` with the stored token and returns `CurrentUser` (`mode: 'pages'`); a 401 returns `user: null` with an error, so Connect shows it;
   - give `project`, `tracking` and `decide` a `repo` argument;
   - `serverBackend` sends `?repo=` and `"repo"` in the body;
   - `browserBackend` builds a `Source` per repo from the stored token, with `identity` set.
-- [ ] T011 [P] Create `src/project/prefs.ts`:
+- [X] T011 [P] Create `src/project/prefs.ts`:
   - `getPins/setPins`, `getLast/setLast` and `getLastRepo/setLastRepo`, namespaced `sk.u.<login>.*`;
   - choose `localStorage`, or `sessionStorage` for the Pages build without Remember;
   - wrap every access in try/catch;
   - cap pins at 20 and drop duplicates (R9, data-model.md).
-- [ ] T012 [P] Write `tests/prefs.test.ts`: per-login isolation, session versus local storage choice, blocked storage, pin cap and dedupe
-- [ ] T013 [P] Create `src/project/urlState.ts`:
+- [X] T012 [P] Write `tests/prefs.test.ts`: per-login isolation, session versus local storage choice, blocked storage, pin cap and dedupe
+- [X] T013 [P] Create `src/project/urlState.ts`:
   - read and write `repo`, `spec`, `step` and `view` with `history.replaceState`;
   - assert that no other parameters (tokens, keys) are ever written (FR-008, contracts/client-state.md);
   - in the app the step is the index `0–6`, while the URL uses the name (`constitution`, `specify`, `clarify`, `plan`, `tasks`, `analyze`, `implement`); export `stepToParam` and `paramToStep`, where an unknown name gives `null`;
@@ -83,7 +83,7 @@ Cấu trúc hiện có của repo: SPA trong `src/`, server Node trong `server/`
 
 ### Tests for User Story 1
 
-- [ ] T014 [P] [US1] Write `tests/repos.test.ts` with a mocked GitHub covering:
+- [X] T014 [P] [US1] Write `tests/repos.test.ts` with a mocked GitHub covering:
   - `listRepos` paging (200 repos take exactly 2 calls, SC-002) and the 1,000-repo cap (`truncated`);
   - `detectSpeckit` mapping 200 to Spec Kit, 404 to not, and other errors to an error entry;
   - concurrency of at most 6;
@@ -93,30 +93,30 @@ Cấu trúc hiện có của repo: SPA trong `src/`, server Node trong `server/`
 
 ### Implementation for User Story 1
 
-- [ ] T015 [US1] Implement `listRepos(src)` in `server/github.ts`: `GET /user/repos?per_page=100&sort=pushed`, at most 10 pages, mapped to `AccessibleRepo` and returned as `RepoListing` (R1)
-- [ ] T016 [US1] Implement `detectSpeckit(src, fullNames)` in `server/github.ts`:
+- [X] T015 [US1] Implement `listRepos(src)` in `server/github.ts`: `GET /user/repos?per_page=100&sort=pushed`, at most 10 pages, mapped to `AccessibleRepo` and returned as `RepoListing` (R1)
+- [X] T016 [US1] Implement `detectSpeckit(src, fullNames)` in `server/github.ts`:
   - call `GET /repos/{owner}/{repo}/contents/.specify`, at most 6 at a time;
   - cache in memory only, keyed by `identity|repo@pushedAt`, and clear it with `clearProjectCache()`;
   - nothing is written to browser storage (R2);
   - add a `sortRepos(repos, pins)` helper (FR-002).
-- [ ] T017 [US1] Add `handleSession`, `handleRepos` and `handleDetect` (`GET /api/session`, `GET /api/repos`, and `POST /api/repos/detect` with the same-origin JSON check) per contracts/server-api.md in `server/github.ts`, and register them in `server/index.ts` and `vite.config.ts`
-- [ ] T018 [US1] Add start-up mode detection (`signin` / `token` / `demo`) in `server/index.ts`. In token mode:
+- [X] T017 [US1] Add `handleSession`, `handleRepos` and `handleDetect` (`GET /api/session`, `GET /api/repos`, and `POST /api/repos/detect` with the same-origin JSON check) per contracts/server-api.md in `server/github.ts`, and register them in `server/index.ts` and `vite.config.ts`
+- [X] T018 [US1] Add start-up mode detection (`signin` / `token` / `demo`) in `server/index.ts`. In token mode:
   - bind to `127.0.0.1` unless `ALLOW_REMOTE_TOKEN_MODE=1`, and print a warning;
   - `GET /api/session` calls `GET /user` once with `GITHUB_TOKEN` and caches the login;
   - a missing or rejected token is reported with the `.env.local` hint (R6, FR-016).
-- [ ] T019 [US1] Create `src/project/RepoPicker.tsx`:
+- [X] T019 [US1] Create `src/project/RepoPicker.tsx`:
   - repo list with a "Spec Kit" or "Checking…" label;
   - detection requested for visible rows first;
   - manual `owner/name` input (FR-007);
   - auto-open when exactly one Spec Kit repo exists (US1-AS3);
   - an empty state when none is found (US1-AS4);
   - a truncated hint when the 1,000-repo cap is hit.
-- [ ] T020 [US1] Make the repository field optional in `src/Connect.tsx` (moved under an "Advanced" section), and stop requiring `repo` in `loadSettings` in `src/backend.ts`
-- [ ] T021 [US1] Rework `src/Root.tsx`:
+- [X] T020 [US1] Make the repository field optional in `src/Connect.tsx` (moved under an "Advanced" section), and stop requiring `repo` in `loadSettings` in `src/backend.ts`
+- [X] T021 [US1] Rework `src/Root.tsx`:
   - identify the user (Pages: settings; server: `backend.session()`);
   - then open `?repo=`, else `lastRepo`, else `defaultRepo`, else the RepoPicker;
   - show a guidance screen for local token mode with a missing or invalid token (FR-016).
-- [ ] T022 [P] [US1] Add RepoPicker styles in `src/styles/live.css` using Modernist tokens and classes (`sk-list`, `sk-qitem`, `sk-chip`, `tag`), including phone width
+- [X] T022 [P] [US1] Add RepoPicker styles in `src/styles/live.css` using Modernist tokens and classes (`sk-list`, `sk-qitem`, `sk-chip`, `tag`), including phone width
 
 **Checkpoint**: User Story 1 works on its own: pick any permitted repo and see its project.
 
@@ -130,14 +130,14 @@ Cấu trúc hiện có của repo: SPA trong `src/`, server Node trong `server/`
 
 ### Tests for User Story 2
 
-- [ ] T023 [P] [US2] Write `tests/repoLoader.test.ts`: a response for an earlier repo that resolves after a later switch is discarded (latest wins), and errors are scoped to their repo
+- [X] T023 [P] [US2] Write `tests/repoLoader.test.ts`: a response for an earlier repo that resolves after a later switch is discarded (latest wins), and errors are scoped to their repo
 
 ### Implementation for User Story 2
 
-- [ ] T024 [US2] Create `src/project/repoLoader.ts`: a latest-wins loader that tags each request with `fullName` and ignores results whose repo is no longer current (data-model.md → RepoContext)
-- [ ] T025 [US2] Use `repoLoader` in `src/Root.tsx` for project and tracking loads; on switch, clear the shown `RepoContext` immediately and update the URL through `urlState` (US2-AS3, FR-006)
-- [ ] T026 [US2] Add a repo switcher and an "All repos" link to the nav in `src/project/LiveWorkspace.tsx`, listing pinned repos first, then recent repos (FR-004)
-- [ ] T027 [US2] In `src/project/LiveWorkspace.tsx`, key Copilot threads and the selected spec and step by `fullName`; restore them from `prefs.getLast` when a repo opens and save them with `prefs.setLast` and `setLastRepo` on change (FR-005)
+- [X] T024 [US2] Create `src/project/repoLoader.ts`: a latest-wins loader that tags each request with `fullName` and ignores results whose repo is no longer current (data-model.md → RepoContext)
+- [X] T025 [US2] Use `repoLoader` in `src/Root.tsx` for project and tracking loads; on switch, clear the shown `RepoContext` immediately and update the URL through `urlState` (US2-AS3, FR-006)
+- [X] T026 [US2] Add a repo switcher and an "All repos" link to the nav in `src/project/LiveWorkspace.tsx`, listing pinned repos first, then recent repos (FR-004)
+- [X] T027 [US2] In `src/project/LiveWorkspace.tsx`, key Copilot threads and the selected spec and step by `fullName`; restore them from `prefs.getLast` when a repo opens and save them with `prefs.setLast` and `setLastRepo` on change (FR-005)
 
 **Checkpoint**: User Stories 1 and 2 work together. This is the MVP: choose and switch repos.
 
@@ -149,9 +149,9 @@ Cấu trúc hiện có của repo: SPA trong `src/`, server Node trong `server/`
 
 **Independent Test**: Ghim 2 repo, rồi tải lại trang: cả hai nằm đầu danh sách. Gõ một phần tên: chỉ còn các repo khớp (US3-AS1, US3-AS2).
 
-- [ ] T028 [US3] Add pin and unpin buttons with `aria-pressed` to each row in `src/project/RepoPicker.tsx`, using `prefs.setPins`, and re-sort immediately (FR-011, US3-AS3)
-- [ ] T029 [US3] Add a search box in `src/project/RepoPicker.tsx` that filters by any part of `owner/name`, case-insensitive, and keeps the manual entry option when nothing matches (FR-010)
-- [ ] T030 [US3] Handle repo-scoped access errors:
+- [X] T028 [US3] Add pin and unpin buttons with `aria-pressed` to each row in `src/project/RepoPicker.tsx`, using `prefs.setPins`, and re-sort immediately (FR-011, US3-AS3)
+- [X] T029 [US3] Add a search box in `src/project/RepoPicker.tsx` that filters by any part of `owner/name`, case-insensitive, and keeps the manual entry option when nothing matches (FR-010)
+- [X] T030 [US3] Handle repo-scoped access errors:
   - in `src/project/RepoPicker.tsx` and `src/project/LiveWorkspace.tsx`, hide pinned repos that are no longer accessible (404 or 403) from the active list and show a notice;
   - keep those repos in stored pins until the user unpins them (data-model.md → Pins);
   - keep the other repos working (FR-012);
@@ -170,7 +170,7 @@ Cấu trúc hiện có của repo: SPA trong `src/`, server Node trong `server/`
 
 ### Tests for User Story 4
 
-- [ ] T031 [P] [US4] Write `tests/overview.test.ts` for `buildOverview`:
+- [X] T031 [P] [US4] Write `tests/overview.test.ts` for `buildOverview`:
   - a pending approval comes before the next command;
   - an implement item shows progress;
   - specs with nothing to do are left out;
@@ -178,14 +178,14 @@ Cấu trúc hiện có của repo: SPA trong `src/`, server Node trong `server/`
 
 ### Implementation for User Story 4
 
-- [ ] T032 [P] [US4] Implement the pure function `buildOverview(project, tracking): OverviewItem[]` in `src/project/overview.ts`, reusing `nextStep` and `unapprovedGates` from `src/project/phases.ts` and `src/project/gates.ts` (R10)
-- [ ] T033 [US4] Create `src/project/Overview.tsx`:
+- [X] T032 [P] [US4] Implement the pure function `buildOverview(project, tracking): OverviewItem[]` in `src/project/overview.ts`, reusing `nextStep` and `unapprovedGates` from `src/project/phases.ts` and `src/project/gates.ts` (R10)
+- [X] T033 [US4] Create `src/project/Overview.tsx`:
   - load pinned repos at most 3 at a time with `Promise.allSettled`;
   - give each repo its own block in a `loading`, `ready` or `error` state (FR-019);
   - each item opens its repo, spec and step;
   - show pinning guidance when nothing is pinned (US4-AS4).
-- [ ] T034 [US4] Route `?view=overview` in `src/Root.tsx`, and add "Overview" links in `src/project/LiveWorkspace.tsx` and `src/project/RepoPicker.tsx`
-- [ ] T035 [P] [US4] Add Overview styles in `src/styles/live.css` using Modernist tokens, with one block per repo separated by 2px rules
+- [X] T034 [US4] Route `?view=overview` in `src/Root.tsx`, and add "Overview" links in `src/project/LiveWorkspace.tsx` and `src/project/RepoPicker.tsx`
+- [X] T035 [P] [US4] Add Overview styles in `src/styles/live.css` using Modernist tokens, with one block per repo separated by 2px rules
 
 **Checkpoint**: Wave A (US1–US4) is complete in the Pages build and in local token mode.
 
@@ -199,7 +199,7 @@ Cấu trúc hiện có của repo: SPA trong `src/`, server Node trong `server/`
 
 ### Tests for User Story 5
 
-- [ ] T036 [P] [US5] Write `tests/session.test.ts` with mocked GitHub endpoints covering:
+- [X] T036 [P] [US5] Write `tests/session.test.ts` with mocked GitHub endpoints covering:
   - `/auth/login` sets the `sk_oauth` state cookie and redirects;
   - a callback with a wrong, missing or expired state returns 400 and creates no session;
   - a valid callback sets an `HttpOnly; Secure; SameSite=Lax` `sk_session` cookie;
@@ -212,20 +212,20 @@ Cấu trúc hiện có của repo: SPA trong `src/`, server Node trong `server/`
 
 ### Implementation for User Story 5
 
-- [ ] T037 [US5] Create `server/session.ts` with:
+- [X] T037 [US5] Create `server/session.ts` with:
   - an in-memory `ServerSession` store keyed by a 32-byte random id from `node:crypto`;
   - cookie parse and serialize helpers;
   - a 7-day maximum age;
   - `getSession(req)` and `destroySession(id)`.
-- [ ] T038 [US5] Implement the GitHub App web flow in `server/session.ts`:
+- [X] T038 [US5] Implement the GitHub App web flow in `server/session.ts`:
   - `GET /auth/login?return=` with a random `state` stored in the `sk_oauth` cookie for 10 minutes;
   - `GET /auth/callback`, which exchanges the code at `https://github.com/login/oauth/access_token` server-side, reads `/user`, creates the session and redirects to `return`;
   - access-token refresh with the refresh token;
   - `POST /auth/logout` (same-origin only) (R4, R5).
-- [ ] T039 [US5] In `server/index.ts` and `vite.config.ts`, register the `/auth/*` routes. In sign-in mode, require a session for every `/api/*` except `/api/session`, and build each request's `Source` from the session token with `identity = login` (FR-014, FR-015)
-- [ ] T040 [US5] Make `listRepos` in `server/github.ts` list repos through `/user/installations` and `/user/installations/{id}/repositories` when the token is a GitHub App user token (R1)
-- [ ] T041 [US5] Create `src/project/SignIn.tsx` with a "Sign in with GitHub" screen that keeps the current query in `return`. In `src/Root.tsx`, send any 401 to SignIn and hide all repo data. Add a "Sign out" button that calls `POST /auth/logout` in `src/project/LiveWorkspace.tsx` (US5-AS1, US5-AS5)
-- [ ] T042 [US5] On Pages **Disconnect** and server **Sign out**, in `src/backend.ts` and `src/Root.tsx`:
+- [X] T039 [US5] In `server/index.ts` and `vite.config.ts`, register the `/auth/*` routes. In sign-in mode, require a session for every `/api/*` except `/api/session`, and build each request's `Source` from the session token with `identity = login` (FR-014, FR-015)
+- [X] T040 [US5] Make `listRepos` in `server/github.ts` list repos through `/user/installations` and `/user/installations/{id}/repositories` when the token is a GitHub App user token (R1)
+- [X] T041 [US5] Create `src/project/SignIn.tsx` with a "Sign in with GitHub" screen that keeps the current query in `return`. In `src/Root.tsx`, send any 401 to SignIn and hide all repo data. Add a "Sign out" button that calls `POST /auth/logout` in `src/project/LiveWorkspace.tsx` (US5-AS1, US5-AS5)
+- [X] T042 [US5] On Pages **Disconnect** and server **Sign out**, in `src/backend.ts` and `src/Root.tsx`:
   - clear `sk.settings`;
   - call `clearProjectCache()` and `clearTrackingCache()`;
   - drop the shown `RepoContext` and the Copilot threads;
@@ -237,19 +237,19 @@ Cấu trúc hiện có của repo: SPA trong `src/`, server Node trong `server/`
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T043 [P] Update `README.md`:
+- [X] T043 [P] Update `README.md`:
   - working with many repos, deep links and the overview;
   - the three ways a user is identified (Pages token, server sign-in, local `.env.local`);
   - registering the GitHub App and its least-privilege permissions;
   - token-mode binding;
   - **Security**: the new server-side destination `github.com/login/oauth/*`, tokens only in the server-side session, and the single-process limit of the in-memory store (constitution II).
-- [ ] T044 [P] Update the Rules and Commands summary in `CLAUDE.md` to mention per-user access in every mode and `.env.local`
+- [X] T044 [P] Update the Rules and Commands summary in `CLAUDE.md` to mention per-user access in every mode and `.env.local`
 - [ ] T045 Run the quickstart scenarios from `specs/002-multi-repo-workspace/quickstart.md` in Chromium with Playwright:
   - scenarios 1, 2 and 4 with GitHub writes intercepted;
   - scenario 3 against a mocked GitHub App flow;
   - record the wall-clock times of scenario 1 step 2 (SC-002, ≤5 s), step 4 (SC-001, ≤10 s) and step 6 (SC-005, ≤10 s) against real GitHub (read-only), and put them in the PR description.
-- [ ] T046 Check demo-mode pixel parity against the design at 1440×900 and 924×540, on the main screen and the New spec dialog (constitution IV)
-- [ ] T047 Run all four quality gates: `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages` (constitution V)
+- [X] T046 Check demo-mode pixel parity against the design at 1440×900 and 924×540, on the main screen and the New spec dialog (constitution IV)
+- [X] T047 Run all four quality gates: `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages` (constitution V)
 
 ---
 
@@ -324,3 +324,17 @@ Task: "T035 Add Overview styles in src/styles/live.css …"
 - Per the constitution this feature goes through the full Spec Kit flow: run `/speckit-analyze` and save the report as `specs/002-multi-repo-workspace/analysis.md` before implementing.
 - Commit after each task or logical group. Branch: `feat/002-multi-repo-workspace`.
 - Each PR description links `specs/002-multi-repo-workspace/spec.md`.
+
+## Implementation notes
+
+Ghi lại những chỗ code khác với mô tả task, để người duyệt đối chiếu:
+
+- **T009, T017, T018, T039:** mọi handler HTTP nằm trong `server/routes.ts` (mới), không nằm trong `server/github.ts` hay `server/tracking.ts`. Hai module dùng chung này không còn code HTTP hay `process.env`, đúng gợi ý D1 trong analysis.md. Route đăng nhập nằm trong `server/session.ts`.
+- **T015:** phân trang dừng theo header `Link` của GitHub (`rel="next"`), nên 200 repo tốn đúng 2 lần gọi.
+- **T019, T028–T030:** `src/project/SessionNav.tsx` (mới) chứa thanh điều hướng và nút phiên dùng chung cho danh sách repo, tổng quan và workspace.
+- **T023, T030:** kiểm tra lỗi truy cập dùng `accessProblem()` trong `src/project/repoLoader.ts`, và được test trong `tests/repoLoader.test.ts`.
+- **T036:** test dùng `tests/fakeGitHub.ts` (mới), một GitHub giả lập chung cho các file test mới.
+- **T040:** token của GitHub App được nhận ra qua tiền tố `ghu_`.
+- **T042:** Disconnect và Sign out xoá cache rồi tải lại trang, nên mọi trạng thái trong bộ nhớ (RepoContext, Copilot) đều mất. Ghim và vị trí đang xem vẫn còn.
+- **T045:** chạy với GitHub giả lập: trong trình duyệt bằng Playwright route, trong server bằng một module `--import` thay `fetch`. Đo thời gian với độ trễ giả lập 120 ms mỗi lần gọi: danh sách 3 repo hiện trong 0,5 giây, chuyển repo 0,9 giây, tổng quan 2 repo dưới 0,1 giây (đã cache). Session này không có token GitHub thật, nên số đo với GitHub thật cần chạy lại bằng token của người dùng trước khi merge.
+- **T046:** ảnh chế độ demo của `main` và của nhánh này giống nhau từng byte ở 1440×900 và 924×540, cả màn hình chính lẫn hộp thoại New spec.
