@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { Icon, Label } from '../ui';
 import { Markdown } from './Markdown';
 import { buildLocalProject, firstLocalDocumentPath, readLocalDirectory, type LocalFileSnapshot } from './localProject';
+import { LIVE_CLASS, PHASES, phaseStatus } from './phases';
+import type { PhaseKey } from '../types';
 import type { Project, SpecFeature } from './types';
 
 type LocalView =
@@ -22,6 +24,9 @@ export function LocalWorkspace({ onExit }: Props) {
   const request = useRef(0);
   const supported = canChooseDirectory();
   const [view, setView] = useState<LocalView>({ state: 'empty' });
+  const [selectedStep, setSelectedStep] = useState(1);
+  const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
+  const [selectedFeatureSlug, setSelectedFeatureSlug] = useState<string | null>(null);
 
   useEffect(() => { input.current?.setAttribute('webkitdirectory', ''); }, []);
 
@@ -54,6 +59,9 @@ export function LocalWorkspace({ onExit }: Props) {
       if (id !== request.current) return;
       const first = project.specs[0];
       const file = firstLocalDocumentPath(project) ?? filePath(first, initialFile(first));
+      setSelectedStep(1);
+      setSelectedDocument(null);
+      setSelectedFeatureSlug(first.slug);
       setView({ state: 'ready', name: snapshot.name, files: snapshot.files, project, file });
     } catch (error) {
       if (id !== request.current) return;
@@ -74,14 +82,37 @@ export function LocalWorkspace({ onExit }: Props) {
   };
 
   const ready = view.state === 'ready' ? view : null;
-  const selectedSpec = ready?.project.specs.find(feature => ready.file.startsWith(`specs/${feature.slug}/`)) ?? null;
-  const content = ready?.files.get(ready.file) ?? '';
-  const title = selectedSpec?.title ?? (ready?.file === '.specify/memory/constitution.md' ? 'Constitution' : 'Local repository');
+  const selectedSpec = ready?.project.specs.find(feature => feature.slug === selectedFeatureSlug) ?? null;
 
   const selectFile = (file: string) => {
-    if (view.state === 'ready') setView({ ...view, file });
+    if (view.state !== 'ready') return;
+    const feature = view.project.specs.find(item => file.startsWith(`specs/${item.slug}/`));
+    if (feature) setSelectedFeatureSlug(feature.slug);
+    if (file === '.specify/memory/constitution.md') {
+      setSelectedStep(0);
+      setSelectedDocument(null);
+    } else if (stageIndexForFile(file) >= 0) {
+      const stage = stageIndexForFile(file);
+      setSelectedStep(stage);
+      setSelectedDocument(null);
+    } else {
+      setSelectedDocument(file);
+    }
+    setView({ ...view, file });
   };
   const filePath = (feature: SpecFeature, file: string) => `specs/${feature.slug}/${file}`;
+  const selectSpec = (feature: SpecFeature) => {
+    setSelectedFeatureSlug(feature.slug);
+    setSelectedStep(1);
+    setSelectedDocument(null);
+    selectFile(filePath(feature, initialFile(feature)));
+  };
+  const activeFeature = ready && (selectedSpec ?? ready.project.specs[0]);
+  const activePhase = PHASES[selectedStep] ?? PHASES[1];
+  const headingPath = ready && activeFeature
+    ? selectedDocument ?? stageFile(activePhase.k, activeFeature.slug)
+    : '';
+  const headingTitle = selectedDocument ? selectedDocument.split('/').at(-1) : activePhase.n;
 
   return <div className="sk sk-live">
     <nav className="nav sk-nav">
@@ -110,7 +141,7 @@ export function LocalWorkspace({ onExit }: Props) {
         </div>
         <p className="text-muted sk-sm">Local mode is read-only. Gate approvals, PR tracking, and Copilot are available in GitHub mode.</p>
       </main>
-      : ready && <>
+      : ready && activeFeature && <>
         <div className="sk-body">
           <aside className="sk-side">
             <div className="sk-pad">
@@ -125,7 +156,7 @@ export function LocalWorkspace({ onExit }: Props) {
               <div className="sk-rowh"><Label>Specs · {ready.project.specs.length}</Label></div>
               <ul className="sk-list">{ready.project.specs.map(feature => <li key={feature.slug}>
                 <button className={`sk-feat${selectedSpec === feature ? ' on' : ''}`} aria-current={selectedSpec === feature ? 'page' : undefined}
-                  onClick={() => selectFile(filePath(feature, initialFile(feature)))}>
+                  onClick={() => selectSpec(feature)}>
                   <span className="sk-id">{feature.id}</span><b>{feature.title}</b>
                   <span className="sk-featst">{feature.slug}</span>
                 </button>
@@ -138,10 +169,14 @@ export function LocalWorkspace({ onExit }: Props) {
           </aside>
           <main className="sk-main">
             <div className="sk-fhead">
-              <div className="sk-file"><Icon n="file" s={14} />{ready.file}</div>
-              <h2>{title}</h2>
+              <div className="sk-file"><Icon n="file" s={14} />{headingPath}</div>
+              <h2>{headingTitle}</h2>
             </div>
-            <div className="sk-doc" role="tabpanel" aria-label={ready.file}><Markdown>{content}</Markdown></div>
+            <LocalFlow project={ready.project} feature={activeFeature}
+              selected={selectedStep} onSelect={step => { setSelectedStep(step); setSelectedDocument(null); }} />
+            {selectedDocument
+              ? <div className="sk-doc" role="tabpanel" aria-label={selectedDocument}><Markdown>{ready.files.get(selectedDocument) ?? ''}</Markdown></div>
+              : <LocalStageContent feature={activeFeature} files={ready.files} selected={selectedStep} />}
           </main>
           <aside className="sk-right">
             <div className="sk-pad"><Label>Local mode</Label>
@@ -153,6 +188,92 @@ export function LocalWorkspace({ onExit }: Props) {
         </div>
       </>}
   </div>;
+}
+
+const stageFile = (key: PhaseKey, slug: string) => {
+  if (key === 'constitution') return '.specify/memory/constitution.md';
+  const filename: Partial<Record<PhaseKey, string>> = {
+    specify: 'spec.md',
+    clarify: 'spec.md',
+    plan: 'plan.md',
+    tasks: 'tasks.md',
+    analyze: 'analysis.md',
+    implement: 'tasks.md'
+  };
+  return `specs/${slug}/${filename[key] ?? ''}`;
+};
+
+function stageIndexForFile(file: string) {
+  if (file === '.specify/memory/constitution.md') return 0;
+  const match = file.match(/^specs\/[^/]+\/(spec|plan|tasks|analysis)\.md$/);
+  if (!match) return -1;
+  return match[1] === 'spec' ? 1 : match[1] === 'plan' ? 3 : match[1] === 'tasks' ? 4 : 5;
+}
+
+export function LocalFlow({ project, feature, selected, onSelect }: {
+  project: Project;
+  feature: SpecFeature;
+  selected: number;
+  onSelect: (step: number) => void;
+}) {
+  const statuses = phaseStatus(project, feature);
+  return <div className="sk-rail" role="tablist" aria-label="Spec Kit steps">
+    {PHASES.map((phase, index) => {
+      const status = statuses[index];
+      const label = status === 'done'
+        ? phase.k === 'implement' ? 'Tasks complete' : 'Available locally'
+        : status === 'current' ? 'Next' : status === 'skipped' ? 'Not run' : 'Not started';
+      return <button key={phase.k} id={`local-flow-tab-${index}`} type="button" role="tab" aria-selected={index === selected}
+        aria-controls="local-flow-panel" tabIndex={index === selected ? 0 : -1}
+        className={`sk-cell ${LIVE_CLASS[status]}`} onClick={() => onSelect(index)}
+        onKeyDown={event => {
+          const next = event.key === 'ArrowRight' ? (index + 1) % PHASES.length
+            : event.key === 'ArrowLeft' ? (index + PHASES.length - 1) % PHASES.length
+              : event.key === 'Home' ? 0
+                : event.key === 'End' ? PHASES.length - 1 : -1;
+          if (next < 0) return;
+          event.preventDefault();
+          onSelect(next);
+          event.currentTarget.parentElement?.querySelectorAll<HTMLElement>('[role="tab"]')[next]?.focus();
+        }}>
+        <span className="sk-num">{String(index + 1).padStart(2, '0')}</span>
+        <b>{phase.n}</b>
+        <span className="sk-st">{label}</span>
+      </button>;
+    })}
+  </div>;
+}
+
+export function LocalStageContent({ feature, files, selected }: {
+  feature: SpecFeature;
+  files: ReadonlyMap<string, string>;
+  selected: number;
+}) {
+  const phase = PHASES[selected] ?? PHASES[1];
+  const sourcePath = stageFile(phase.k, feature.slug);
+  const source = files.get(sourcePath);
+  const clarifications = phase.k === 'clarify' ? feature.spec?.clarifications ?? [] : [];
+  const absentMessage = phase.k === 'clarify'
+    ? 'No clarification answers are recorded in this local spec.'
+    : `No local ${phase.n.toLowerCase()} content is available for this spec.`;
+
+  return <div className="sk-doc" id="local-flow-panel" role="tabpanel" aria-labelledby={`local-flow-tab-${selected}`}>
+    {phase.k === 'clarify'
+      ? clarifications.length
+        ? <div className="sk-qs">{clarifications.map((item, index) => <div className="sk-q" key={`${item.session}-${index}`}>
+          <div className="sk-q-h"><span className="sk-id">Q{index + 1}</span><h5>{item.q}</h5></div>
+          <div className="sk-opts sk-opts-1"><div className="sk-opt">{item.a}</div></div>
+          {item.session && <div className="sk-meta">Session {item.session}</div>}
+        </div>)}</div>
+        : <LocalStageEmpty title="Clarifications not recorded" message={absentMessage} />
+      : source
+        ? <Markdown>{source}</Markdown>
+        : <LocalStageEmpty title={`${phase.n} unavailable`} message={absentMessage} />}
+  </div>;
+}
+
+function LocalStageEmpty({ title, message }: { title: string; message: string }) {
+  return <div className="sk-empty"><Icon n="file" s={28} /><h4>{title}</h4><p>{message}</p></div>;
 }
 
 function initialFile(feature: SpecFeature) {
