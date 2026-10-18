@@ -187,7 +187,7 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
     <div className="sk-body">
       <aside className="sk-side">
         <div className="sk-pad"><Label>Next up</Label>
-          {next.length === 0 ? <p className="text-muted" style={{ fontSize: 13 }}>Every spec is done.</p> :
+          {next.length === 0 ? <p className="text-muted sk-sm">Every spec is done.</p> :
             <ul className="sk-list">{next.map(n => <li key={n.slug}><button className="sk-qitem" onClick={() => { setSlug(n.slug); setSel(n.step); }}><b>{n.label}</b><span>{n.slug}{n.branch ? ` · ${shortBranch(n.branch)}` : ''}</span><Icon n="arrow" s={14} /></button></li>)}</ul>}
         </div>
         <div className="sk-pad sk-rule"><div className="sk-rowh"><Label>Specs · {project.specs.length}</Label></div>

@@ -83,7 +83,7 @@ export function RepoPicker({ user, listing, listingError, speckit, unavailable, 
       {listing && <>
         <div className="sk-rowh"><Label>{q ? `${matches.length} matching` : `${all.length} repositories`}</Label></div>
         {matches.length === 0
-          ? <p className="text-muted" style={{ fontSize: 13 }}>No repository matches “{query}”.{manualRepo ? '' : ' Type its full owner/name above to open it.'}</p>
+          ? <p className="text-muted sk-sm">No repository matches “{query}”.{manualRepo ? '' : ' Type its full owner/name above to open it.'}</p>
           : <ul className="sk-list sk-repolist">{rows.map(r => {
             const off = unavailable[r.fullName] || (missing(r) ? 'No longer in your accessible repositories.' : null);
             return <li key={r.fullName} className={'sk-repo' + (off ? ' off' : '')}>
