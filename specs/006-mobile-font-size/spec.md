@@ -8,6 +8,12 @@
 
 **Input**: User description: "hãy chỉnh sửa font size phù hợp giao diện smartphone (tham khảo bên istqb)"
 
+## Clarifications
+
+### Session 2026-10-18
+
+- Q: Ở bề rộng điện thoại, demo có áp dụng cỡ chữ mới không? → A: Có, áp dụng cả demo. Bản thiết kế không có bản điện thoại nên không có gì để lệch. Quy tắc "giống từng pixel" của hiến pháp vẫn giữ từ 641px trở lên.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Đọc được nội dung chính trên điện thoại mà không phải phóng to (Priority: P1)
@@ -90,7 +96,7 @@ Tiêu đề trang (cỡ 42px, 32px, 25px ở bản máy tính) chiếm nhiều d
 - **FR-007**: Sau khi đổi cỡ chữ, không màn hình nào ở bề rộng 360–640px được xuất hiện thanh cuộn ngang của cả trang, và không chữ nào bị cắt hoặc đè lên nhau.
 - **FR-008**: Cỡ chữ điện thoại PHẢI lấy từ một bộ giá trị dùng chung thay vì rải số cỡ chữ trong từng nơi, để chỉnh một chỗ là đổi cho mọi màn hình.
 - **FR-009**: Thay đổi áp dụng như nhau cho cả ba chế độ (demo, server, static).
-- **FR-010**: Trong chế độ demo, [NEEDS CLARIFICATION: ở bề rộng điện thoại, demo có áp dụng cỡ chữ mới không? Hiến pháp yêu cầu demo giống bản thiết kế từng pixel, mà bản thiết kế `Speckit Workspace.html` vẽ cho màn hình máy tính].
+- **FR-010**: Chế độ demo PHẢI dùng cùng cỡ chữ điện thoại như hai chế độ còn lại ở bề rộng tới 640px. Từ 641px trở lên demo giữ nguyên từng pixel so với bản thiết kế `Speckit Workspace.html`, vốn chỉ vẽ cho màn hình máy tính.
 
 ### Key Entities *(include if feature involves data)*
 

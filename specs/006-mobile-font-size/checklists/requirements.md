@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,4 +31,4 @@
 
 ## Notes
 
-- 1 marker còn lại: FR-010 (demo ở bề rộng điện thoại). Cần người dùng trả lời trước `/speckit-clarify` hoặc `/speckit-plan`.
+- FR-010 đã được giải quyết (2026-10-18): áp dụng cỡ chữ mới cho cả demo ở bề rộng tới 640px.
