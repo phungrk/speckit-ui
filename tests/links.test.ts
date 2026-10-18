@@ -34,6 +34,17 @@ describe('linkKind (R1, R2)', () => {
   });
 });
 
+describe('linkKind in a repo other than the root', () => {
+  it('a bare #N means that repo\'s own issue, so only the owner/repo and URL forms count', () => {
+    expect(linkKind('Closes #12', 12, 'o/root', 'o/back')).toBe('none');
+    expect(linkKind('Part of #12', 12, 'o/root', 'o/back')).toBe('none');
+    expect(linkKind('Part of o/root#12', 12, 'o/root', 'o/back')).toBe('mentions');
+    expect(linkKind('Closes o/root#12', 12, 'o/root', 'o/back')).toBe('closes');
+    expect(linkKind('Closes https://github.com/o/root/issues/12', 12, 'o/root', 'o/back')).toBe('closes');
+    expect(linkKind('Closes #12', 12, 'o/root', 'o/root')).toBe('closes');
+  });
+});
+
 describe('linkStatus and linkLine (R2, data-model)', () => {
   it('rates a PR in the root repo', () => {
     expect(linkStatus('closes', 'o/root', 'o/root', 12)).toEqual({ ok: true, label: 'Closes #12' });
@@ -107,6 +118,16 @@ describe('loadTracking sets link (R2)', () => {
     const t = await loadTracking(src, project([feature('001-login')]));
     const links = Object.fromEntries(t.prs['001-login'].map(p => [`${p.repo}#${p.number}`, p.link]));
     expect(links).toEqual({ 'o/root#10': 'closes', 'o/root#11': 'mentions', 'o/root#12': 'none', 'o/root#13': 'none', 'o/back#3': 'mentions', 'o/back#4': 'closes' });
+    // The bare form in a submodule PR names that repo's own issue, so it does not count.
+  });
+  it('does not take #N in a submodule PR as the root issue', async () => {
+    fakeGitHub({ 'o/root': { issues: [{ number: 1, state: 'open', html_url: 'i1', body: newIssueBody('001-login', 'x') }] } }, (u) => {
+      if (u.pathname === '/repos/o/root/pulls') return new Response('[]');
+      if (u.pathname === '/repos/o/back/pulls') return new Response(JSON.stringify([gh(5, 'feat/001-login', 'Part of #1')]));
+      return undefined;
+    });
+    const t = await loadTracking(src, project([feature('001-login')]));
+    expect(t.prs['001-login'].map(p => p.link)).toEqual(['none']);
   });
 
   it('is null for every PR of a spec that has no tracking issue', async () => {

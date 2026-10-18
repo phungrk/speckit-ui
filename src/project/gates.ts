@@ -216,13 +216,15 @@ const issueRefs = (n: number, rootRepo: string) => ({
  * How a PR description points at the spec's tracking issue (research R1, R2): with a closing
  * keyword, with a plain reference, or not at all. Shared by the app and the Claude Code gate check.
  */
-export function linkKind(body: string | null | undefined, issueNumber: number, rootRepo: string): 'closes' | 'mentions' | 'none' {
+export function linkKind(body: string | null | undefined, issueNumber: number, rootRepo: string, prRepo = rootRepo): 'closes' | 'mentions' | 'none' {
   const text = body ?? '';
   const r = issueRefs(issueNumber, rootRepo);
-  const closing = new RegExp(`(?<![\\w/])(?:${CLOSING_KEYWORDS.join('|')}):?\\s+(?:${r.bare}|${r.full}|${r.url})`, 'i');
+  // In another repo a bare "#12" names that repo's own issue, so only the owner/repo and URL forms point at ours.
+  const bare = prRepo.toLowerCase() === rootRepo.toLowerCase() ? r.bare : null;
+  const closing = new RegExp(`(?<![\\w/])(?:${CLOSING_KEYWORDS.join('|')}):?\\s+(?:${[bare, r.full, r.url].filter(Boolean).join('|')})`, 'i');
   if (closing.test(text)) return 'closes';
   // A bare "#12" must not sit inside a word or a longer path; the owner/repo and URL forms carry their own prefix.
-  const mention = new RegExp(`(?<![\\w/])${r.bare}|(?<![\\w/.-])(?:${r.full}|${r.url})`, 'i');
+  const mention = new RegExp(`${bare ? `(?<![\\w/])${bare}|` : ''}(?<![\\w/.-])(?:${r.full}|${r.url})`, 'i');
   return mention.test(text) ? 'mentions' : 'none';
 }
 

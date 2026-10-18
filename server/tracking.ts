@@ -105,7 +105,7 @@ export async function loadTracking(src: Source, project: Project): Promise<Track
       // A spec on a feat/ branch is checked against that branch's own submodule pointers (specs/003 C1).
       const pointer = r.path ? (f.variants?.[0]?.pointers?.[r.path] ?? r.pointer) : r.pointer;
       const bumped = state === 'merged' && r.path && pointer && p.merge_commit_sha ? await isBumped(src, r.repo, p.merge_commit_sha, pointer) : null;
-      return { repo: r.repo, number: p.number, title: p.title, url: p.html_url, state, mergedAt: p.merged_at, headRef: p.head.ref, bumped, link: issueNumber === undefined ? null : linkKind(p.body, issueNumber, root(src)) };
+      return { repo: r.repo, number: p.number, title: p.title, url: p.html_url, state, mergedAt: p.merged_at, headRef: p.head.ref, bumped, link: issueNumber === undefined ? null : linkKind(p.body, issueNumber, root(src), r.repo) };
     })));
   }
 
