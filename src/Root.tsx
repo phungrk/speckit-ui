@@ -4,7 +4,7 @@ import { Connect } from './Connect';
 import { STATIC, browserBackend, clearSettings, loadSettings, normalizeRepo, saveSettings, serverBackend, signOut, type Backend, type Settings } from './backend';
 import type { CopilotMsg } from './copilot/Copilot';
 import { LiveWorkspace } from './project/LiveWorkspace';
-import { Overview } from './project/Overview';
+import { Overview } from './project/Overview.tsx';
 import { prefsFor, type LastViewed, type PrefsStorage } from './project/prefs';
 import { STALE, accessProblem, createRepoLoader } from './project/repoLoader';
 import { RepoPicker } from './project/RepoPicker';

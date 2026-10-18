@@ -1,5 +1,5 @@
 // Shape of a real Spec Kit project as read from GitHub by server/github.ts.
-import type { Story } from '../types';
+import type { Story } from '../types.ts';
 
 export interface Principle {
   /** Roman numeral as written in the heading, e.g. "IV". */
