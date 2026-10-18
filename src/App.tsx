@@ -150,7 +150,7 @@ export function App() {
     <div className="sk-body">
       <aside className="sk-side">
         <div className="sk-pad"><Label>My queue · {role}</Label>
-          {queue.length === 0 ? <p className="text-muted" style={{ fontSize: 13 }}>Nothing waiting on you.</p> :
+          {queue.length === 0 ? <p className="text-muted sk-sm">Nothing waiting on you.</p> :
             <ul className="sk-list">{queue.map((q, i) => <li key={i}><button className="sk-qitem" onClick={() => { setFid(q.fid); setSel(q.pi); }}><b>{q.t}</b><span>{q.s}</span><Icon n="arrow" s={14} /></button></li>)}</ul>}
         </div>
         <div className="sk-pad sk-rule"><div className="sk-rowh"><Label>Features</Label><button className="btn btn-ghost sk-small" onClick={() => setNsOpen(true)}>+ New spec</button></div>
@@ -211,7 +211,7 @@ export function App() {
               {mine && !approvals[role]
                 ? <><button className="btn btn-primary btn-block" disabled={blocking || implBlock} onClick={approve}>{phase.k === 'implement' ? 'Verify & ship' : `Approve as ${role}`}<Icon n="arrow" s={14} /></button>
                   <button className="btn btn-secondary btn-block" onClick={requestChanges}>Request changes</button></>
-                : <p className="text-muted" style={{ fontSize: 13 }}>{mine ? 'You have approved. Waiting on others.' : `${role} is not an approver at this gate.`}</p>}
+                : <p className="text-muted sk-sm">{mine ? 'You have approved. Waiting on others.' : `${role} is not an approver at this gate.`}</p>}
             </div>}
             {gateDone && <div className="sk-pass" style={{ marginTop: 12 }}><Icon n="check" s={14} />Gate passed</div>}
           </div>

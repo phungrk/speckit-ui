@@ -69,14 +69,14 @@ export function GatePanel({ project, f, pi, status, tracking, trackingError, onD
     <div className="sk-pad">
       <Label>Gate · {phase.n}</Label>
       <p className="sk-what">{phase.what}</p>
-      {!hasGate ? <p className="text-muted" style={{ fontSize: 13 }}>The constitution applies to every spec and has no per-spec gate.</p>
-        : status === 'skipped' ? <p className="text-muted" style={{ fontSize: 13 }}>{phase.n} was not run for this spec, so there is nothing to approve.</p>
+      {!hasGate ? <p className="text-muted sk-sm">The constitution applies to every spec and has no per-spec gate.</p>
+        : status === 'skipped' ? <p className="text-muted sk-sm">{phase.n} was not run for this spec, so there is nothing to approve.</p>
         : <>
           <ul className="sk-checks">{checks.map(c => <li key={c.label} className={c.ok ? 'ok' : c.required ? 'fail' : 'warn'}>
             <span className="sk-checkmark" aria-label={c.ok ? 'Pass' : c.required ? 'Fail' : 'Warning'}>{c.ok ? <Icon n="check" s={12} /> : c.required ? <Icon n="x" s={12} /> : '!'}</span>{c.label}
           </li>)}</ul>
           {trackingError ? <div className="sk-warn"><Icon n="alert" s={14} /><span>Approvals unavailable: {trackingError}</span></div>
-            : !tracking ? <p className="sk-ns-cursor" style={{ fontSize: 13 }}>Loading approvals…</p>
+            : !tracking ? <p className="sk-ns-cursor" style={{ fontSize: 'var(--fs-13)' }}>Loading approvals…</p>
             : approval?.approved
               ? <div className="sk-gateact">
                 <div className="sk-pass" style={{ marginBottom: already === gate ? 'var(--space-1)' : 'var(--space-3)' }}><Icon n="check" s={14} />Approved{approval.by ? ` by @${approval.by}` : ''}{approval.at ? ` · ${approval.at}` : ''}</div>
@@ -106,7 +106,7 @@ export function GatePanel({ project, f, pi, status, tracking, trackingError, onD
     </div>
     {tracking && <div className="sk-pad sk-rule"><Label>Pull requests · merge order</Label>
       {prs.length === 0
-        ? <p className="text-muted" style={{ fontSize: 13 }}>No PRs linked to this spec. Put <b>specs/{f.slug}</b> in the PR description, or the slug in its branch name.</p>
+        ? <p className="text-muted sk-sm">No PRs linked to this spec. Put <b>specs/{f.slug}</b> in the PR description, or the slug in its branch name.</p>
         : <ul className="sk-prs">{[...prs].sort((a, b) => order.indexOf(a.repo) - order.indexOf(b.repo) || a.number - b.number).map(p => <li key={p.repo + p.number} className={p.state}>
           <div className="sk-prs-h"><span className="sk-id">{p.repo.split('/')[1]}</span><span className={'tag ' + (p.state === 'merged' ? 'tag-neutral' : p.state === 'closed' ? 'tag-outline' : 'tag-accent')}>{PR_STATE[p.state]}</span></div>
           <a href={p.url} target="_blank" rel="noreferrer">#{p.number} {p.title}</a>

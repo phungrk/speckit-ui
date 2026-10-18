@@ -69,12 +69,12 @@ export function Overview({ user, backend, pins, onOpen, onAllRepos, onAuthLost, 
               <h3 id={`ov-${repo}`}><button className="sk-ov-repo" onClick={() => onOpen(repo)}>{repo}</button></h3>
               {b.state === 'ready' && <Label>{b.items.length ? `${b.items.length} to do` : 'Nothing to do'}</Label>}
             </div>
-            {b.state === 'loading' && <p className="sk-ns-cursor" style={{ fontSize: 13 }}>Loading…</p>}
+            {b.state === 'loading' && <p className="sk-ns-cursor" style={{ fontSize: 'var(--fs-13)' }}>Loading…</p>}
             {b.state === 'error' && <div className="sk-warn" role="status"><Icon n="alert" s={14} /><span>{b.message}</span></div>}
             {b.state === 'ready' && <>
               {b.note && <div className="sk-warn"><Icon n="alert" s={14} /><span>{b.note}</span></div>}
               {b.items.length === 0
-                ? <p className="text-muted" style={{ fontSize: 13 }}>Every spec is done.</p>
+                ? <p className="text-muted sk-sm">Every spec is done.</p>
                 : <ul className="sk-list">{b.items.map(it => <li key={it.slug}>
                   <button className="sk-qitem" onClick={() => onOpen(repo, it.slug, it.step)}><b>{it.label}</b><span>{it.slug}{it.branch ? ` · ${it.branch}` : ''} · {it.title}</span><Icon n="arrow" s={14} /></button>
                 </li>)}</ul>}
