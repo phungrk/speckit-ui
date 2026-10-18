@@ -67,11 +67,11 @@ document.documentElement.scrollWidth <= window.innerWidth
 2. So với ảnh gốc từ phần Chuẩn bị.
    - Kỳ vọng: giống hệt từng pixel.
 
-## Kịch bản 8: cỡ chữ lớn của hệ điều hành (edge case)
+## Kịch bản 8: phóng to trang (edge case)
 
-Đặt cỡ chữ trình duyệt lên "Very large" rồi mở workspace ở 390px.
+Mở workspace ở 390px, phóng to trang tới 200% (Playwright: `page.setViewportSize` 195×… hoặc `Ctrl +` trên trình duyệt thật).
 
-- Kỳ vọng: dùng được, không đè chữ. (Cỡ chữ ở đây là px nên không co giãn theo thiết lập này; kiểm tra rằng phóng to trang bằng tay vẫn dùng được.)
+- Kỳ vọng: vẫn dùng được, không chữ nào đè lên nhau. Cỡ chữ tính bằng px nên thiết lập cỡ chữ của trình duyệt không ảnh hưởng; chỉ phóng to trang mới có tác dụng.
 
 ## Bốn lệnh kiểm tra
 

@@ -48,3 +48,17 @@ Không phải bảng trong code: chỉ là cách đọc bảng trên theo vai tr
 | Tiêu đề | `--fs-20` … `--fs-42` | 20–30px |
 
 Ô nhập, ô chọn và vùng văn bản **luôn** 16px nhờ quy tắc riêng (research R5), không phụ thuộc vào biến nào.
+
+## Chữ nội dung và chữ phụ
+
+Bảng biến chỉ quy đổi theo cỡ cũ nên không biết vai trò của phần tử. Quy tắc dưới đây dùng khi đo ở T009 (FR-002, User Story 1):
+
+| Loại | Gồm | Cỡ trên điện thoại |
+|---|---|---|
+| Nội dung | Câu và đoạn văn; dòng người dùng đọc để hiểu hoặc chọn (danh sách file, task, check, thuộc tính); ô bảng; tài liệu spec; thân hộp thoại; giá trị trong ô nhập | 16px |
+| Phụ | Mô tả ngắn dưới tiêu đề thẻ, chú thích, thời gian, số đếm, đường dẫn; mã nội dòng | 14px |
+| Nhãn nhỏ | Nhãn ô nhập, tiêu đề cột, huy hiệu trạng thái | 12px |
+
+Các phần tử đã biết thuộc nhóm "nội dung" nhưng cỡ cũ là 13px: `.sk-props li` và `.sk-files`. T009 có thể tìm thêm.
+
+**Cách nâng một phần tử lên 16px mà không đổi máy tính:** thêm quy tắc riêng trong khối `@media (max-width: 760px)` (ví dụ `.sk-files { font-size: var(--fs-14); }`). Không đổi biến trong quy tắc gốc của phần tử, vì sẽ đổi cả cỡ chữ trên máy tính và phá SC-002.

@@ -70,7 +70,7 @@ Tiêu đề trang (cỡ 42px, 32px, 25px ở bản máy tính) chiếm nhiều d
 
 - Màn hình rộng đúng 760px và 761px: chỉ bề rộng tới 760px dùng cỡ chữ điện thoại, từ 761px dùng cỡ chữ hiện tại, không có bề rộng nào lai giữa hai bộ.
 - Chữ to hơn làm bảng, thẻ, thanh lệnh hoặc dòng trạng thái rộng quá khung: nội dung xuống dòng hoặc cuộn trong khung của nó, không tràn cả trang.
-- Người dùng đã đặt cỡ chữ lớn hơn trong hệ điều hành hoặc trình duyệt: giao diện vẫn dùng được, không bị đè chữ lên nhau.
+- Người dùng phóng to trang tới 200% trên điện thoại: giao diện vẫn dùng được, không bị đè chữ lên nhau.
 - Mã, đường dẫn dài và dòng lệnh (chữ đơn cách): vẫn đọc được ở cỡ không nhỏ hơn 14px và cuộn ngang trong khung riêng thay vì làm cả trang tràn.
 - Chữ trang trí hoặc chữ trong biểu tượng, huy hiệu và nhãn trạng thái rất nhỏ (10–11px): nâng lên 12px, không nhỏ hơn.
 
@@ -126,6 +126,6 @@ Tiêu đề trang (cỡ 42px, 32px, 25px ở bản máy tính) chiếm nhiều d
 - "Điện thoại" nghĩa là bề rộng tới 760px, cùng ngưỡng app đã gom về bố cục một cột. ISTQB dùng 640px; ta chọn 760px để cỡ chữ và bố cục đổi cùng lúc (xem Clarifications).
 - Phông chữ (Archivo) và màu không đổi. Thay đổi này chỉ chạm cỡ chữ, khoảng cách dòng và những bù trừ bố cục cần để chữ mới vừa khung.
 - Bảng quy đổi ở FR-001 lấy từ cách ứng dụng ISTQB (repo `phungrk/istqb`) chỉnh cỡ chữ cho điện thoại và có thể tinh chỉnh khi xem thực tế.
-- Không thêm nút người dùng tự chỉnh cỡ chữ. Cỡ chữ theo thiết lập của hệ điều hành và trình duyệt.
+- Không thêm nút người dùng tự chỉnh cỡ chữ. Cỡ chữ tính bằng px nên không đổi theo thiết lập cỡ chữ của trình duyệt hay hệ điều hành; người dùng vẫn phóng to được cả trang.
 - Bố cục (số cột, thứ tự khối) trên điện thoại đã được xử lý ở các thay đổi trước. Thay đổi này không thiết kế lại bố cục.
 - Chỉ đụng giao diện: không thay đổi khoá, quyền token, điểm đến mạng hay cách ghi dữ liệu. Theo CLAUDE.md, đây là thay đổi UI nên không cần chạy đủ Spec Kit, nhưng người dùng đã yêu cầu spec.

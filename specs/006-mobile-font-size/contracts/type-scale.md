@@ -9,6 +9,7 @@ Tính năng này không thêm endpoint, kiểu dữ liệu hay định dạng fi
 3. **Giá trị máy tính của `--fs-N` phải bằng `Npx`.** Muốn đổi cỡ chữ trên máy tính thì đổi biến mà phần tử đang dùng, không đổi giá trị của biến đã có (vì biến đó dùng ở nhiều nơi).
 4. **Không dùng `!important` cho cỡ chữ**, ngoại lệ duy nhất là quy tắc ô nhập bên dưới.
 5. **Ô nhập, ô chọn, vùng văn bản không cần tự đặt cỡ chữ cho điện thoại.** Quy tắc chung đảm bảo 16px.
+6. **Muốn một phần tử có cỡ khác trên điện thoại mà không đổi máy tính:** thêm quy tắc riêng trong khối `@media (max-width: 760px)`, dùng `var(--fs-N)`. Không đổi biến trong quy tắc gốc của phần tử.
 
 ## Khối trong `src/styles/modernist.css`
 
