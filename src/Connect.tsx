@@ -7,10 +7,11 @@ interface Props {
   error: string | null;
   busy: boolean;
   onConnect: (s: Settings) => void;
+  onLocal: () => void;
 }
 
 /** First screen of the static build: the viewer brings their own GitHub token (and optionally a Claude key). */
-export function Connect({ initial, error, busy, onConnect }: Props) {
+export function Connect({ initial, error, busy, onConnect, onLocal }: Props) {
   const [repo, setRepo] = useState(initial?.repo ?? '');
   const [ref, setRef] = useState(initial?.ref ?? '');
   const [githubToken, setGithubToken] = useState(initial?.githubToken ?? '');
@@ -51,6 +52,7 @@ export function Connect({ initial, error, busy, onConnect }: Props) {
       {error && <div className="sk-warn" role="alert"><Icon n="alert" s={16} /><span>{error}</span></div>}
       <div className="sk-actions">
         <button className="btn btn-primary" disabled={busy || !repoOk || !githubToken.trim()}>{busy ? 'Connecting…' : 'Connect'}<Icon n="arrow" s={14} /></button>
+        <button type="button" className="btn btn-secondary" onClick={onLocal}>Open local repository</button>
         <a className="btn btn-secondary" href="?demo">Open the demo</a>
       </div>
     </form>

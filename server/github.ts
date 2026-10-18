@@ -2,12 +2,13 @@
 // so nothing here uses Node APIs; the HTTP handlers live in routes.ts.
 import type { AccessibleRepo, BranchInfo, DetectResult, DetectTarget, Project, RepoListing, SpecFeature, SpecVariant } from '../src/project/types.ts';
 import { CLAUDE_SETTINGS, GATE_HOOK_FILE, GATE_HOOK_PATH } from '../src/project/gates.ts';
-import { commandPrefix, parseAnalysis, parseChecklist, parseConstitution, parseGitmodules, parsePlan, parseSpec, parseTasks, parseUiConfig } from './parse.ts';
+import { commandPrefix, parseConstitution, parseGitmodules, parseUiConfig } from './parse.ts';
+import { buildFeature, SPEC_DIR, wantedInSpec } from './project.ts';
+export { buildFeature } from './project.ts';
 
 const API = 'https://api.github.com';
 const RECHECK_MS = 30_000; // how long a loaded commit is served before checking for a newer one
 const CONCURRENCY = 8;
-const DOCS = ['research.md', 'data-model.md', 'quickstart.md'];
 
 export interface Source {
   owner: string;
@@ -72,35 +73,6 @@ export async function pool<T, R>(items: T[], n: number, fn: (x: T) => Promise<R>
 }
 
 interface TreeEntry { path: string; type: string; sha?: string }
-const SPEC_DIR = /^\d{3,}-[^/]+$/;
-const wantedInSpec = (f: string) => ['spec.md', 'plan.md', 'tasks.md', 'analysis.md', ...DOCS].includes(f) || /^checklists\/[^/]+\.md$/.test(f);
-
-/** A spec folder parsed from its files; `read(f)` gives the text of a file in the folder. */
-export function buildFeature(dir: string, files: string[], read: (f: string) => string | null, sha: string): SpecFeature {
-  const spec = read('spec.md');
-  const plan = read('plan.md');
-  const tasks = read('tasks.md');
-  const analysis = read('analysis.md');
-  const parsedSpec = spec ? parseSpec(spec) : null;
-  const sorted = [...files].sort();
-  return {
-    id: dir.match(/^\d+/)![0],
-    slug: dir,
-    title: parsedSpec?.title || dir.replace(/^\d+-/, '').replace(/-/g, ' '),
-    files: sorted,
-    spec: parsedSpec,
-    plan: plan ? parsePlan(plan) : null,
-    tasks: tasks ? parseTasks(tasks) : null,
-    analysis: analysis ? parseAnalysis(analysis) : null,
-    checklists: sorted.filter(f => /^checklists\/[^/]+\.md$/.test(f) && read(f) !== null).map(f => parseChecklist(f.slice('checklists/'.length), read(f)!)),
-    docs: Object.fromEntries(DOCS.flatMap(d => (read(d) !== null ? [[d, read(d)!]] : []))),
-    branch: null,
-    sha,
-    unmerged: false,
-    variants: []
-  };
-}
-
 /** What the default branch's load knows about its spec folders, for comparing branches against it. */
 interface MainTrees { specsTreeSha: string | null; dirShas: Record<string, string>; pointers: Record<string, string> }
 const mainTrees = new WeakMap<Project, MainTrees>();

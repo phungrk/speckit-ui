@@ -4,12 +4,15 @@ Speckit Workspace: a web UI where a cross-functional team (Director, Designer, E
 
 Built from the Claude Design handoff `Speckit Workspace.html` (Modernist design system). It matches the prototype pixel for pixel.
 
-It runs in two modes, with or without a server (see [GitHub Pages](#github-pages-no-server)):
+It runs in three modes, with or without a server (see [Local mode](#local-mode-read-only) and
+[GitHub Pages](#github-pages-no-server)):
 
 - **GitHub mode**: the app reads real Spec Kit projects (constitution, `specs/NNN-*/`) from GitHub, in [any repository your own access allows](#several-repositories). It also tracks gate approvals in GitHub issues and lists each spec's PRs across the repo and its submodules.
-- **Demo mode**: with no GitHub configuration (or with `?demo` in the URL), it shows the sample "Wallet App" workspace from the design, including approvals and the New spec flow.
+- **Local mode**: choose a repository folder and inspect its real Spec Kit files in this browser tab. It is read-only and needs no credentials.
+- **Demo mode**: choose **Open the demo** from the no-configuration screen, or use `?demo` in the URL, to show the sample "Wallet App" workspace from the design, including approvals and the New spec flow.
 
-Whatever the mode, the app always uses the GitHub access of the person using it: the token they enter (Pages), their GitHub sign-in (a shared server), or their own token in `.env.local` (running locally).
+GitHub mode always uses the GitHub access of the person using it: the token they enter (Pages),
+their GitHub sign-in (a shared server), or their own token in `.env.local` (running locally).
 
 ## Run it
 
@@ -29,11 +32,15 @@ npm start                 # serves dist/ and the API on PORT (default 8787)
 
 Other scripts: `npm test` (Vitest) and `npm run typecheck`. Requires Node 22.18 or later, because the server runs TypeScript directly.
 
+With no GitHub configuration, the app offers local mode and the demo. Choose **Open local
+repository** to view a folder on this computer, or **Open the demo** to use the sample workspace.
+The explicit `?demo` URL continues to open the demo directly.
+
 ## GitHub Pages (no server)
 
 The app can also be built as static files and published to GitHub Pages. There's no speckit-ui server: the page calls GitHub, and optionally Claude, straight from the browser with keys the viewer enters.
 
-- **Connect screen:** the first visit asks for a GitHub token and an optional Anthropic API key. Under **Advanced** you can name a repository (and branch) to open first; otherwise the app lists every repository the token can read.
+- **Connect screen:** the first visit asks for a GitHub token and an optional Anthropic API key. You can also choose **Open local repository** without entering credentials. Under **Advanced** you can name a repository (and branch) to open first; otherwise the app lists every repository the token can read.
   - Keys are kept in `sessionStorage` (forgotten when the tab closes) unless **Remember on this device** is ticked, which uses `localStorage`.
   - **Disconnect** removes them. **Settings** changes them.
 - **Permissions:** every viewer uses their own token, so they only see repositories GitHub already lets them read. Gate approvals are recorded under their own GitHub login.
@@ -113,6 +120,20 @@ How it reads the project:
 - It parses them on the server (`server/parse.ts`) and serves the result at `GET /api/project`.
 - The result is cached per user and repository (the last 8). After 30 seconds the next request checks the branch head and downloads again only if the commit changed. **Refresh** forces that check.
 - Command names follow the project's integration: `/speckit-plan` when it invokes Claude skills with `-`, otherwise `/speckit.plan`.
+
+## Local mode (read-only)
+
+Choose **Open local repository** from the no-configuration start screen, GitHub connect/sign-in
+screen, or signed-in workspace. Select the repository folder in the browser's directory dialog.
+The viewer reads supported Spec Kit files under `specs/NNN-name/` and the optional project
+constitution/configuration files, then shows the actual local Markdown. Choose another folder to
+refresh, or exit local mode to return to the previous workspace choice.
+
+Local files stay in the browser tab: they are not uploaded, written, or saved across reloads.
+GitHub approvals, PR tracking, and Copilot are unavailable in local mode; connect through GitHub
+mode to use them. Directory selection is supported in current desktop browsers. If the browser
+does not support it, the app explains the limitation and leaves the demo and GitHub options
+available.
 
 How each step's status is derived from the files:
 
