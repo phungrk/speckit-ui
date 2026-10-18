@@ -221,7 +221,7 @@ function flags(args: Tok[], withValue: Set<string>) {
 export function readPrRequest(input: Record<string, unknown>, deps: Pick<Deps, 'root' | 'git'>): PrRequest | null {
   const ti = (input.tool_input ?? {}) as Record<string, unknown>;
   const base = typeof input.cwd === 'string' && input.cwd ? input.cwd : deps.root;
-  const headOf = (h: unknown, dir: string) => (typeof h === 'string' && h ? h.replace(/^[^:]+:/, '') : deps.git(['rev-parse', '--abbrev-ref', 'HEAD'], dir));
+  const headOf = (h: unknown, dir: string) => (typeof h === 'string' && h ? h.replace(/^[^:]+:/, '') : deps.git(['rev-parse', '--abbrev-ref', 'HEAD'], dir) ?? deps.git(['symbolic-ref', '--short', 'HEAD'], dir));
   if (typeof input.tool_name === 'string' && /^mcp__.*__create_pull_request$/.test(input.tool_name)) {
     const repo = typeof ti.owner === 'string' && typeof ti.repo === 'string' ? `${ti.owner}/${ti.repo}` : null;
     return { repo, head: headOf(ti.head, base), body: typeof ti.body === 'string' ? ti.body : '', dir: base };

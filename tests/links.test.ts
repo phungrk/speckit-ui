@@ -45,6 +45,27 @@ describe('linkKind in a repo other than the root', () => {
   });
 });
 
+describe('a PR that was closed or merged (FR-004, FR-005)', () => {
+  beforeEach(() => clearTrackingCache());
+  afterEach(() => vi.unstubAllGlobals());
+  it('keeps its link whatever its state: the app records the link, GitHub decides what closes', async () => {
+    fakeGitHub({ 'o/root': { issues: [{ number: 1, state: 'open', html_url: 'i1', body: newIssueBody('001-login', 'x') }] } }, (u) => {
+      if (u.pathname === '/repos/o/root/pulls') return new Response(JSON.stringify([
+        gh(10, 'feat/001-login', 'Closes #1', 'closed', null),                      // closed without merging
+        gh(11, 'feat/001-login', 'Closes #1', 'closed', '2026-10-17T00:00:00Z')     // merged
+      ]));
+      if (u.pathname === '/repos/o/back/pulls') return new Response(JSON.stringify([gh(3, 'feat/001-login', 'Part of o/root#1', 'closed', '2026-10-17T00:00:00Z')]));
+      return undefined;
+    });
+    const t = await loadTracking(src, project([feature('001-login')]));
+    expect(t.prs['001-login'].map(p => [p.repo, p.number, p.state, p.link])).toEqual([
+      ['o/root', 10, 'closed', 'closes'], ['o/root', 11, 'merged', 'closes'], ['o/back', 3, 'merged', 'mentions']
+    ]);
+    // Nothing was written: speckit-ui never closes or edits an issue because of a PR.
+    expect(vi.mocked(fetch).mock.calls.every(([, init]) => (init?.method ?? 'GET') === 'GET')).toBe(true);
+  });
+});
+
 describe('linkStatus and linkLine (R2, data-model)', () => {
   it('rates a PR in the root repo', () => {
     expect(linkStatus('closes', 'o/root', 'o/root', 12)).toEqual({ ok: true, label: 'Closes #12' });

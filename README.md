@@ -175,7 +175,7 @@ Each step from Specify to Implement has a gate. The **Gate & PRs** tab shows the
 | Plan | plan.md exists; Constitution Check fully ticked; no NEEDS CLARIFICATION in Technical Context | no Constitution Check list |
 | Tasks | tasks.md exists; every user story has tasks | tasks that name no file path |
 | Analyze | analysis.md saved; no CRITICAL findings | HIGH findings |
-| Implement | all tasks checked; linked PRs merged; merged in repo order; submodule pointers include every merge | no linked PRs |
+| Implement | all tasks checked; linked PRs merged; merged in repo order; submodule pointers include every merge | no linked PRs; a PR that isn't linked to the tracking issue; no PR in the root repo that closes it |
 
 Approvals are stored in **one GitHub issue per spec** in the root repo of the open repository. The issue is labelled `speckit` and titled `Spec NNN: …`:
 
@@ -204,7 +204,7 @@ Install the gate check in a project repo (about 5 minutes):
 ```bash
 mkdir -p .claude/hooks
 curl -fsSL https://phungrk.github.io/speckit-ui/speckit-gate.mjs -o .claude/hooks/speckit-gate.mjs
-node .claude/hooks/speckit-gate.mjs install   # adds two hooks to .claude/settings.json, keeps the rest
+node .claude/hooks/speckit-gate.mjs install   # adds three hooks to .claude/settings.json, keeps the rest
 git add .claude && git commit -m "chore: speckit approval gate check"
 ```
 
@@ -230,6 +230,25 @@ The order is the `.gitmodules` order unless the root repo has `.specify/speckit-
 ```
 
 Entries are submodule paths or `owner/repo` names.
+
+### Linking PRs to the tracking issue
+
+A PR for a spec should name the spec's tracking issue in its description (`specs/005-link-pr-issue`). GitHub then lists the PR on the issue and the issue on the PR, and closes the issue when the right PR is merged. speckit-ui shows the line to paste in the **Gate & PRs** tab, with a Copy button, and marks each PR *Closes #N*, *Linked to #N* or *Not linked to #N*.
+
+| PR is in | Put in the description | GitHub does |
+|---|---|---|
+| the root repo, the last PR of the spec | `Closes #N` | links both pages, and **closes the issue** when the PR is merged into the default branch |
+| the root repo, an earlier PR | `Part of #N` | links both pages; the issue stays open |
+| a submodule repo | `Part of <owner>/<root>#N` | links both pages; the issue stays open (the root repo's pointer-bump PR is the last PR) |
+
+- A bare `#N` in a submodule repo means *that* repo's issue `N`, so always use the `owner/repo#N` form there.
+- Closing is GitHub's own behaviour: only a PR **merged into the default branch** closes the issue; a PR closed without merging, or merged into another branch, doesn't. speckit-ui never closes or edits anything for this.
+- Merging doesn't approve Implement. The gate stays *To approve* with the issue closed; approving it later keeps the issue closed, and **Reopen** or **Request changes** reopens it.
+- speckit-ui can't tell which PR is the last one, so the Implement gate only warns when no PR in the root repo closes the issue.
+- A spec without a tracking issue (no gate approved yet) has nothing to link to: the PR is still allowed, with a reminder. Approve Specify to create the issue.
+- **In Claude Code** the gate check also stops `gh pr create`, `gh api repos/<owner>/<repo>/pulls` and the GitHub MCP `create_pull_request` tool when the PR is for a spec and its description has no such line. The message names the line to add. If it can't read the description from the command (a variable, a file it can't open), put the text in a file and pass `--body-file` (`gh pr create`) or `-F body=@file` (`gh api`). Turn only this check off with `{ "prLinks": "off" }` in `.specify/speckit-ui.json`; `approvalGates` doesn't affect it.
+- **Update an installed gate check** (from `specs/004`): download `speckit-gate.mjs` again and run `node .claude/hooks/speckit-gate.mjs install`. It adds the PR hook and keeps the rest. Until then the app says *The gate check here doesn't check PR links yet*.
+- **Sessions that don't load hooks** (Claude Code cloud sessions with several repositories) can't be stopped by the gate check. Copy this rule into the project's `CLAUDE.md` so Claude still adds the line: *When creating a PR for `specs/NNN-…`, put `Closes #<tracking issue>` (or `Part of #<tracking issue>` if more PRs follow) in the PR description. The tracking issue is the one labelled `speckit` and titled `Spec NNN: …`. In a submodule repo use `Part of <owner>/<root>#<issue>`.* This is guidance, not a block.
 
 ## Demo mode
 

@@ -250,6 +250,10 @@ describe('creating a PR (specs/005 R4, FR-008)', () => {
     expect((await run(bash('gh pr create --title x --body "Adds login\n\nspecs/001-a"'), r('main'))).code).toBe(2);
     expect(await run(bash('gh pr create --title x --body "Adds login"'), r('main'))).toEqual({ code: 0 });
   });
+  it('falls back to symbolic-ref when rev-parse has no HEAD yet (a repo without commits)', async () => {
+    const noCommits: Deps = { ...deps(prProject(), tracked()), git: args => (args[0] === 'remote' ? 'git@github.com:acme/alpha.git' : args[0] === 'symbolic-ref' ? 'feat/001-a' : null) };
+    expect((await run(bash('gh pr create --title x --body "Adds login"'), noCommits)).code).toBe(2);
+  });
   it('treats --fill and a missing body as an empty description', async () => {
     const r = deps(prProject(), tracked());
     expect((await run(bash(`${CREATE} --fill`), r)).code).toBe(2);

@@ -43,3 +43,5 @@ Spec Kit 0.15.1 with the Claude integration (`/speckit-*` skills in `.claude/ski
 
 Specs go in `specs/NNN-name/`. Save `/speckit-analyze` output as `specs/NNN-…/analysis.md`. Create
 branches yourself (`feat/…`, `fix/…`, `chore/…`) and mention `specs/NNN-…` in the PR description.
+
+Khi tạo PR cho `specs/NNN-…`, thêm `Closes #<issue theo dõi>` vào mô tả PR (hoặc `Part of #<issue theo dõi>` nếu còn PR sau). Issue theo dõi là issue có nhãn `speckit` và tiêu đề `Spec NNN: …`. Với PR ở repo submodule, dùng `Part of <owner>/<root>#<issue>`. Bước kiểm tra trong Claude Code chặn PR thiếu dòng này; session nhiều repo không nạp hook nên quy tắc này là chỗ dựa duy nhất ở đó.

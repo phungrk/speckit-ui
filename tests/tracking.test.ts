@@ -192,6 +192,20 @@ describe('decideGate', () => {
     expect(reopened.gates.implement).toEqual({ approved: false });
     expect(String(calls.filter(c => c.path.endsWith('/comments')).at(-1)!.body!.body)).toContain('> regression');
   });
+  it('an issue closed by a merged PR is not an approved Implement gate (specs/005 FR-006)', async () => {
+    // GitHub closed the issue when the PR merged; nobody has approved Implement.
+    const calls = fakeGitHub({ issues: [{ number: 4, state: 'closed', html_url: 'i4', body: newIssueBody('007-cards', 'x', { specify: { approved: true, by: 'mai' } }) }], rootOpen: false });
+    const t = await loadTracking(src, project());
+    expect(t.issues['007-cards']).toMatchObject({ number: 4, state: 'closed' });
+    expect(t.issues['007-cards'].gates.implement?.approved).not.toBe(true);
+    // Approving Implement later ticks the gate and leaves the issue closed.
+    const { issue: shipped } = await decideGate(src, project(feature(), 'ptr2'), feature(), 'implement', 'approve', '');
+    expect(shipped).toMatchObject({ state: 'closed', gates: { specify: { approved: true }, implement: { approved: true } } });
+    // Reopening a gate opens the issue again.
+    const { issue: reopened } = await decideGate(src, project(feature(), 'ptr2'), feature(), 'implement', 'reopen', 'one more fix');
+    expect(reopened.state).toBe('open');
+    expect(calls.filter(c => c.method === 'PATCH').at(-1)!.body).toMatchObject({ state: 'open' });
+  });
   it('needs an existing issue to request changes', async () => {
     fakeGitHub();
     await expect(decideGate(src, project(), feature(), 'plan', 'changes', 'no')).rejects.toThrow(/no tracking issue/i);

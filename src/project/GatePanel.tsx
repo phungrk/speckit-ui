@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { Icon, Label } from '../ui';
-import { blockedReason, canApprove, gateChecks } from './gates';
+import { blockedReason, canApprove, gateChecks, linkLine, linkStatus } from './gates';
 import { PHASES, type LiveStatus } from './phases';
 import type { GateAction } from './trackingApi';
 import { GATE_KEYS, type GateKey, type Project, type SpecFeature, type SpecPR, type Tracking } from './types';
@@ -19,6 +19,14 @@ interface Props {
   onDecide: (gate: GateKey, action: GateAction, note: string) => Promise<DecideResult>;
   /** The earlier gate that must be approved first (specs/004), if any. */
   blockedBy?: GateKey | null;
+}
+
+/** A line to paste into a PR description, with a one-click copy (specs/005 FR-003, SC-004). */
+function CopyLine({ line, note }: { line: string; note?: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => navigator.clipboard?.writeText(line).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); }, () => undefined);
+  return <div className="sk-linkline"><code>{line}</code>{note && <span className="sk-meta">{note}</span>}
+    <button className="btn btn-ghost sk-small" onClick={copy} aria-label={`Copy ${line}`}>{copied ? 'Copied' : 'Copy'}</button></div>;
 }
 
 export interface DecideResult {
@@ -105,11 +113,29 @@ export function GatePanel({ project, f, pi, status, tracking, trackingError, onD
         </>}
     </div>
     {tracking && <div className="sk-pad sk-rule"><Label>Pull requests · merge order</Label>
+      {issue
+        ? <div className="sk-linkhelp">
+          <p className="sk-meta">Add to the PR description:</p>
+          <CopyLine line={linkLine(issue.number, project.repo, project.repo)} note="last PR" />
+          <CopyLine line={linkLine(issue.number, project.repo, project.repo, false)} note="earlier PRs" />
+          {project.submodules.some(m => m.repo) && <>
+            <p className="sk-meta">In submodule PRs:</p>
+            <CopyLine line={linkLine(issue.number, project.repo, project.submodules.find(m => m.repo)!.repo!)} />
+          </>}
+        </div>
+        : <p className="text-muted sk-sm">No tracking issue yet. Approve Specify to create it, then link PRs to it.</p>}
       {prs.length === 0
         ? <p className="text-muted sk-sm">No PRs linked to this spec. Put <b>specs/{f.slug}</b> in the PR description, or the slug in its branch name.</p>
         : <ul className="sk-prs">{[...prs].sort((a, b) => order.indexOf(a.repo) - order.indexOf(b.repo) || a.number - b.number).map(p => <li key={p.repo + p.number} className={p.state}>
           <div className="sk-prs-h"><span className="sk-id">{p.repo.split('/')[1]}</span><span className={'tag ' + (p.state === 'merged' ? 'tag-neutral' : p.state === 'closed' ? 'tag-outline' : 'tag-accent')}>{PR_STATE[p.state]}</span></div>
           <a href={p.url} target="_blank" rel="noreferrer">#{p.number} {p.title}</a>
+          {(() => {
+            const st = linkStatus(p.link, p.repo, project.repo, issue?.number ?? null);
+            if (!st || !issue) return null;
+            return st.ok
+              ? <span className="tag tag-outline sk-linktag">{st.label}</span>
+              : <div className="sk-warn"><Icon n="alert" s={14} /><span>{st.label}</span><CopyLine line={linkLine(issue.number, project.repo, p.repo)} /></div>;
+          })()}
           {p.bumped === false && <div className="sk-warn"><Icon n="alert" s={14} />Submodule pointer in {project.repo.split('/')[1]} doesn't include this merge yet.</div>}
         </li>)}</ul>}
       {order.length > 1 && <p className="sk-meta">Order: {order.map(r => r.split('/')[1]).join(' → ')}</p>}
