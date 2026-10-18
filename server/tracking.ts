@@ -1,6 +1,6 @@
 // Gate approvals (one GitHub issue per spec) and PR tracking across the root repo and its submodules.
 // Shared by the server and the static build; the HTTP handlers live in routes.ts.
-import { GATE_NAME, blockedReason, blockingGates, canApprove, gateChecks, issueTitle, newIssueBody, parseIssueBody, withGates } from '../src/project/gates.ts';
+import { GATE_NAME, blockedReason, blockingGates, canApprove, gateChecks, issueTitle, linkKind, newIssueBody, parseIssueBody, withGates } from '../src/project/gates.ts';
 import { phaseStatus } from '../src/project/status.ts';
 import { GATE_KEYS, type GateIssue, type GateKey, type Project, type SpecFeature, type SpecPR, type TrackedRepo, type Tracking } from '../src/project/types.ts';
 import { gh, json, pool, remember, type Source } from './github.ts';
@@ -96,13 +96,16 @@ export async function loadTracking(src: Source, project: Project): Promise<Track
   ]);
 
   const prs: Record<string, SpecPR[]> = {};
+  const issueNumbers = new Map(issues.flatMap(i => { const e = toGateIssue(i); return e ? [[e[0], e[1].number] as const] : []; }));
   for (const f of project.specs) {
+    // The issue a PR description is compared with; no issue yet means no link to judge (specs/005 R2).
+    const issueNumber = issueNumbers.get(f.slug) ?? knownIssues.get(`${root(src)}|${f.slug}`);
     prs[f.slug] = await Promise.all(repos.flatMap((r, i) => pulls[i].filter(p => prMatches(p, f.slug)).map(async p => {
       const state: SpecPR['state'] = p.merged_at ? 'merged' : p.state === 'closed' ? 'closed' : p.draft ? 'draft' : 'open';
       // A spec on a feat/ branch is checked against that branch's own submodule pointers (specs/003 C1).
       const pointer = r.path ? (f.variants?.[0]?.pointers?.[r.path] ?? r.pointer) : r.pointer;
       const bumped = state === 'merged' && r.path && pointer && p.merge_commit_sha ? await isBumped(src, r.repo, p.merge_commit_sha, pointer) : null;
-      return { repo: r.repo, number: p.number, title: p.title, url: p.html_url, state, mergedAt: p.merged_at, headRef: p.head.ref, bumped };
+      return { repo: r.repo, number: p.number, title: p.title, url: p.html_url, state, mergedAt: p.merged_at, headRef: p.head.ref, bumped, link: issueNumber === undefined ? null : linkKind(p.body, issueNumber, root(src)) };
     })));
   }
 

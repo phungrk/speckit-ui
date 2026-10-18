@@ -121,8 +121,8 @@ export interface Project {
   pinned: boolean;
   /** Steps after an unapproved gate are locked unless the repo sets "approvalGates": "off" (specs/004). */
   approvalGates: 'block' | 'off';
-  /** Whether the repo has the Claude Code gate check (.claude/hooks/speckit-gate.mjs) installed (specs/004 R7). */
-  gateCheck: 'installed' | 'missing';
+  /** Whether the repo has the Claude Code gate check (.claude/hooks/speckit-gate.mjs) installed; `outdated` when it lacks the PR-link hook (specs/004 R7, specs/005 R5). */
+  gateCheck: 'installed' | 'outdated' | 'missing';
 }
 
 /** One version of a spec folder, shared by every branch where the folder is identical. */
@@ -192,6 +192,8 @@ export interface SpecPR {
   headRef: string;
   /** For merged PRs in a submodule repo: whether the root repo's pointer includes the merge. */
   bumped: boolean | null;
+  /** How the PR description points at the spec's tracking issue; null when the spec has no issue (specs/005 R2). */
+  link: 'closes' | 'mentions' | 'none' | null;
 }
 
 export interface Tracking {

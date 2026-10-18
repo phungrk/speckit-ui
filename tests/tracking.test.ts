@@ -26,7 +26,7 @@ const feature = (over: Partial<SpecFeature> = {}): SpecFeature => ({
 });
 
 const pr = (repo: string, number: number, state: SpecPR['state'], mergedAt: string | null = null, bumped: boolean | null = null): SpecPR =>
-  ({ repo, number, title: 't', url: 'u', state, mergedAt, headRef: 'feat/007-cards', bumped });
+  ({ repo, number, title: 't', url: 'u', state, mergedAt, headRef: 'feat/007-cards', bumped, link: null });
 
 describe('gate checks', () => {
   it('passes a complete spec at every gate', () => {
@@ -94,8 +94,8 @@ describe('repo config', () => {
   it('parses .gitmodules and merge order', () => {
     expect(parseGitmodules('[submodule "web"]\n\tpath = web\n\turl = https://github.com/a/front.git\n[submodule "edge"]\n\tpath = edge\n\turl = git@github.com:a/back.git\n[submodule "x"]\n\tpath = x\n\turl = https://gitlab.com/a/x'))
       .toEqual([{ path: 'web', repo: 'a/front' }, { path: 'edge', repo: 'a/back' }, { path: 'x', repo: null }]);
-    expect(parseUiConfig('{"mergeOrder":["edge","a/front",3]}')).toEqual({ mergeOrder: ['edge', 'a/front'], branchPrefixes: ['feat/'], approvalGates: 'block' });
-    expect(parseUiConfig('nope')).toEqual({ mergeOrder: [], branchPrefixes: ['feat/'], approvalGates: 'block' });
+    expect(parseUiConfig('{"mergeOrder":["edge","a/front",3]}')).toEqual({ mergeOrder: ['edge', 'a/front'], branchPrefixes: ['feat/'], approvalGates: 'block', prLinks: 'block' });
+    expect(parseUiConfig('nope')).toEqual({ mergeOrder: [], branchPrefixes: ['feat/'], approvalGates: 'block', prLinks: 'block' });
   });
   it('links PRs by branch or description', () => {
     expect(prMatches({ head: { ref: 'feat/007-cards' }, body: '', title: '' }, '007-cards')).toBe(true);

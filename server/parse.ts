@@ -238,11 +238,13 @@ export interface UiConfig {
   branchPrefixes: string[];
   /** "off" turns the approval gate lock off for this repo (specs/004 R6). */
   approvalGates: 'block' | 'off';
+  /** "off" stops the Claude Code gate check from blocking PRs that don't link the tracking issue (specs/005 R6). */
+  prLinks: 'block' | 'off';
 }
 
 /**
  * Optional `.specify/speckit-ui.json`, e.g.
- * `{ "mergeOrder": ["edge", "wedding-front"], "branchPrefixes": ["feat/"], "approvalGates": "off" }`.
+ * `{ "mergeOrder": ["edge", "wedding-front"], "branchPrefixes": ["feat/"], "approvalGates": "off", "prLinks": "off" }`.
  * Every field has a default.
  */
 export function parseUiConfig(raw: string | null): UiConfig {
@@ -251,9 +253,10 @@ export function parseUiConfig(raw: string | null): UiConfig {
     return {
       mergeOrder: Array.isArray(cfg.mergeOrder) ? cfg.mergeOrder.filter((x: unknown) => typeof x === 'string') : [],
       branchPrefixes: strings(cfg.branchPrefixes) ?? DEFAULT_BRANCH_PREFIXES,
-      approvalGates: cfg.approvalGates === 'off' ? 'off' : 'block'
+      approvalGates: cfg.approvalGates === 'off' ? 'off' : 'block',
+      prLinks: cfg.prLinks === 'off' ? 'off' : 'block'
     };
   } catch {
-    return { mergeOrder: [], branchPrefixes: DEFAULT_BRANCH_PREFIXES, approvalGates: 'block' };
+    return { mergeOrder: [], branchPrefixes: DEFAULT_BRANCH_PREFIXES, approvalGates: 'block', prLinks: 'block' };
   }
 }
