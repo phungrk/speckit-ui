@@ -9,7 +9,7 @@ const returnQuery = () => {
 };
 
 /** Server sign-in mode: nothing about any repo shows until the user signs in with GitHub (US5-AS1). */
-export function SignIn({ error }: { error?: string | null }) {
+export function SignIn({ error, onLocal }: { error?: string | null; onLocal: () => void }) {
   return <div className="sk-connect">
     <div className="nav-brand">Speckit</div>
     <h2>Sign in to Speckit Workspace</h2>
@@ -17,6 +17,7 @@ export function SignIn({ error }: { error?: string | null }) {
     {error && <div className="sk-warn" role="alert"><Icon n="alert" s={16} /><span>{error}</span></div>}
     <div className="sk-actions">
       <a className="btn btn-primary" href={`/auth/login?return=${encodeURIComponent(returnQuery())}`}>Sign in with GitHub<Icon n="arrow" s={14} /></a>
+      <button className="btn btn-secondary" onClick={onLocal}>Open local repository</button>
       <a className="btn btn-secondary" href="?demo">Open the demo</a>
     </div>
     <div className="sk-connect-foot"><Label>Good to know</Label>
@@ -29,7 +30,7 @@ export function SignIn({ error }: { error?: string | null }) {
 }
 
 /** Local token mode without a usable GITHUB_TOKEN: say exactly where to put one (FR-016). */
-export function TokenSetup({ error, onRetry }: { error: string; onRetry: () => void }) {
+export function TokenSetup({ error, onRetry, onLocal }: { error: string; onRetry: () => void; onLocal: () => void }) {
   return <div className="sk-connect">
     <div className="nav-brand">Speckit</div>
     <h2>Add your GitHub token</h2>
@@ -41,6 +42,7 @@ export function TokenSetup({ error, onRetry }: { error: string; onRetry: () => v
     </ol>
     <div className="sk-actions">
       <button className="btn btn-primary" onClick={onRetry}>Check again<Icon n="arrow" s={14} /></button>
+      <button className="btn btn-secondary" onClick={onLocal}>Open local repository</button>
       <a className="btn btn-secondary" href="?demo">Open the demo</a>
     </div>
   </div>;
