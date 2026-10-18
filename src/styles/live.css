@@ -35,6 +35,9 @@
 .sk-prs-h{display:flex;justify-content:space-between;align-items:center}.sk-prs a{color:var(--color-text);font-weight:600;text-decoration:none}.sk-prs a:hover{color:var(--color-accent)}
 .sk-prs li.closed a{color:color-mix(in srgb,var(--color-text) 50%,transparent);text-decoration:line-through}
 .sk-prs .sk-warn{margin:4px 0 0}
+.sk-linkhelp{margin-bottom:var(--space-3)}.sk-linkhelp .sk-meta{margin:var(--space-2) 0 2px}
+.sk-linkline{display:flex;align-items:center;flex-wrap:wrap;gap:var(--space-2);margin:2px 0}.sk-linkline code{font-size:var(--fs-12);background:var(--color-surface);padding:2px 6px;overflow-wrap:anywhere}
+.sk-linktag{align-self:flex-start}.sk-prs .sk-warn{flex-wrap:wrap;align-items:center}
 .sk-connect{min-height:100vh;max-width:760px;padding:var(--space-8);display:flex;flex-direction:column;gap:var(--space-4)}
 .sk-connect .nav-brand{color:var(--color-accent);font-size:var(--fs-20);font-weight:800}
 .sk-connect h2{margin:var(--space-2) 0 0}.sk-connect-lead{font-size:var(--fs-15);max-width:640px;margin:0;text-wrap:pretty}

@@ -76,6 +76,10 @@ describe('repo config and the gate check (R6, R7)', () => {
     expect((await loadProject(src)).gateCheck).toBe('missing');
     clearProjectCache();
     fakeBranches('o/r', repo({ '.claude/hooks/speckit-gate.mjs': '// speckit-gate', '.claude/settings.json': '{"hooks":{"UserPromptSubmit":[{"hooks":[{"type":"command","command":"node .claude/hooks/speckit-gate.mjs"}]}]}}' }));
+    // A gate check from spec 004 has no PR hook yet: it is outdated, not installed (specs/005 R5).
+    expect((await loadProject(src)).gateCheck).toBe('outdated');
+    clearProjectCache();
+    fakeBranches('o/r', repo({ '.claude/hooks/speckit-gate.mjs': '// speckit-gate', '.claude/settings.json': '{"hooks":{"PreToolUse":[{"matcher":"Bash|mcp__.*__create_pull_request","hooks":[{"type":"command","command":"node .claude/hooks/speckit-gate.mjs"}]}]}}' }));
     const p = await loadProject(src);
     expect(p.gateCheck).toBe('installed');
     expect(p.approvalGates).toBe('block');

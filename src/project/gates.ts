@@ -19,7 +19,7 @@ const req = (label: string, ok: boolean): Check => ({ label, ok, required: true 
 const warn = (label: string, ok: boolean): Check => ({ label, ok, required: false });
 
 /** What must be true before a gate can be approved, evaluated from the spec's files and its PRs. */
-export function gateChecks(f: SpecFeature, gate: GateKey, prs: SpecPR[] = [], tracking?: Pick<Tracking, 'repos'>): Check[] {
+export function gateChecks(f: SpecFeature, gate: GateKey, prs: SpecPR[] = [], tracking?: Pick<Tracking, 'repos'> & Partial<Pick<Tracking, 'issues'>>): Check[] {
   const s = f.spec;
   const tasks = (f.tasks || []).flatMap(p => p.tasks);
   switch (gate) {
@@ -81,10 +81,23 @@ export function gateChecks(f: SpecFeature, gate: GateKey, prs: SpecPR[] = [], tr
         warn(prs.length ? `${prs.length} linked PRs found` : 'Linked PRs found', prs.length > 0),
         req(open.length ? `${open.length} linked PRs still open` : 'All linked PRs merged or closed', open.length === 0),
         req(outOfOrder.length ? `Merged out of order: ${outOfOrder.join('; ')}` : 'Merged in the configured repo order', outOfOrder.length === 0),
-        req(notBumped.length ? `Submodule pointer not bumped for ${notBumped.map(p => `${p.repo}#${p.number}`).join(', ')}` : 'Submodule pointers include every merged PR', notBumped.length === 0)
+        req(notBumped.length ? `Submodule pointer not bumped for ${notBumped.map(p => `${p.repo}#${p.number}`).join(', ')}` : 'Submodule pointers include every merged PR', notBumped.length === 0),
+        ...linkChecks(f.slug, prs, tracking)
       ];
     }
   }
+}
+
+/** Warnings about how the spec's PRs link to its tracking issue; none without an issue or without PRs (specs/005 FR-003). */
+function linkChecks(slug: string, prs: SpecPR[], tracking?: Pick<Tracking, 'repos'> & Partial<Pick<Tracking, 'issues'>>): Check[] {
+  const issue = tracking?.issues?.[slug]?.number;
+  const rootRepo = tracking?.repos.find(r => !r.path)?.repo;
+  const linked = prs.filter(p => p.link !== null);
+  if (issue === undefined || !rootRepo || !linked.length) return [];
+  const out = [warn(`Every PR links to #${issue}`, linked.every(p => linkStatus(p.link, p.repo, rootRepo, issue)?.ok))];
+  const inRoot = linked.filter(p => p.repo === rootRepo);
+  if (inRoot.length) out.push(warn(`A PR in this repo closes #${issue}`, inRoot.some(p => p.link === 'closes')));
+  return out;
 }
 
 /**
@@ -181,3 +194,52 @@ export function blockingGates(status: readonly string[], issue: Pick<GateIssue, 
 }
 
 export const blockedReason = (k: GateKey) => `Approve ${GATE_NAME[k]} first.`;
+
+// ---- PRs link to the tracking issue (specs/005) ----
+
+/** Words GitHub reads as "close this issue when the PR is merged into the default branch". */
+export const CLOSING_KEYWORDS = ['close', 'closes', 'closed', 'fix', 'fixes', 'fixed', 'resolve', 'resolves', 'resolved'];
+
+/** The PreToolUse matcher of the gate check that covers creating a PR from Bash and from the GitHub MCP tool. */
+export const PR_HOOK_MATCHER = 'Bash|mcp__.*__create_pull_request';
+
+const escapeRe = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** The three ways a description can name issue `n` of `rootRepo`, each as a regex source. */
+const issueRefs = (n: number, rootRepo: string) => ({
+  bare: `#${n}(?!\\d)`,
+  full: `${escapeRe(rootRepo)}#${n}(?!\\d)`,
+  url: `https://github\\.com/${escapeRe(rootRepo)}/issues/${n}(?!\\d)`
+});
+
+/**
+ * How a PR description points at the spec's tracking issue (research R1, R2): with a closing
+ * keyword, with a plain reference, or not at all. Shared by the app and the Claude Code gate check.
+ */
+export function linkKind(body: string | null | undefined, issueNumber: number, rootRepo: string, prRepo = rootRepo): 'closes' | 'mentions' | 'none' {
+  const text = body ?? '';
+  const r = issueRefs(issueNumber, rootRepo);
+  // In another repo a bare "#12" names that repo's own issue, so only the owner/repo and URL forms point at ours.
+  const bare = prRepo.toLowerCase() === rootRepo.toLowerCase() ? r.bare : null;
+  const closing = new RegExp(`(?<![\\w/])(?:${CLOSING_KEYWORDS.join('|')}):?\\s+(?:${[bare, r.full, r.url].filter(Boolean).join('|')})`, 'i');
+  if (closing.test(text)) return 'closes';
+  // A bare "#12" must not sit inside a word or a longer path; the owner/repo and URL forms carry their own prefix.
+  const mention = new RegExp(`${bare ? `(?<![\\w/])${bare}|` : ''}(?<![\\w/.-])(?:${r.full}|${r.url})`, 'i');
+  return mention.test(text) ? 'mentions' : 'none';
+}
+
+/** How one PR is linked, as a label and whether it is right for the repo it is in (data-model.md). */
+export function linkStatus(link: SpecPR['link'], prRepo: string, rootRepo: string, issueNumber: number | null): { ok: boolean; label: string } | null {
+  if (link === null || issueNumber === null) return null;
+  const n = `#${issueNumber}`;
+  if (link === 'none') return { ok: false, label: `Not linked to ${n}` };
+  if (prRepo === rootRepo) return { ok: true, label: link === 'closes' ? `Closes ${n}` : `Linked to ${n}` };
+  // Only the root repo's PR may close the issue; one in a submodule repo would close it too early.
+  return link === 'mentions' ? { ok: true, label: `Linked to ${n}` } : { ok: false, label: `Closes ${n} early` };
+}
+
+/** The line to put in a PR description: `closes` only matters for a PR in the root repo (the spec's last PR). */
+export function linkLine(issueNumber: number, rootRepo: string, prRepo: string, closes = true): string {
+  if (prRepo !== rootRepo) return `Part of ${rootRepo}#${issueNumber}`;
+  return `${closes ? 'Closes' : 'Part of'} #${issueNumber}`;
+}

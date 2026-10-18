@@ -17,6 +17,7 @@ import { LiveAnalyze, LiveClarify, LiveConstitution, LiveImplement, LivePlan, Li
 
 /** How to install the Claude Code gate check (specs/004 FR-012). */
 const GATE_CHECK_HELP = 'https://github.com/phungrk/speckit-ui#approval-gates';
+const PR_LINKS_HELP = 'https://github.com/phungrk/speckit-ui#linking-prs-to-the-tracking-issue';
 
 /** "feat/003-x" → "003-x" for compact labels; the full name stays in the title. */
 const shortBranch = (b: string) => b.replace(/^feat\//, '');
@@ -231,6 +232,7 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
           {lockedBy && <div className="sk-cmdhint" role="status"><Icon n="lock" s={12} /> <button className="sk-hintlink" onClick={() => setSel(PHASES.findIndex(p => p.k === lockedBy))}>Approve {GATE_NAME[lockedBy]} first</button>: {phase.n} opens once it is approved.</div>}
           {cmdLocked && !lockedBy && <div className="sk-cmdhint" role="status">{trackingError ? 'Approvals could not be checked, so no command is suggested.' : 'Loading approvals…'}</div>}
           {gatesOn && project.gateCheck === 'missing' && <div className="sk-cmdhint">Commands aren't blocked in Claude Code for this repo. <a href={GATE_CHECK_HELP} target="_blank" rel="noreferrer">Install the gate check →</a></div>}
+          {project.gateCheck === 'outdated' && <div className="sk-cmdhint">The gate check here doesn't check PR links yet. <a href={PR_LINKS_HELP} target="_blank" rel="noreferrer">Update it →</a></div>}
           <div className="sk-cmdrow">
             <Icon n="terminal" s={16} />
             <input className="sk-cmdin" value={cmdLocked ? '' : cmd} readOnly={cmdLocked} placeholder={cmdLocked ? 'No command while this step is locked' : undefined} onChange={e => setCmd(e.target.value)} onKeyDown={e => e.key === 'Enter' && copy()} aria-label="Command" />

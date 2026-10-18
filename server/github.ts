@@ -109,6 +109,15 @@ const mainTrees = new WeakMap<Project, MainTrees>();
  * Loads a Spec Kit project: the default branch (or `src.ref` when pinned), plus, unless a branch is
  * pinned, every spec that differs on a feat/ branch (specs/003).
  */
+/**
+ * The Claude Code gate check is installed when the script is there and settings.json runs it
+ * (specs/004 R7); it is outdated when settings.json lacks the PR-creation hook (specs/005 R5).
+ */
+export function gateCheckState(hasScript: boolean, settings: string | null): Project['gateCheck'] {
+  if (!hasScript || !(settings ?? '').includes(GATE_HOOK_FILE)) return 'missing';
+  return settings!.includes('create_pull_request') ? 'installed' : 'outdated';
+}
+
 export async function loadProject(src: Source): Promise<Project> {
   const main = await loadMain(src);
   return src.ref ? main : withBranches(src, main, await listBranches(src, main.branchPrefixes).catch(branchListFailed));
@@ -177,7 +186,7 @@ async function loadAt(src: Source, ref: string, sha: string, committedAt: string
     pinned: !!src.ref,
     approvalGates: ui.approvalGates,
     // The gate check counts as installed when the script is there and settings.json runs it (specs/004 R7).
-    gateCheck: blobs.includes(GATE_HOOK_PATH) && (read(CLAUDE_SETTINGS) ?? '').includes(GATE_HOOK_FILE) ? 'installed' : 'missing'
+    gateCheck: gateCheckState(blobs.includes(GATE_HOOK_PATH), read(CLAUDE_SETTINGS))
   };
   const dirShas = Object.fromEntries(specs.flatMap(f => { const t = treeShas.get(`specs/${f.slug}`); return t ? [[f.slug, t]] : []; }));
   const mainPointers = Object.fromEntries([...pointers].flatMap(([p, v]) => (v ? [[p, v]] : [])));

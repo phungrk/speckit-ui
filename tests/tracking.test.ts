@@ -26,7 +26,7 @@ const feature = (over: Partial<SpecFeature> = {}): SpecFeature => ({
 });
 
 const pr = (repo: string, number: number, state: SpecPR['state'], mergedAt: string | null = null, bumped: boolean | null = null): SpecPR =>
-  ({ repo, number, title: 't', url: 'u', state, mergedAt, headRef: 'feat/007-cards', bumped });
+  ({ repo, number, title: 't', url: 'u', state, mergedAt, headRef: 'feat/007-cards', bumped, link: null });
 
 describe('gate checks', () => {
   it('passes a complete spec at every gate', () => {
@@ -94,8 +94,8 @@ describe('repo config', () => {
   it('parses .gitmodules and merge order', () => {
     expect(parseGitmodules('[submodule "web"]\n\tpath = web\n\turl = https://github.com/a/front.git\n[submodule "edge"]\n\tpath = edge\n\turl = git@github.com:a/back.git\n[submodule "x"]\n\tpath = x\n\turl = https://gitlab.com/a/x'))
       .toEqual([{ path: 'web', repo: 'a/front' }, { path: 'edge', repo: 'a/back' }, { path: 'x', repo: null }]);
-    expect(parseUiConfig('{"mergeOrder":["edge","a/front",3]}')).toEqual({ mergeOrder: ['edge', 'a/front'], branchPrefixes: ['feat/'], approvalGates: 'block' });
-    expect(parseUiConfig('nope')).toEqual({ mergeOrder: [], branchPrefixes: ['feat/'], approvalGates: 'block' });
+    expect(parseUiConfig('{"mergeOrder":["edge","a/front",3]}')).toEqual({ mergeOrder: ['edge', 'a/front'], branchPrefixes: ['feat/'], approvalGates: 'block', prLinks: 'block' });
+    expect(parseUiConfig('nope')).toEqual({ mergeOrder: [], branchPrefixes: ['feat/'], approvalGates: 'block', prLinks: 'block' });
   });
   it('links PRs by branch or description', () => {
     expect(prMatches({ head: { ref: 'feat/007-cards' }, body: '', title: '' }, '007-cards')).toBe(true);
@@ -191,6 +191,20 @@ describe('decideGate', () => {
     expect(reopened.state).toBe('open');
     expect(reopened.gates.implement).toEqual({ approved: false });
     expect(String(calls.filter(c => c.path.endsWith('/comments')).at(-1)!.body!.body)).toContain('> regression');
+  });
+  it('an issue closed by a merged PR is not an approved Implement gate (specs/005 FR-006)', async () => {
+    // GitHub closed the issue when the PR merged; nobody has approved Implement.
+    const calls = fakeGitHub({ issues: [{ number: 4, state: 'closed', html_url: 'i4', body: newIssueBody('007-cards', 'x', { specify: { approved: true, by: 'mai' } }) }], rootOpen: false });
+    const t = await loadTracking(src, project());
+    expect(t.issues['007-cards']).toMatchObject({ number: 4, state: 'closed' });
+    expect(t.issues['007-cards'].gates.implement?.approved).not.toBe(true);
+    // Approving Implement later ticks the gate and leaves the issue closed.
+    const { issue: shipped } = await decideGate(src, project(feature(), 'ptr2'), feature(), 'implement', 'approve', '');
+    expect(shipped).toMatchObject({ state: 'closed', gates: { specify: { approved: true }, implement: { approved: true } } });
+    // Reopening a gate opens the issue again.
+    const { issue: reopened } = await decideGate(src, project(feature(), 'ptr2'), feature(), 'implement', 'reopen', 'one more fix');
+    expect(reopened.state).toBe('open');
+    expect(calls.filter(c => c.method === 'PATCH').at(-1)!.body).toMatchObject({ state: 'open' });
   });
   it('needs an existing issue to request changes', async () => {
     fakeGitHub();
