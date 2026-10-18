@@ -25,7 +25,7 @@
     - `null`: spec chưa có issue theo dõi.
   - "Đúng" nghĩa là: PR ở repo gốc cần `closes`; PR ở repo submodule cần `mentions`. Nếu PR submodule dùng `closes` thì vẫn tính là liên kết, nhưng kèm cảnh báo rằng nó sẽ đóng issue sớm.
   - PR ở repo gốc mà chỉ có `mentions` thì hiện "Linked, but won't close #N on merge".
-  - Hàm nhận dạng `linkKind(body, issue, rootRepo, prRepo)` nằm trong `src/project/gates.ts`, để app và hook (R4) dùng chung.
+  - Hàm nhận dạng `linkKind(body, issueNumber, rootRepo)` (kết quả `closes`/`mentions`/`none`) nằm trong `src/project/gates.ts`, còn việc PR ở repo nào đúng hay sai do `linkStatus(link, prRepo, rootRepo, issueNumber)` quyết, để app và hook (R4) dùng chung.
 - **Rationale**: Không tốn thêm lần gọi API nào, vì mô tả PR đã có trong danh sách PR (`GET /pulls`).
 
 ## R3. Hiển thị và sao chép trong speckit-ui (FR-003, SC-004)

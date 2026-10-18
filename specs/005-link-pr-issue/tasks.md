@@ -33,7 +33,7 @@ Xem plan.md → Project Structure. Dòng liên kết và bảng đánh giá nằ
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-- [ ] T001 Prepare the environment and a baseline. Run `npm ci` (dependencies are not installed in a fresh session), then `npm test` and `npm run typecheck` on this branch to confirm they pass before any change. Playwright and Chromium live outside the repo: run measurement scripts from the scratchpad directory with `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers` and `require('/opt/node-tools/node_modules/playwright')`. Start `npm run dev` and save screenshots of the demo (`/?demo`) at 1440×900 and 924×540 (main screen and the New spec dialog) to the scratchpad directory, outside the repo, for the demo comparison in T026 (constitution IV).
+- [ ] T001 Prepare the environment and a baseline. Run `npm ci` (dependencies are not installed in a fresh session), then `npm test` and `npm run typecheck` on this branch to confirm they pass before any change. Playwright and Chromium live outside the repo: run measurement scripts from the scratchpad directory with `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers` and `require('/opt/node-tools/node_modules/playwright')`. Check that the type scale of spec 006 is on this branch: `grep -c -- '--fs-13' src/styles/modernist.css` must print a number above 0. If it prints 0, PR #18 (spec 006) is not in this branch yet: once it is merged into `main`, merge `origin/main` into this branch; if it is not merged, stop and tell the user, because T015 must not write literal `px` font sizes (the test from 006 forbids them) nor use `var(--fs-N)` before the variables exist. Start `npm run dev` and save screenshots of the demo (`/?demo`) at 1440×900 and 924×540 (main screen and the New spec dialog) to the scratchpad directory, outside the repo, for the demo comparison in T026 (constitution IV).
 
 ---
 
@@ -53,7 +53,7 @@ Xem plan.md → Project Structure. Dòng liên kết và bảng đánh giá nằ
   - `linkLine(12, 'o/root', 'o/root')` is `Closes #12` and `linkLine(12, 'o/root', 'o/back')` is `Part of o/root#12`;
   - `parseUiConfig` reads `prLinks` with `"block"` as the default.
 - [ ] T005 In `src/project/gates.ts` implement what T004 tests, with no import other than `./types.ts` so the hook can load it: `linkKind(body, issueNumber, rootRepo)`, `linkStatus(link, prRepo, rootRepo, issueNumber)` returning `{ ok: boolean; label: string }` with the labels from contracts/pr-links.md ("Closes #N", "Linked to #N", "Not linked to #N", "Linked, but won't close #N", "Closes #N early"), `linkLine(issueNumber, rootRepo, prRepo)`, and the constant `PR_HOOK_MATCHER = 'Bash|mcp__.*__create_pull_request'`. Reference the closing keywords from one list so the app and the hook cannot drift.
-- [ ] T006 Add a test to `tests/links.test.ts` that `loadTracking` (`server/tracking.ts`) sets `link` on each `SpecPR`: a root-repo PR whose body has `Closes #1` gets `closes`; a PR with no reference gets `none`; a spec without a tracking issue gives `null` for all its PRs. Use `fakeGitHub` from `tests/fakeGitHub.ts` and give the fake `/pulls` answer bodies (extend the fake, not the real code, if it returns `[]` only). It fails until T007.
+- [ ] T006 Add a test to `tests/links.test.ts` that `loadTracking` (`server/tracking.ts`) sets `link` on each `SpecPR`: a root-repo PR whose body has `Closes #1` gets `closes`; a PR with no reference gets `none`; a spec without a tracking issue gives `null` for all its PRs. Use `fakeGitHub` from `tests/fakeGitHub.ts` and add a case for a spec that exists only on a `feat/` branch (specs/003): its PRs get `link` from the tracking issue found by slug (FR-007). Give the fake `/pulls` answer bodies (extend the fake, not the real code, if it returns `[]` only). It fails until T007.
 - [ ] T007 In `server/tracking.ts` `loadTracking`, set `link` for every PR from its description (`p.body`, already loaded by `GET /pulls`) and the spec's tracking issue: `issue ? linkKind(p.body ?? '', issue.number, root(src)) : null`. No extra API call (R2). Make T006 pass.
 - [ ] T008 Add a test to `tests/links.test.ts` for `gateCheck: 'outdated'`: a project whose `.claude/settings.json` runs `speckit-gate.mjs` and has the `create_pull_request` matcher is `installed`; one with `speckit-gate.mjs` but without that matcher is `outdated`; no script or no settings entry is `missing`. It fails until T009.
 - [ ] T009 In `server/github.ts` (the `gateCheck` line near `CLAUDE_SETTINGS`) return `'outdated'` when `settings.json` contains `GATE_HOOK_FILE` but not `create_pull_request`, `'installed'` when it has both, `'missing'` otherwise (R5). Make T008 pass and run `npm run typecheck`.
@@ -81,15 +81,18 @@ Xem plan.md → Project Structure. Dòng liên kết và bảng đánh giá nằ
   - a body the hook cannot read (a variable, `$(…)`) exits 2 and suggests `--body-file`;
   - GitHub unreachable exits 2 and mentions `SPECKIT_GATE_BYPASS`; with the variable set it allows;
   - `prLinks: "off"` exits 0; a branch or body that matches no spec exits 0; a PR to an unrelated repo exits 0;
-  - `gh pr list`, `git push` and `npm test` exit 0 and the fake `github` function is never called (performance);
-  - a PR for two specs needs both lines.
+  - `gh pr list`, `git push` and `npm test` exit 0 and the fake `github` function is never called and `.specify/speckit-ui.json` is never read (these commands must leave at once, because most Bash commands pass through this hook);
+  - a PR for two specs needs both lines;
+  - `gh pr create --title x --body "…"` with **no** `--head`: the head is the current branch of the command's directory (`git rev-parse --abbrev-ref HEAD`), so a branch `feat/001-login` is matched to spec 001;
+  - `gh pr create --fill` and a command with no body: the body is empty, so the line is missing (exit 2);
+  - a spec that exists only on the checked-out `feat/` branch is matched and checked the same way (FR-007).
   These fail until T011–T013.
 - [ ] T011 [US1] Add `install` cases to `tests/hook.test.ts`: on a `settings.json` from spec 004 (has the `UserPromptSubmit` and `PreToolUse/Skill` entries) `install` adds only the `Bash|mcp__.*__create_pull_request` entry and keeps everything else; running it twice adds nothing; on an empty file it adds all three. It fails until T014.
 
 ### Implementation for User Story 1 (hook)
 
 - [ ] T012 [US1] In `hook/speckit-gate.ts` add `readPrRequest(input)`, a pure function that returns `{ repo, head, body }` or `null` (R4, data-model.md "Yêu cầu tạo PR"):
-  - `Bash`: recognise `gh pr create` (`--body`/`-b`, `--body-file`/`-F` read from disk, `--repo`/`-R`, `--head`/`-H`) and `gh api` to `repos/<o>/<r>/pulls` with `-f`/`-F`/`--field`/`--raw-field` or a POST method (`body=`, `body=@file`, `head=`); take the repo from `cd <dir> &&` or the hook's `cwd` and `origin` when not given; a body that cannot be read becomes `unknown`;
+  - `Bash`: recognise `gh pr create` (`--body`/`-b`, `--body-file`/`-F` read from disk, `--repo`/`-R`, `--head`/`-H`) and `gh api` to `repos/<o>/<r>/pulls` with `-f`/`-F`/`--field`/`--raw-field` or a POST method (`body=`, `body=@file`, `head=`); take the repo from `cd <dir> &&` or the hook's `cwd` and `origin` when not given; when there is no head, use the current branch (`git rev-parse --abbrev-ref HEAD` in that directory); `--fill` or no body means an empty body; a body that cannot be read becomes `unknown`;
   - `mcp__…__create_pull_request`: read `owner`, `repo`, `head`, `body` from `tool_input`;
   - any other command returns `null` before reading config or GitHub.
   Keep the existing `readTarget` for the gated commands.

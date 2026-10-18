@@ -49,7 +49,7 @@ Playwright cho kịch bản 1–2 trên Pages và server. Claude Code thật cho
 
 **Performance Goals**:
 - Không thêm lần gọi API nào trong app.
-- Hook: lệnh Bash không phải tạo PR thì thoát ngay, không gọi GitHub, mất dưới 100 ms vì phần lớn lệnh Bash đi qua đây. Lệnh tạo PR tốn 1 lần đọc issue.
+- Hook: lệnh Bash không phải tạo PR thì thoát ngay, không gọi GitHub, thoát ngay, không đọc cấu hình và không gọi GitHub, vì phần lớn lệnh Bash đi qua đây (test T010 kiểm tra điều này). Lệnh tạo PR tốn 1 lần đọc issue.
 
 **Constraints**:
 - `gh pr` bị proxy chặn trong session web, nên phải nhận cả `gh api …/pulls`.
