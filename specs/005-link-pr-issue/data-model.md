@@ -13,7 +13,7 @@ Cách đánh giá một PR (`linkStatus(pr, rootRepo)`):
 | PR ở | `link` | Kết quả hiển thị | Đúng? |
 |---|---|---|---|
 | repo gốc | `closes` | Closes #N | ✓ |
-| repo gốc | `mentions` | Linked, but won't close #N | ✗ (cảnh báo) |
+| repo gốc | `mentions` | Linked to #N (PR trước, không đóng) | ✓ |
 | repo submodule | `mentions` | Linked to #N | ✓ |
 | repo submodule | `closes` | Closes #N early | ✗ (cảnh báo) |
 | bất kỳ | `none` | Not linked to #N | ✗ (cảnh báo) |
@@ -22,7 +22,7 @@ Cách đánh giá một PR (`linkStatus(pr, rootRepo)`):
 ## Dòng liên kết (tính, không lưu)
 
 `linkLine(issueNumber, rootRepo, prRepo)`:
-- PR ở repo gốc: `Closes #N`
+- PR ở repo gốc: `Closes #N` (PR cuối) hoặc `Part of #N` (PR trước)
 - PR ở repo khác: `Part of <rootRepo>#N`
 
 ## Cấu hình repo: `.specify/speckit-ui.json`
@@ -41,7 +41,9 @@ Cách đánh giá một PR (`linkStatus(pr, rootRepo)`):
 
 ## Kiểm tra cổng Implement (thêm một cảnh báo)
 
-`Every linked PR links to #N`: không chặn. Đạt khi mọi PR của spec có trạng thái ✓ ở bảng trên. Bỏ qua khi spec chưa có issue.
+Hai cảnh báo, không chặn. Cả hai bỏ qua khi spec chưa có issue:
+- `Every PR links to #N`: đạt khi mọi PR của spec có trạng thái ✓ ở bảng trên.
+- `A PR in this repo closes #N`: đạt khi ít nhất một PR ở repo gốc có `link: 'closes'`; bỏ qua khi spec chưa có PR nào ở repo gốc.
 
 ## Yêu cầu tạo PR mà hook nhận ra (R4)
 

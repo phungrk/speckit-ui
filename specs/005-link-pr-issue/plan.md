@@ -9,7 +9,7 @@
 ## Summary
 
 PR của một spec liên kết với issue theo dõi bằng một dòng trong mô tả PR (R1):
-- **PR ở repo gốc:** `Closes #N`. GitHub liên kết hai bên và tự đóng issue khi PR được merge vào nhánh mặc định.
+- **PR cuối ở repo gốc:** `Closes #N`. GitHub liên kết hai bên và tự đóng issue khi PR được merge vào nhánh mặc định. Các PR trước ở repo gốc dùng `Part of #N`, để issue không đóng sớm.
 - **PR ở repo submodule:** `Part of <owner>/<root>#N`. Dòng này chỉ liên kết, không đóng issue.
 
 Ba phần cần làm:
@@ -107,7 +107,7 @@ specs/005-link-pr-issue/
 
 ```text
 src/project/
-├── gates.ts             # SỬA: linkKind(), linkLine(), linkStatus(); cảnh báo "Every linked PR links to #N" ở cổng Implement; hằng matcher tạo PR
+├── gates.ts             # SỬA: linkKind(), linkLine(), linkStatus(); hai cảnh báo "Every PR links to #N" và "A PR in this repo closes #N" ở cổng Implement; hằng matcher tạo PR
 ├── types.ts             # SỬA: SpecPR.link; Project.gateCheck thêm 'outdated'
 ├── GatePanel.tsx        # SỬA: dòng liên kết + Copy; nhãn từng PR; lời nhắc chưa có issue
 └── LiveWorkspace.tsx    # SỬA: dòng "Update the gate check" khi outdated

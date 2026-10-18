@@ -14,6 +14,7 @@
 
 - Q: "Issue" là issue theo dõi của spec, hay cả issue thường? → A: Chỉ issue theo dõi của spec (nhãn `speckit`).
 - Q: Một spec có nhiều PR thì PR nào đóng issue khi merge? → A: Chỉ PR ở repo gốc đóng issue. PR ở repo submodule chỉ liên kết.
+- Q: Một spec có nhiều PR ở repo gốc thì PR nào dùng `Closes`? → A: Chỉ PR cuối. Các PR trước ở repo gốc dùng `Part of #N`. (Phiên analyze 2026-10-18, I1)
 - Q: Khi Claude Code tạo PR thiếu dòng liên kết thì sao? → A: Bước kiểm tra chặn việc tạo PR, và nêu đúng dòng cần thêm.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -58,7 +59,7 @@ PR của spec được merge vào nhánh chính. Issue theo dõi của spec đư
 
 ### Edge Cases
 
-- **Một spec có nhiều PR** (PR tài liệu spec, PR code, PR ở repo submodule, PR nâng con trỏ submodule): chỉ PR cuối cùng mới được đóng issue (FR-004).
+- **Một spec có nhiều PR** (PR tài liệu spec, PR code, PR ở repo submodule, PR nâng con trỏ submodule): chỉ PR cuối cùng ở repo gốc dùng `Closes #N`, các PR trước ở repo gốc dùng `Part of #N` để issue không đóng sớm (FR-004).
 - **PR ở repo submodule:** issue theo dõi nằm ở repo gốc. PR ở repo khác vẫn liên kết được bằng tên đầy đủ `owner/repo#N`. Merge PR đó thì không đóng issue, vì PR nâng con trỏ ở repo gốc mới là PR cuối.
 - **PR merge vào nhánh không phải nhánh chính:** GitHub chỉ tự đóng issue khi merge vào nhánh mặc định. Merge vào nhánh khác không đóng issue.
 - **Một PR giải quyết nhiều spec:** PR đóng mọi issue mà nó liên kết.
@@ -74,8 +75,9 @@ PR của spec được merge vào nhánh chính. Issue theo dõi của spec đư
 - **FR-003**: speckit-ui MUST cho biết, với mỗi PR của spec, PR đó có liên kết với issue theo dõi hay không, và cách thêm liên kết nếu thiếu.
 - **FR-004**: Khi PR liên kết được merge vào nhánh mặc định, issue theo dõi MUST được đóng, theo quy tắc sau:
   - mọi PR của spec đều liên kết với issue, để trang issue thấy đủ PR;
-  - nhưng chỉ PR của repo gốc được đóng issue khi merge;
-  - PR ở repo submodule chỉ liên kết, không đóng.
+  - ở repo gốc, PR cuối cùng của spec dùng `Closes #N` (đóng issue khi merge), các PR trước dùng `Part of #N` (chỉ liên kết);
+  - PR ở repo submodule chỉ liên kết, không đóng;
+  - speckit-ui không biết PR nào là cuối: nó chỉ cảnh báo ở cổng Implement khi chưa PR nào ở repo gốc đóng issue.
 - **FR-005**: PR bị đóng mà không merge MUST không đóng issue.
 - **FR-006**: Đóng issue khi merge MUST không coi là đã duyệt cổng Implement:
   - cổng Implement vẫn chưa tick cho tới khi người dùng duyệt;

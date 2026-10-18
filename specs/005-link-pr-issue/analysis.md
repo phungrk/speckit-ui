@@ -47,7 +47,7 @@ Artifacts checked: `spec.md`, `plan.md`, `tasks.md` (T001–T028), `research.md`
 
 | ID | Status | Change |
 |----|--------|--------|
-| I1 | Pending | Needs a decision on the rule for several root-repo PRs. |
+| I1 | Fixed | Decision (user, 2026-10-18): only the last root-repo PR uses `Closes`; earlier root-repo PRs use `Part of #N`. spec.md (Clarifications, FR-004, edge cases), research R1–R3, data-model.md, contracts/pr-links.md, quickstart.md and plan.md updated; T004, T005, T010, T013, T015, T016 and T018 now accept both forms for a root PR, and the Implement check warns only when no root-repo PR closes the issue (the app cannot tell which PR is last). |
 | I2 | Fixed | T001 now checks the type scale and says what to do when PR #18 is not merged. |
 | C1 | Fixed | T006 and T010 have the unmerged-branch cases. |
 | U1 | Fixed | T012 and T010 cover the default head and `--fill` / no body. |

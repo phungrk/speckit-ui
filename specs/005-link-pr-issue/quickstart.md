@@ -16,7 +16,7 @@ Các bước:
 2. Mở 002.
    - Kỳ vọng: "No tracking issue yet…". Không có nhãn liên kết.
 3. Cổng Implement của 001.
-   - Kỳ vọng: cảnh báo "Every linked PR links to #1" chưa đạt.
+   - Kỳ vọng: cảnh báo "Every PR links to #1" chưa đạt (vì #11); cảnh báo "A PR in this repo closes #1" đạt (vì #10).
 4. Lặp lại trên bản server, và ở bề rộng 390 px.
 
 ## Kịch bản 2: repo có submodule (FR-004, FR-007)
@@ -41,7 +41,7 @@ Repo tạm có `specs/001-login`, remote `acme/alpha`, `gh` giả lập trả is
    - Kỳ vọng: điểm móc tạo PR được thêm; hai điểm móc cũ giữ nguyên.
 2. `PreToolUse` Bash: `gh pr create --head feat/001-login --title x --body "Adds login"`.
    - Kỳ vọng: thoát 2; stderr nêu `Closes #1`.
-3. Như bước 2 với `--body "Adds login\n\nCloses #1"`: thoát 0.
+3. Như bước 2 với `--body "Adds login\n\nCloses #1"` hoặc `"…Part of #1"`: thoát 0 cả hai (PR cuối dùng `Closes`, PR trước dùng `Part of`).
 4. `gh api repos/acme/alpha/pulls -f head=feat/001-login -f title=x -F body=@body.md`:
    - Kỳ vọng: khi `body.md` có `Closes #1`, thoát 0; khi thiếu, thoát 2.
 5. MCP `create_pull_request` với `owner=acme`, `repo=alpha`, `head=feat/001-login`, body thiếu.

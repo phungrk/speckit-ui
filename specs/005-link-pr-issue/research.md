@@ -3,7 +3,7 @@
 ## R1. Dòng liên kết
 
 - **Decision**: Dòng liên kết là một dòng trong mô tả PR. Có hai dạng:
-  - **PR ở repo gốc** (repo có issue theo dõi): `Closes #N`. GitHub liên kết PR với issue (mục *Development* ở cả hai trang) và tự đóng issue khi PR được merge vào nhánh mặc định.
+  - **PR ở repo gốc** (repo có issue theo dõi): `Closes #N` cho PR cuối của spec, `Part of #N` cho các PR trước (Q4: chỉ PR cuối đóng). Với `Closes #N`, GitHub liên kết PR với issue (mục *Development* ở cả hai trang) và tự đóng issue khi PR được merge vào nhánh mặc định.
   - **PR ở repo submodule**: `Part of <owner>/<root>#N`. Đây là một tham chiếu chéo repo. Trang issue hiện "mentioned this pull request", và PR có link tới issue. Dòng này không có từ khoá đóng, nên merge không đóng issue (Q2: A).
 
   Khi nhận dạng, chấp nhận mọi từ khoá đóng của GitHub (`close`, `closes`, `closed`, `fix`, `fixes`, `fixed`, `resolve`, `resolves`, `resolved`), không phân biệt hoa thường. Chấp nhận cả `#N` lẫn `<owner>/<root>#N`.
@@ -23,8 +23,8 @@
     - `mentions`: chỉ có tham chiếu `#N` hoặc `<owner>/<root>#N`;
     - `none`: không có gì trỏ tới issue;
     - `null`: spec chưa có issue theo dõi.
-  - "Đúng" nghĩa là: PR ở repo gốc cần `closes`; PR ở repo submodule cần `mentions`. Nếu PR submodule dùng `closes` thì vẫn tính là liên kết, nhưng kèm cảnh báo rằng nó sẽ đóng issue sớm.
-  - PR ở repo gốc mà chỉ có `mentions` thì hiện "Linked, but won't close #N on merge".
+  - "Đúng" nghĩa là: PR ở repo gốc cần `closes` (PR cuối) hoặc `mentions` (PR trước); PR ở repo submodule cần `mentions`. Nếu PR submodule dùng `closes` thì vẫn tính là liên kết, nhưng kèm cảnh báo rằng nó sẽ đóng issue sớm.
+  - PR ở repo gốc chỉ có `mentions` là đúng (PR trước, không đóng issue) và hiện "Linked to #N". speckit-ui không biết PR nào là cuối, nên chỉ cảnh báo ở cổng Implement khi không PR nào ở repo gốc có `closes`.
   - Hàm nhận dạng `linkKind(body, issueNumber, rootRepo)` (kết quả `closes`/`mentions`/`none`) nằm trong `src/project/gates.ts`, còn việc PR ở repo nào đúng hay sai do `linkStatus(link, prRepo, rootRepo, issueNumber)` quyết, để app và hook (R4) dùng chung.
 - **Rationale**: Không tốn thêm lần gọi API nào, vì mô tả PR đã có trong danh sách PR (`GET /pulls`).
 
@@ -32,16 +32,15 @@
 
 - **Decision**:
   - Mục **Pull requests · merge order** của khung Gate:
-    - **Dòng liên kết của spec:** khi spec có issue, hiện "Add to the PR description:", kèm dòng cho repo gốc (`Closes #N`) và một nút Copy.
+    - **Dòng liên kết của spec:** khi spec có issue, hiện "Add to the PR description:", kèm hai dòng cho repo gốc, mỗi dòng có nút Copy: `Closes #N` ("last PR") và `Part of #N` ("earlier PRs").
     - **Repo có submodule:** thêm dòng `Part of <owner>/<root>#N` cho PR ở repo submodule, kèm nút Copy riêng.
     - **Spec chưa có issue:** hiện "No tracking issue yet. Approve Specify to create it, then link PRs to it." (FR-002).
     - **Mỗi PR** có một nhãn:
-      - "Closes #N" khi đúng;
-      - "Linked to #N" cho PR submodule;
+      - "Closes #N" cho PR ở repo gốc có từ khoá đóng;
+      - "Linked to #N" cho PR ở repo gốc có `Part of #N` và cho PR submodule;
       - "Not linked to #N" (`sk-warn`) kèm nút Copy dòng cần thêm;
-      - "Linked, but won't close #N";
       - "Closes #N early" cho PR submodule dùng từ khoá đóng.
-  - Cổng Implement thêm một kiểm tra **cảnh báo** (không chặn): "Every linked PR links to #N".
+  - Cổng Implement thêm một kiểm tra **cảnh báo** (không chặn): hai thứ: "Every PR links to #N" và "A PR in this repo closes #N" (đạt khi có ít nhất một PR ở repo gốc có `closes`; bỏ qua khi không có PR nào ở repo gốc).
 - **Rationale**: Mục PR là nơi người dùng đang xem PR của spec. Dùng class có sẵn (`tag`, `sk-warn`, `btn`). Copy trong 1 thao tác.
 
 ## R4. Chặn tạo PR thiếu liên kết trong Claude Code (FR-008, Q3: A)
