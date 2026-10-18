@@ -114,6 +114,13 @@ Tiêu đề trang (cỡ 42px, 32px, 25px ở bản máy tính) chiếm nhiều d
 - **SC-004**: Ở các bề rộng 360px, 390px, 430px và 760px, không màn hình nào có thanh cuộn ngang của cả trang và không chữ nào bị cắt.
 - **SC-005**: Muốn đổi một cỡ chữ điện thoại chỉ cần sửa tại một nơi (FR-008).
 
+## Non-goals
+
+- Không thiết kế lại bố cục, màu sắc hay phông chữ trên điện thoại.
+- Không thêm nút để người dùng tự chỉnh cỡ chữ.
+- Không đổi kích thước vùng chạm của nút và liên kết.
+- Không đổi cỡ chữ từ 761px trở lên, ở bất kỳ chế độ nào.
+
 ## Assumptions
 
 - "Điện thoại" nghĩa là bề rộng tới 760px, cùng ngưỡng app đã gom về bố cục một cột. ISTQB dùng 640px; ta chọn 760px để cỡ chữ và bố cục đổi cùng lúc (xem Clarifications).
