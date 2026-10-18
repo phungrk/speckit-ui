@@ -13,6 +13,7 @@
 ### Session 2026-10-18
 
 - Q: Chú thích được lưu ở đâu và ai xem được? → A: Vừa lưu local, vừa có thể publish. Khi tạo thì chỉ tạo tạm ở local: bản có server lưu vào một file cục bộ, file này git bỏ qua và không bao giờ commit hay push; bản GitHub Pages lưu ở `localStorage`. Chỉ khi chú thích được publish thì nó mới thành comment (trên GitHub).
+- Q: Khi spec chưa có issue theo dõi, bấm publish thì chặn hay tự tạo issue? → A: Publish tự tạo issue theo dõi (cùng định dạng và nhãn `speckit` như khi duyệt cổng đầu tiên) rồi đăng comment; bước xác nhận nêu rõ cả hai việc.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -55,7 +56,7 @@ Mỗi chú thích là một bản ghi gắn chặt với ba thứ: **người t�
 
 ### User Story 3 - Publish một bản nháp thành comment trên GitHub (Priority: P1)
 
-Khi người dùng muốn cả nhóm thấy một chú thích, họ publish nó. Trước khi ghi, speckit-ui hiện đúng nội dung sẽ đăng và nơi sẽ đăng (issue theo dõi của spec) và yêu cầu xác nhận. Sau khi xác nhận, chú thích trở thành **một comment** trên issue theo dõi của spec, do chính tài khoản GitHub của người đó đăng, mang đủ thông tin (đoạn chữ, tài liệu, ngữ cảnh) để mọi người dựng lại đúng highlight. Từ đó, những người đọc spec trong speckit-ui thấy highlight và comment đó là chú thích đã publish.
+Khi người dùng muốn cả nhóm thấy một chú thích, họ publish nó. Trước khi ghi, speckit-ui hiện đúng nội dung sẽ đăng và nơi sẽ đăng (issue theo dõi của spec; nếu spec chưa có issue thì nói rõ sẽ tạo issue đó) và yêu cầu xác nhận. Sau khi xác nhận, chú thích trở thành **một comment** trên issue theo dõi của spec, do chính tài khoản GitHub của người đó đăng, mang đủ thông tin (đoạn chữ, tài liệu, ngữ cảnh) để mọi người dựng lại đúng highlight. Từ đó, những người đọc spec trong speckit-ui thấy highlight và comment đó là chú thích đã publish.
 
 **Why this priority**: Đây là nửa còn lại của yêu cầu: chú thích chỉ thành comment khi được publish. Nó biến ghi chú cá nhân thành nhận xét của nhóm.
 
@@ -67,10 +68,11 @@ Khi người dùng muốn cả nhóm thấy một chú thích, họ publish nó.
 2. **Given** họ xác nhận, **When** việc ghi hoàn tất, **Then** có đúng một comment mới trên issue theo dõi do tài khoản của họ đăng, chú thích chuyển sang "Đã publish" kèm liên kết tới comment.
 3. **Given** họ không xác nhận hoặc đóng hộp xác nhận, **When** quay lại, **Then** không có gì được ghi lên GitHub và bản nháp còn nguyên.
 4. **Given** người dùng bấm publish hai lần liên tiếp, hoặc thử lại sau khi mạng chập chờn, **When** việc ghi hoàn tất, **Then** vẫn chỉ có một comment cho chú thích đó.
-5. **Given** spec chưa có issue theo dõi (chưa duyệt cổng nào), **When** người dùng muốn publish, **Then** họ được báo rõ chưa thể publish vì chưa có issue và cách có issue (duyệt cổng đầu tiên); bản nháp vẫn dùng bình thường.
-6. **Given** người dùng ở chế độ cục bộ hoặc demo (không có tài khoản GitHub), **When** họ xem chú thích, **Then** không có thao tác publish và có giải thích ngắn tại sao.
-7. **Given** việc ghi lên GitHub thất bại (mất mạng, bị từ chối quyền), **When** người dùng được báo lỗi, **Then** bản nháp còn nguyên để thử lại và không có chú thích nửa vời.
-8. **Given** chú thích của người khác đã publish, **When** người dùng xem spec, **Then** thấy highlight và comment đó cùng tên người tạo, và không có thao tác sửa hay xoá nó.
+5. **Given** spec chưa có issue theo dõi (chưa duyệt cổng nào), **When** người dùng chọn publish, **Then** bước xác nhận nêu rõ sẽ tạo issue theo dõi của spec rồi đăng comment lên đó; sau khi xác nhận, spec có đúng một issue theo dõi (chưa tick cổng nào) và đúng một comment mới.
+6. **Given** việc tạo issue xong nhưng đăng comment thất bại, **When** người dùng thử lại, **Then** lần thử lại dùng issue đã có, không tạo issue thứ hai.
+7. **Given** người dùng ở chế độ cục bộ hoặc demo (không có tài khoản GitHub), **When** họ xem chú thích, **Then** không có thao tác publish và có giải thích ngắn tại sao.
+8. **Given** việc ghi lên GitHub thất bại (mất mạng, bị từ chối quyền), **When** người dùng được báo lỗi, **Then** bản nháp còn nguyên để thử lại và không có chú thích nửa vời.
+9. **Given** chú thích của người khác đã publish, **When** người dùng xem spec, **Then** thấy highlight và comment đó cùng tên người tạo, và không có thao tác sửa hay xoá nó.
 
 ---
 
@@ -122,6 +124,7 @@ Tài liệu của spec đổi sau khi đã có chú thích (ví dụ spec đư�
 - Comment đã đăng lên GitHub nhưng app chưa kịp ghi nhận (đóng tab, mất mạng giữa chừng): lần mở sau app nhận ra comment đã tồn tại và đánh dấu chú thích là đã publish, không đăng lần hai.
 - Comment đã publish bị xoá hoặc sửa trực tiếp trên GitHub: lần làm mới sau, chú thích phản ánh trạng thái thật trên GitHub (mất khỏi danh sách đã publish, hoặc hiện nội dung mới); không mất bản gốc nếu người tạo vẫn còn bản ghi cục bộ.
 - Issue theo dõi bị đóng (cổng Implement đã duyệt): vẫn publish và xem chú thích được.
+- Hai người cùng publish trên một spec chưa có issue: hệ thống kiểm tra lại ngay trước khi tạo để giảm khả năng tạo hai issue; nếu vẫn xảy ra, mỗi comment vẫn đăng đủ và không mất chú thích nào (hạn chế đã biết giống việc duyệt cổng đầu tiên ở spec 001).
 - Bình luận khác trên issue (kết quả duyệt cổng, bình luận của người): không bị coi là chú thích và không bị sửa hay xoá.
 - Hai người cùng publish chú thích trong lúc đồng bộ chậm: mỗi người một comment riêng; không comment nào bị ghi đè.
 - Spec có hàng trăm chú thích: danh sách và highlight vẫn dùng mượt.
@@ -139,11 +142,11 @@ Tài liệu của spec đổi sau khi đã có chú thích (ví dụ spec đư�
   - chế độ cục bộ: lưu trong trình duyệt, không ghi vào thư mục repo của người dùng.
   Bản nháp MUST còn sau khi tải lại trang, và với bản có server, còn sau khi server khởi động lại.
 - **FR-005**: Bản nháp của một người MUST chỉ hiện với chính người đó; MUST không lẫn sang người dùng, spec hoặc repo khác, kể cả khi đoạn chữ giống hệt.
-- **FR-006**: Người dùng MUST publish được một bản nháp. Publish MUST là thao tác tường minh, có bước xác nhận nêu rõ nội dung sẽ đăng và nơi đăng (issue theo dõi của spec). Chỉ sau khi xác nhận mới được ghi lên GitHub.
+- **FR-006**: Người dùng MUST publish được một bản nháp. Publish MUST là thao tác tường minh, có bước xác nhận nêu rõ nội dung sẽ đăng và nơi đăng (issue theo dõi của spec). Nếu spec chưa có issue theo dõi, bước xác nhận MUST nói rõ rằng issue sẽ được tạo. Chỉ sau khi xác nhận mới được ghi lên GitHub.
 - **FR-007**: Khi publish, chú thích MUST trở thành đúng một comment trên issue theo dõi của spec, do tài khoản GitHub của chính người đó đăng. Comment MUST chứa đủ thông tin (đoạn chữ nguyên văn, tài liệu, ngữ cảnh) để người khác dựng lại đúng highlight trong speckit-ui, và đọc được như một nhận xét bình thường trên GitHub.
 - **FR-008**: Publish MUST không tạo trùng: bấm nhiều lần, thử lại hoặc mở app trên nhiều tab vẫn chỉ cho một comment cho mỗi chú thích. Nếu comment đã có mà app chưa ghi nhận, lần mở sau MUST đánh dấu là đã publish thay vì đăng lại.
 - **FR-009**: Publish thất bại MUST giữ nguyên bản nháp, báo rõ lý do và MUST không tạo chú thích nửa vời.
-- **FR-010**: Khi spec chưa có issue theo dõi, hệ thống MUST không tự tạo issue chỉ để publish; MUST báo rõ chưa thể publish và cách có issue. Ở chế độ cục bộ và demo (không có GitHub), thao tác publish MUST không có, kèm giải thích.
+- **FR-010**: Khi spec chưa có issue theo dõi, publish MUST tạo issue theo dõi của spec (cùng định dạng, tiêu đề và nhãn `speckit` như khi duyệt cổng đầu tiên, không tick cổng nào) rồi đăng comment lên đó, như một thao tác đã được xác nhận. Hệ thống MUST kiểm tra lại ngay trước khi tạo để không tạo issue thứ hai nếu issue đã xuất hiện, và việc thử lại sau thất bại MUST dùng lại issue đã có. Ở chế độ cục bộ và demo (không có GitHub) thao tác publish MUST không có, kèm giải thích; người chỉ có quyền đọc không publish được và được báo lý do.
 - **FR-011**: Chú thích đã publish MUST hiện cho mọi người đọc được issue theo dõi khi họ mở spec trong speckit-ui, kèm tên người tạo, và MUST không sửa hoặc xoá được bởi người khác.
 - **FR-012**: Người dùng MUST xem được danh sách chú thích của spec đang mở (bản nháp của mình và chú thích đã publish), lọc được theo người tạo, trạng thái và tài liệu, và chọn một mục thì MUST tới đúng đoạn.
 - **FR-013**: Người tạo MUST sửa được comment và xoá được chú thích của mình. Với bản nháp: chỉ thay đổi ở local, xoá có xác nhận. Với chú thích đã publish: sửa hoặc xoá MUST có bước xác nhận nêu rõ sẽ đổi hoặc xoá comment trên GitHub, và chỉ động tới comment của chú thích đó.
@@ -172,7 +175,7 @@ Tài liệu của spec đổi sau khi đã có chú thích (ví dụ spec đư�
 - **SC-002**: 100% bản nháp đã lưu hiện lại đúng đoạn cũ sau khi tải lại trang, và với bản có server, sau khi server khởi động lại.
 - **SC-003**: Sau khi tạo 50 bản nháp, không repo nào (repo của speckit-ui hay repo được quản lý) có thay đổi cần commit, và không có yêu cầu ghi nào gửi lên GitHub.
 - **SC-004**: 0 bản nháp của người này hiện với người khác, và 0 chú thích hiện ở spec không phải spec của nó.
-- **SC-005**: Mỗi lần publish đã xác nhận cho đúng một comment trên GitHub: 0 comment trùng khi bấm đúp hoặc thử lại, 0 comment khi chưa xác nhận.
+- **SC-005**: Mỗi lần publish đã xác nhận cho đúng một comment trên GitHub: 0 comment trùng khi bấm đúp hoặc thử lại, 0 comment khi chưa xác nhận; với spec chưa có issue, kết quả là đúng một issue theo dõi và đúng một comment.
 - **SC-006**: Người khác mở spec trong speckit-ui thấy chú thích đã publish sau tối đa một lần làm mới.
 - **SC-007**: Khi tài liệu đổi, 0 chú thích bị mất: mỗi chú thích hoặc gắn lại đúng đoạn, hoặc hiện là "đoạn đã đổi" kèm nguyên văn cũ và comment.
 - **SC-008**: Với 200 chú thích trong một spec, mở một tài liệu và chuyển bước vẫn hiện highlight trong dưới 1 giây.
@@ -189,7 +192,7 @@ Tài liệu của spec đổi sau khi đã có chú thích (ví dụ spec đư�
 - **File bản nháp ở bản server:** nằm trên máy chạy server, tách theo từng người dùng, và git bỏ qua; vị trí cụ thể quyết định ở bước plan, nhưng không nằm trong repo được quản lý.
 - **Neo bằng nội dung:** chú thích tìm lại đoạn bằng nguyên văn và ngữ cảnh quanh nó, không bằng số dòng, để chịu được việc tài liệu đổi.
 - **Comment tuỳ chọn:** một highlight không có comment là hợp lệ; khi publish, đoạn trích vẫn được đăng.
-- **Không tự tạo issue:** publish không tạo issue theo dõi nếu chưa có; issue chỉ được tạo như hiện nay khi duyệt cổng đầu tiên.
+- **Tạo issue khi publish:** nếu spec chưa có issue theo dõi thì publish tạo nó (cùng đường tạo issue đã có, nên không thêm loại ghi mới ngoài comment). Lý do: người review thường chú thích trước khi duyệt cổng đầu tiên.
 
 ## Non-Goals
 
