@@ -260,6 +260,7 @@ This repo is developed with Spec Kit 0.15.1 (Claude integration).
 
 - **Rules:** the constitution in `.specify/memory/constitution.md` holds the development rules. `CLAUDE.md` is a summary for coding agents.
 - **When to use the full flow:** changes to keys, token permissions or network destinations; a new kind of write; changes affecting two or more modes. Medium features in one mode run specify + plan only. Small fixes go straight to a PR.
+- **Font sizes:** every font size goes through `var(--fs-N)`; never write `font-size: 13px`. The phone values (screens up to 760 px wide) are set once, in the `@media (max-width: 760px)` block of `src/styles/modernist.css`. `tests/typescale.test.ts` enforces this. Rules: `specs/006-mobile-font-size/contracts/type-scale.md`.
 - **Dogfooding:** speckit-ui manages its own specs. Open `phungrk/speckit-ui` on the Pages site to approve its gates in the app.
 
 ## Layout

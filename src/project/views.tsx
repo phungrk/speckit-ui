@@ -36,7 +36,7 @@ export function NotStarted({ phase, status, prefix, spec, blockedBy, onGoTo }: {
       ? <>This is the next step. Run <b>{cmd}</b> in Claude Code to generate {phase.k === 'analyze' ? 'the report' : phase.file}.</>
       : status === 'skipped' ? <>No {phase.k === 'clarify' ? 'clarification session is' : 'saved report is'} recorded in <b>specs/{spec.slug}/</b>.</>
       : <>It opens after the earlier steps. <b>{cmd}</b> generates {phase.file}.</>}</p>
-    {phase.k === 'analyze' && <p className="text-muted" style={{ fontSize: 13 }}>{prefix}analyze prints its report in the terminal. Save it to <b>specs/{spec.slug}/analysis.md</b> to see it here.</p>}
+    {phase.k === 'analyze' && <p className="text-muted sk-sm">{prefix}analyze prints its report in the terminal. Save it to <b>specs/{spec.slug}/analysis.md</b> to see it here.</p>}
   </div>;
 }
 

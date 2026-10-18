@@ -104,7 +104,7 @@ export function AnalyzeView({ findings, resolved, onResolve, role }: AnalyzeProp
           ? <div className="sk-pass"><Icon n="check" s={14} />Resolved: {f.opts[resolved[f.id]]}</div>
           : <div className="sk-actions">{f.opts.map((o, i) => <button key={i} className={'btn ' + (i === 0 ? 'btn-secondary' : 'btn-ghost')} disabled={!canAct} onClick={() => onResolve(f.id, i)}>{o}</button>)}</div>}
       </article>)}
-      {!canAct && <p className="text-muted" style={{ fontSize: 13 }}>Findings are resolved by QA or Engineer. Switch role to act.</p>}
+      {!canAct && <p className="text-muted sk-sm">Findings are resolved by QA or Engineer. Switch role to act.</p>}
     </section>
   </div>;
 }
@@ -150,6 +150,6 @@ export function SummaryView({ feature, phase, status }: { feature: Feature; phas
   return <div>
     <DocHead file={`specs/${feature.slug}/${phase.file}`} title={`${phase.n} · ${feature.title}`} meta={st} />
     <p style={{ maxWidth: 640 }}>{feature.summary}</p>
-    {!feature.draft && <p className="text-muted" style={{ fontSize: 13 }}>Open feature 003 to see full artifacts in this prototype.</p>}
+    {!feature.draft && <p className="text-muted sk-sm">Open feature 003 to see full artifacts in this prototype.</p>}
   </div>;
 }
