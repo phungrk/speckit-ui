@@ -1,6 +1,6 @@
 # Implementation Plan: Liên kết PR với issue và đóng issue khi PR được merge
 
-**Branch**: `feat/005-link-pr-issue` | **Date**: 2026-10-17 | **Spec**: [spec.md](./spec.md)
+**Branch**: `feat/005-link-pr-issue` | **Date**: 2026-10-17, rà lại 2026-10-18 sau PR #18 | **Spec**: [spec.md](./spec.md)
 
 **Input**: Feature specification from `/specs/005-link-pr-issue/spec.md`
 
@@ -23,6 +23,8 @@ Ba phần cần làm:
 - **Cập nhật hook đã cài:** `install` thêm điểm móc mới cho các repo đã cài bản 004. speckit-ui báo `outdated` khi thiếu (R5).
 
 Không có lần ghi mới. Việc đóng issue do GitHub làm. Cổng Implement không đổi (R7).
+
+PR #18 (spec 006) được tạo không có liên kết tới issue #17, vì 005 chưa được cài đặt và session nhiều repo không nạp hook. Do đó plan thêm một quy tắc trong `CLAUDE.md` (R8). Quy tắc này có tác dụng cả trong session không nạp hook, nhưng chỉ là hướng dẫn, không chặn được.
 
 ## Technical Context
 
@@ -118,7 +120,8 @@ server/
 hook/
 └── speckit-gate.ts      # SỬA: điểm móc tạo PR (Bash gh pr create / gh api pulls, MCP); install thêm matcher
 
-README.md                # SỬA: mục "Linking PRs to the tracking issue"; cập nhật hướng dẫn cài lại hook
+README.md                # SỬA: mục "Linking PRs to the tracking issue"; cập nhật hướng dẫn cài lại hook; quy tắc CLAUDE.md để chép sang dự án khác
+CLAUDE.md                # SỬA: quy tắc "Closes #<issue theo dõi>" khi tạo PR cho spec (R8)
 
 tests/
 ├── links.test.ts        # MỚI: linkKind/linkStatus, loadTracking, cảnh báo Implement, gateCheck outdated

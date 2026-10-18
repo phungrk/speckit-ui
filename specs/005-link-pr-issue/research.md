@@ -84,6 +84,16 @@
 - **Decision**: Thêm `"prLinks": "block" | "off"` vào `.specify/speckit-ui.json`, mặc định `"block"`. Trường này chỉ tắt việc chặn trong Claude Code. Phần hiển thị trong speckit-ui luôn bật, vì chỉ đọc.
 - **Rationale**: Tách khỏi `approvalGates`, để repo không dùng khoá cổng vẫn dùng được liên kết, và ngược lại. Constitution I yêu cầu quy ước thêm phải tuỳ chọn và có mặc định.
 
+## R8. Session không nạp hook (học từ PR #18)
+
+- **Decision**: Thêm vào `CLAUDE.md` của speckit-ui một quy tắc ngắn trong mục Spec Kit. Dự án khác có thể chép lại quy tắc này, và README hướng dẫn việc đó. Nội dung:
+  > Khi tạo PR cho `specs/NNN-…`, thêm `Closes #<issue theo dõi>` vào mô tả PR. Issue theo dõi là issue có nhãn `speckit` và tiêu đề `Spec NNN: …`. Với PR ở repo submodule, dùng `Part of <owner>/<root>#<issue>`.
+- **Rationale**:
+  - PR #18 (spec 006) được tạo không có `Closes #17`. Lúc đó 005 chưa được cài đặt, và session nhiều repo không nạp hook (spec 004 U3).
+  - Claude đọc `CLAUDE.md` ở mọi loại session, kể cả session nhiều repo, nơi hook của repo không chạy.
+  - Đây chỉ là hướng dẫn, không thay hook. Hook vẫn là cách chặn thật (R4).
+- **Alternatives considered**: Chèn bước kiểm tra vào các skill `/speckit-*` (cách C đã bàn): không áp dụng được, vì tạo PR không đi qua skill nào.
+
 ## R7. Quan hệ với cổng Implement (FR-006)
 
 - **Decision**: Không đổi `decideGate`.

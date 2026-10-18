@@ -57,6 +57,12 @@ Repo tạm có `specs/001-login`, remote `acme/alpha`, `gh` giả lập trả is
 10. Trong một session Claude Code thật trên repo tạm, yêu cầu tạo PR thiếu liên kết.
     - Kỳ vọng: lệnh tạo PR bị chặn trước khi chạy, và Claude thêm `Closes #1` rồi tạo lại. `gh` giả lập ghi lại lệnh cuối, nên không có PR thật nào được tạo.
 
+## Kịch bản 4b: session không nạp hook (R8)
+
+`CLAUDE.md` có quy tắc liên kết. Trong một session nhiều repo (hook không chạy), yêu cầu Claude tạo PR cho spec 006 với `gh` giả lập.
+- Kỳ vọng: lệnh tạo PR có `Closes #17` trong mô tả.
+- Đây là kiểm tra hành vi theo hướng dẫn, không phải hook. Ghi lại kết quả; không chặn merge nếu lệch.
+
 ## Kịch bản 5: demo
 
 So ảnh demo với `main` ở 1440×900 và 924×540, màn hình chính và hộp thoại New spec.
