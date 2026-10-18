@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,5 +31,5 @@
 
 ## Notes
 
-- 1 marker còn lại: FR-004 (nơi lưu chú thích và ai xem được). Cần người dùng trả lời trước `/speckit-clarify` hoặc `/speckit-plan`.
-- Câu trả lời quyết định mức độ quy trình: nếu chú thích ghi ra ngoài trình duyệt (GitHub), đây là một loại ghi mới và phải đi đủ quy trình Spec Kit (constitution nguyên tắc I).
+- Câu hỏi về nơi lưu (FR-004) đã được giải quyết ngày 2026-10-18: bản nháp ở local (file cục bộ git bỏ qua ở bản server, `localStorage` ở bản Pages), publish thành comment trên issue theo dõi.
+- Publish là một loại ghi mới nên cần đủ quy trình Spec Kit và bước xác nhận (constitution nguyên tắc I).
