@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,5 +31,5 @@
 
 ## Notes
 
-- One [NEEDS CLARIFICATION] marker (Q1, FR-010: where start times are recorded) waits for the user's answer.
+- Q1 answered 2026-10-18 (A: comment on the tracking issue), recorded under Clarifications. FR-013 makes it opt-in per repo, as the explicit confirmation constitution I asks for a new kind of write.
 - The spec names GitHub and git terms (commit, issue, PR) because they are the product's data sources. It names no framework or library.

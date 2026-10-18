@@ -8,6 +8,12 @@
 
 **Input**: User description: "Sau này, tôi muốn tính leadtime cho từng công đoạn" → "Cả hai": xem theo từng spec, và tổng hợp nhiều spec theo khoảng thời gian.
 
+## Clarifications
+
+### Session 2026-10-18
+
+- Q: Ghi giờ bắt đầu thật ở đâu? → A: Một comment trên issue theo dõi của spec, do bước kiểm tra trong Claude Code ghi khi cho lệnh chạy.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Lead time của một spec, theo từng bước (Priority: P1)
@@ -65,7 +71,7 @@ Khi một lệnh `/speckit-*` bắt đầu chạy trong Claude Code ở repo đ�
 
 **Acceptance Scenarios**:
 
-1. **Given** bước kiểm tra cho một lệnh chạy, **When** lệnh bắt đầu, **Then** giờ bắt đầu được ghi ở nơi lưu đã chọn (FR-010).
+1. **Given** repo đã bật ghi giờ bắt đầu và bước kiểm tra cho một lệnh chạy, **When** lệnh bắt đầu, **Then** issue theo dõi có thêm comment "▶ `/speckit-plan` started" (FR-010, FR-013).
 2. **Given** có giờ bắt đầu thật, **When** xem lead time, **Then** thời gian làm dùng giờ đó và không còn ghi là ước lượng.
 3. **Given** không ghi được giờ bắt đầu (mất mạng), **When** lệnh chạy, **Then** lệnh vẫn chạy bình thường, và lead time dùng cách ước lượng như US1.
 
@@ -104,13 +110,16 @@ Khi một lệnh `/speckit-*` bắt đầu chạy trong Claude Code ở repo đ�
 - **FR-007**: Ứng dụng MUST tổng hợp theo tuần và theo tháng, tính theo ngày merge: trung vị, mức 85% và số spec, cho từng bước và cho tổng. Có lựa chọn bỏ qua các số ước lượng.
 - **FR-008**: Tổng hợp MUST có cho một repo và cho các repo đã ghim (Overview).
 - **FR-009**: Phần đọc (US1, US2) MUST chỉ đọc dữ liệu đã có: lịch sử repo, issue theo dõi và comment, PR. Không có lần ghi mới.
-- **FR-010**: Giờ bắt đầu thật (US3) MUST được ghi ở [NEEDS CLARIFICATION: Q1 — ghi ở đâu? (a) một comment "▶ /speckit-plan started" trên issue theo dõi; (b) một file trong repo, commit cùng kết quả; (c) chưa làm US3 trong spec này]. Lệnh MUST không bị chặn hay chậm đáng kể khi không ghi được.
+- **FR-010**: Giờ bắt đầu thật (US3) MUST được ghi bằng một comment trên issue theo dõi của spec, ví dụ "▶ `/speckit-plan` started by @user". Comment do bước kiểm tra trong Claude Code ghi, ngay khi cho lệnh chạy.
+  - Lệnh MUST không bị chặn, và không chậm thêm quá 2 giây, khi ghi thất bại.
+  - Spec chưa có issue theo dõi thì không ghi.
+- **FR-013**: Việc ghi giờ bắt đầu MUST tắt theo mặc định. Mỗi repo bật nó bằng cấu hình speckit-ui của repo; bước bật này là xác nhận rõ ràng cho loại ghi mới theo constitution I. Khi đang tắt, speckit-ui hiện cách bật ở tab Lead time.
 - **FR-011**: Ứng dụng MUST cho tải bảng lead time (từng spec và tổng hợp) dưới dạng CSV.
 - **FR-012**: Lead time MUST giống nhau ở bản server và bản Pages. Chế độ demo có một bảng mẫu tĩnh, theo bản thiết kế.
 
 ### Key Entities
 
-- **Mốc**: thời điểm (UTC), loại (bắt đầu, xong bước, duyệt, PR mở, PR merge), nguồn (commit, comment, PR, ghi bắt đầu) kèm liên kết, độ chính xác (giờ hoặc ngày).
+- **Mốc**: thời điểm (UTC), loại (bắt đầu, xong bước, duyệt, PR mở, PR merge), nguồn (commit, comment duyệt, comment bắt đầu, PR) kèm liên kết, độ chính xác (giờ hoặc ngày).
 - **Khoảng của bước**: bước, thời gian làm, thời gian chờ duyệt, số lần làm lại, số lần mở lại, cờ ước lượng kèm lý do.
 - **Lead time của spec**: các khoảng của bước, thời gian PR, tổng, trạng thái (xong, đang chạy).
 - **Tổng hợp**: khoảng thời gian (tuần hoặc tháng), repo hoặc tất cả, và với mỗi bước: trung vị, mức 85%, số spec, số spec ước lượng.
@@ -148,6 +157,7 @@ Khi một lệnh `/speckit-*` bắt đầu chạy trong Claude Code ở repo đ�
   - merge PR bằng merge commit, không squash;
   - duyệt trong speckit-ui thay vì tick thẳng;
   - commit tick task theo từng phase.
+- **Quyền:** ghi giờ bắt đầu cần quyền ghi Issues của người chạy Claude Code. Đây là quyền mà bước kiểm tra trước đây chưa cần, vì nó chỉ đọc. Phần đọc lead time không cần quyền mới.
 - **Giới hạn GitHub API:** 5.000 lần gọi mỗi giờ. Lịch sử commit lấy theo đường dẫn `specs/NNN-…/`, và có cache theo SHA.
 
 ## Non-Goals
