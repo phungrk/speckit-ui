@@ -6,7 +6,7 @@
 
 ## Summary
 
-Remember the most recently opened local repository and its current view across reloads, without retaining repository file contents. Where the browser supports persistent directory handles, use its directory picker and save the user-selected read-only handle in browser storage. On startup, reopen automatically if read permission is already granted; if the browser requires user confirmation, show a resume action that does not require picking the directory again. Keep the current directory-upload input as a fallback when persistent handles are unavailable; that fallback continues to require re-selection after reload.
+Remember the most recently opened local repository and its current view across reloads, without retaining repository file contents. Preserve local mode in the page URL so the app returns to `LocalWorkspace` on reload. Where the browser supports persistent directory handles, use its directory picker and save the user-selected read-only handle in browser storage. On startup, reopen automatically if read permission is already granted; if the browser requires user confirmation, show a resume action that does not require picking the directory again. Keep the current directory-upload input as a fallback when persistent handles are unavailable; that fallback continues to require re-selection after reload.
 
 ## Technical Context
 
@@ -55,17 +55,20 @@ specs/009-persist-local-repository/
 ### Source Code (repository root)
 
 ```text
+src/Root.tsx                       # Restore local mode when the URL marks it as active
+
 src/project/
 ├── LocalWorkspace.tsx            # Restore, resume, choose, forget, and view-state UI
 ├── localProject.ts               # Continue parsing supported local files into Project
 └── localRepositoryPersistence.ts # IndexedDB handle and view-preference persistence
 
 tests/
-├── localRepositoryPersistence.test.ts # Persistence, permission, fallback, and clear-selection cases
-└── localMode.test.tsx                 # Local workspace restore/recovery UI scenarios
+├── localProject.test.ts                # Read-only traversal of selected directory handles
+├── localRepositoryPersistence.test.ts  # Persistence and clear-selection cases
+└── localMode.test.tsx                  # Local workspace restore/recovery UI scenarios
 ```
 
-**Structure Decision**: Keep persistence in a browser-only project module next to the existing `LocalWorkspace` and `localProject` modules. Keep directory traversal and file parsing in the existing local mode, and do not add server filesystem access. Add only the small storage module needed to save/retrieve the directory handle and last view.
+**Structure Decision**: Use the URL as the reload-stable signal that local mode is active, with no repository path or content in the URL. Keep directory persistence in a browser-only project module next to the existing `LocalWorkspace` and `localProject` modules. Keep directory traversal and file parsing in the existing local mode, and do not add server filesystem access. Add only the storage module needed to save/retrieve the directory handle and last view.
 
 ## Complexity Tracking
 

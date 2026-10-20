@@ -1,6 +1,7 @@
 import type { Project } from './types';
 import { SPEC_DIR, buildFeature, wantedInSpec } from '../../server/project';
 import { commandPrefix, parseConstitution, parseUiConfig } from '../../server/parse';
+import type { LocalDirectoryHandle, LocalFileHandle } from './localRepositoryPersistence';
 
 const validPath = (path: string) => path.length > 0 && !path.startsWith('/') && !path.includes('\\') &&
   path.split('/').every(part => part !== '' && part !== '.' && part !== '..');
@@ -89,4 +90,48 @@ export async function readLocalDirectory(selection: Iterable<File>): Promise<Loc
   }
 
   return { name, files, warnings };
+}
+
+/** Reads only supported Spec Kit files from a reusable, user-selected directory handle. */
+export async function readLocalDirectoryHandle(root: LocalDirectoryHandle): Promise<LocalFileSnapshot> {
+  const files = new Map<string, string>();
+  const warnings: string[] = [];
+
+  const visit = async (directory: LocalDirectoryHandle, parentPath: string): Promise<void> => {
+    let entries: Array<[string, LocalFileHandle | LocalDirectoryHandle]>;
+    try {
+      entries = [];
+      for await (const entry of directory.entries()) entries.push(entry);
+    } catch (error) {
+      warnings.push(`Could not read ${parentPath || directory.name}: ${error instanceof Error ? error.message : 'The browser could not read this directory.'}`);
+      return;
+    }
+
+    for (const [name, entry] of entries) {
+      const path = parentPath ? `${parentPath}/${name}` : name;
+      if (entry.kind === 'directory') {
+        if (shouldReadDirectory(path)) await visit(entry, path);
+        continue;
+      }
+      if (!isLocalProjectPath(path)) continue;
+      try {
+        files.set(path, await (await entry.getFile()).text());
+      } catch (error) {
+        warnings.push(`Could not read ${path}: ${error instanceof Error ? error.message : 'The browser could not read this file.'}`);
+      }
+    }
+  };
+
+  await visit(root, '');
+  return { name: root.name, files, warnings };
+}
+
+function shouldReadDirectory(path: string): boolean {
+  if (path === 'specs' || path === '.specify' || path === '.specify/memory') return true;
+  if (path.startsWith('specs/')) {
+    const parts = path.split('/');
+    if (parts.length === 2) return SPEC_DIR.test(parts[1]);
+    return parts.length === 3 && SPEC_DIR.test(parts[1]) && parts[2] === 'checklists';
+  }
+  return false;
 }
