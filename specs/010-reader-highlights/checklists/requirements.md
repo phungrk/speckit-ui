@@ -31,11 +31,8 @@
 
 ## Notes
 
-- Q1 and Q2 were answered on 2026-10-20 (see the spec's Clarifications):
-  - Q1: a JSON block in the tracking issue body (FR-015, FR-025–FR-027);
-  - Q2: full features in all four modes, with the demo re-baselined to the new design. Local stores highlights in the browser because spec 007 forbids file writes and network sends (FR-028).
-- The user's description lists exact pixel values, colors and API names, for example the CSS Custom Highlight API. The spec keeps the user-visible values (sizes, fonts, colors, timings) as acceptance detail. Implementation APIs are left for plan, which copies the full value tables into `contracts/`.
+- Clarify session 2026-10-20 split the scope: this spec keeps reader settings, theme and sidebar toggles (A–C). Highlights and notes (D–E) moved to `010-spec-annotations`, with the decisions already made (JSON file next to the spec, branch being viewed, local writes that file only). See `moved-to-annotations.md`.
+- The spec keeps user-visible values (sizes, fonts, colors) as acceptance detail. Plan copies the full value tables into `contracts/`.
 - Constitution tension to resolve in plan:
-  - IV ("no new colors"): four page themes and four highlight colors;
-  - II: the CSP must allow the Google Fonts stylesheets;
-  - I: the only write is tracking issues. Satisfied by Q1 B, but a highlight can now create the tracking issue (FR-025).
+  - IV ("no new colors"): four page themes;
+  - II: the CSP must allow the Google Fonts stylesheets.
