@@ -15,6 +15,7 @@
 - Q: Áp dụng cho chế độ nào, demo có đổi theo thiết kế mới không? → A: Server, Pages và local đều có đủ chức năng như nhau. Demo cập nhật theo thiết kế mới, lấy lại mốc so ảnh pixel.
 - Q: Highlight dùng chung lưu ở đâu, ai xem, ai sửa; commit vào nhánh nào; local có được ghi không? → A: Đã trả lời (file JSON riêng trong thư mục spec; nhánh đang xem; local ghi đúng file đó, không commit). Các quyết định này chuyển sang spec annotations cùng phần highlight, xem `moved-to-annotations.md`.
 - Q: Spec `010-spec-annotations` cũng làm highlight và ghi chú; xử lý trùng lặp thế nào? → A: Tách phạm vi. Annotations giữ highlight và ghi chú (mục D–E), theo các quyết định ở câu trên. Spec này chỉ còn cài đặt đọc, theme và ẩn/hiện sidebar (mục A–C), và không ghi gì vào repo hay GitHub.
+- Q: Nền "White" mặc định giữ màu hiện tại (`#f3f2f2`) hay dùng trắng `#FFFFFF` của bản thiết kế? → A: Theo bản thiết kế. Màu, font và kích thước lấy đúng từ prototype người dùng gửi (`speckit/reader.jsx`, `Speckit Workspace.html`): White là `#FFFFFF` / `#F3F3F1` / `#1A1A1A`, và là mặc định. Giao diện mặc định đổi cho mọi người dùng.
 
 ## Bối cảnh
 
@@ -108,6 +109,7 @@ Hai nút ở hai đầu header ẩn hoặc hiện sidebar trái (hàng chờ và
 **Theme (B)**
 
 - **FR-005**: Nền đã chọn MUST đổi màu toàn bộ khung: header, hai sidebar, cột giữa, hộp thoại, popover. Không vùng nào được giữ màu nền cứng. Ngoại lệ duy nhất: các phần mà spec annotations quy định giữ màu cố định (thanh công cụ highlight, màu highlight).
+- **FR-005a**: Màu của bốn nền MUST lấy đúng từ prototype: White `#FFFFFF`/`#F3F3F1`/`#1A1A1A`, Sepia `#F6EEDC`/`#EDE2CA`/`#5B4636`, Green `#D6E9D5`/`#C7DEC6`/`#22301F`, Dark `#121212`/`#1E1E1E`/`#D8D2C6` (nền / bề mặt / chữ), kèm màu đường kẻ tương ứng. White là mặc định, nên giao diện mặc định đổi từ nền `#f3f2f2` hiện tại sang trắng. Các token khác của Modernist (màu nhấn, font giao diện, khoảng cách) giữ nguyên.
 - **FR-006**: Chữ thường MUST đạt tương phản từ 4.5:1 ở cả bốn nền. Nền Dark MUST đổi cả các màu nhấn nhạt để các khung chú thích vẫn đọc được.
 
 **Sidebar (C)**
@@ -150,8 +152,9 @@ Hai nút ở hai đầu header ẩn hoặc hiện sidebar trái (hàng chờ và
 - **Ở local và demo:** không có login GitHub, nên cài đặt lưu theo trình duyệt.
 - **Thiết kế:**
   - Bản thiết kế tham chiếu là dự án claude.ai/design "Speckit Workspace" (`Speckit Workspace.html`, `speckit/reader.jsx`, `speckit/app.jsx`).
-  - Session này không truy cập được dự án đó, vì không có MCP `claude_design`. Bước plan cần đọc được prototype để so khớp.
-  - Bốn nền màu là ngoại lệ có chủ ý so với constitution IV ("không thêm màu mới"). Bước plan phải ghi vào Complexity Tracking, hoặc đề xuất sửa constitution.
+  - Người dùng đã gửi bản xuất của dự án (zip) ngày 2026-10-20. Màu, font, kích thước và bố cục trong spec này lấy từ đó. Token Modernist trong `styles.css` của prototype trùng với `src/styles/modernist.css`. Bản zip không được commit vào repo; plan chép các giá trị cần dùng vào `contracts/`.
+  - Bốn nền màu (kể cả White mới) là ngoại lệ có chủ ý so với constitution IV ("không thêm màu mới"). Bước plan phải ghi vào Complexity Tracking, hoặc đề xuất sửa constitution.
+  - Đổi nền mặc định làm thay đổi ảnh so pixel của mọi màn hình, không chỉ demo; bước implement lấy lại toàn bộ mốc.
 - **Font:** tải từ Google Fonts. Bản Pages hiện chỉ cho tải stylesheet từ `fonts.googleapis.com` và font từ `fonts.gstatic.com`. Bước plan cần kiểm tra CSP (constitution II).
 - **Nguyên tắc I:** tính năng này không ghi gì (FR-013), nên không cần sửa constitution về nơi ghi.
 
