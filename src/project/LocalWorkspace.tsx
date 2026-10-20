@@ -1,42 +1,164 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { Icon, Label } from '../ui';
 import { Markdown } from './Markdown';
-import { buildLocalProject, firstLocalDocumentPath, readLocalDirectory, type LocalFileSnapshot } from './localProject';
+import { buildLocalProject, firstLocalDocumentPath, readLocalDirectory, readLocalDirectoryHandle, type LocalFileSnapshot } from './localProject';
 import { LIVE_CLASS, PHASES, phaseStatus } from './phases';
+import {
+  chooseLocalDirectory,
+  clearLocalRepository,
+  loadLocalRepository,
+  saveLocalRepository,
+  saveLocalView,
+  supportsDirectoryPicker,
+  supportsPersistentDirectoryAccess,
+  type LocalDirectoryHandle,
+  type LocalPermissionState,
+  type LocalRepositoryView,
+  type SavedLocalRepository
+} from './localRepositoryPersistence';
 import type { PhaseKey } from '../types';
 import type { Project, SpecFeature } from './types';
 
 type LocalView =
-  | { state: 'empty' }
+  | { state: 'restoring' }
+  | { state: 'empty'; notice?: string }
   | { state: 'reading' }
-  | { state: 'error'; message: string }
-  | { state: 'ready'; name: string; files: Map<string, string>; project: Project; file: string };
+  | { state: 'resume'; saved: SavedLocalRepository; permission: LocalPermissionState }
+  | { state: 'error'; message: string; canForget?: boolean }
+  | {
+    state: 'ready';
+    name: string;
+    files: Map<string, string>;
+    project: Project;
+    file: string;
+    handle?: LocalDirectoryHandle;
+    persisted: boolean;
+    persistenceWarning?: string;
+  };
 
 interface Props {
   onExit: () => void;
 }
 
-const canChooseDirectory = () => typeof document !== 'undefined' &&
+const canChooseFileInputDirectory = () => typeof document !== 'undefined' &&
   'webkitdirectory' in document.createElement('input');
+
+const canChooseDirectory = () => supportsDirectoryPicker() || canChooseFileInputDirectory();
+
+const errorMessage = (error: unknown, fallback: string) => error instanceof Error ? error.message : fallback;
+
+const initialView = (): LocalRepositoryView => ({
+  selectedFeatureSlug: null,
+  selectedFilePath: null,
+  selectedStep: 1,
+  selectedDocumentPath: null
+});
 
 export function LocalWorkspace({ onExit }: Props) {
   const input = useRef<HTMLInputElement>(null);
   const request = useRef(0);
   const supported = canChooseDirectory();
-  const [view, setView] = useState<LocalView>({ state: 'empty' });
+  const [view, setView] = useState<LocalView>({ state: 'restoring' });
   const [selectedStep, setSelectedStep] = useState(1);
   const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
   const [selectedFeatureSlug, setSelectedFeatureSlug] = useState<string | null>(null);
 
   useEffect(() => { input.current?.setAttribute('webkitdirectory', ''); }, []);
 
-  const openPicker = () => {
-    if (!supported) {
-      setView({ state: 'error', message: 'This browser cannot select a repository directory. Use a current desktop browser, or choose GitHub mode or the demo.' });
+  const openHandle = async (
+    handle: LocalDirectoryHandle,
+    name: string,
+    savedView: LocalRepositoryView | null,
+    shouldPersist: boolean
+  ) => {
+    const id = ++request.current;
+    setView({ state: 'reading' });
+    try {
+      const snapshot = await readLocalDirectoryHandle(handle);
+      const project = buildLocalProject(name || snapshot.name, snapshot.files, snapshot.warnings);
+      if (!project.specs.length) {
+        const unreadable = snapshot.warnings.length ? ` ${snapshot.warnings.slice(0, 3).join(' ')}` : '';
+        throw new Error(`No supported Spec Kit specs were found. Choose a repository with files under specs/NNN-name/.${unreadable}`);
+      }
+      if (id !== request.current) return;
+
+      const preferredFeature = project.specs.find(feature => feature.slug === savedView?.selectedFeatureSlug);
+      const featureFromPath = savedView?.selectedFilePath?.match(/^specs\/([^/]+)\//)?.[1];
+      const feature = preferredFeature ?? project.specs.find(item => item.slug === featureFromPath) ?? project.specs[0];
+      const step = savedView && Number.isInteger(savedView.selectedStep) && savedView.selectedStep >= 0 && savedView.selectedStep < PHASES.length
+        ? savedView.selectedStep : 1;
+      const savedDocument = savedView?.selectedDocumentPath && snapshot.files.has(savedView.selectedDocumentPath)
+        ? savedView.selectedDocumentPath : null;
+      const preferredFile = savedView?.selectedFilePath && snapshot.files.has(savedView.selectedFilePath)
+        ? savedView.selectedFilePath : null;
+      const file = preferredFile ?? savedDocument ?? (step === 0
+        ? '.specify/memory/constitution.md'
+        : stageFile(PHASES[step].k, feature.slug));
+
+      let persisted = !shouldPersist;
+      let persistenceWarning: string | undefined;
+      if (shouldPersist) {
+        try {
+          await saveLocalRepository(handle, name || snapshot.name, savedView ?? initialView());
+          persisted = true;
+        } catch (error) {
+          persistenceWarning = `This repository is open for this tab, but the browser could not remember it: ${errorMessage(error, 'browser storage is unavailable')}`;
+        }
+      }
+      if (id !== request.current) return;
+
+      setSelectedStep(step);
+      setSelectedDocument(savedDocument);
+      setSelectedFeatureSlug(feature.slug);
+      setView({
+        state: 'ready', name: name || snapshot.name, files: snapshot.files, project, file,
+        handle, persisted, ...(persistenceWarning ? { persistenceWarning } : {})
+      });
+    } catch (error) {
+      if (id !== request.current) return;
+      setView({ state: 'error', message: errorMessage(error, 'The selected repository could not be read.'), ...(shouldPersist ? {} : { canForget: true }) });
+    }
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    const restore = async () => {
+      try {
+        const saved = await loadLocalRepository();
+        if (cancelled) return;
+        if (!saved) {
+          setView({ state: 'empty' });
+          return;
+        }
+        const permission = await saved.handle.queryPermission({ mode: 'read' });
+        if (cancelled) return;
+        if (permission === 'granted') {
+          await openHandle(saved.handle, saved.name, saved.view, false);
+        } else {
+          setView({ state: 'resume', saved, permission });
+        }
+      } catch (error) {
+        if (!cancelled) setView({ state: 'error', message: errorMessage(error, 'The saved repository is not available.'), canForget: true });
+      }
+    };
+    void restore();
+    return () => { cancelled = true; request.current++; };
+  }, []);
+
+  const openPicker = async () => {
+    request.current++;
+    if (supportsDirectoryPicker()) {
+      try {
+        const handle = await chooseLocalDirectory();
+        await openHandle(handle, handle.name, null, true);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+        setView({ state: 'error', message: errorMessage(error, 'The directory picker is unavailable.'), canForget: view.state === 'ready' || view.state === 'resume' });
+      }
       return;
     }
-    if (!input.current) {
-      setView({ state: 'error', message: 'The directory picker is unavailable. Reload the page and try again.' });
+    if (!canChooseFileInputDirectory() || !input.current) {
+      setView({ state: 'error', message: 'This browser cannot select a repository directory. Use GitHub mode or the demo.' });
       return;
     }
     input.current.value = '';
@@ -57,17 +179,50 @@ export function LocalWorkspace({ onExit }: Props) {
         throw new Error(`No supported Spec Kit specs were found. Choose a repository with files under specs/NNN-name/.${unreadable}`);
       }
       if (id !== request.current) return;
+      let persistenceWarning: string | undefined;
+      try { await clearLocalRepository(); }
+      catch { persistenceWarning = 'This browser cannot remember the selected folder; choose it again after reloading.'; }
+      if (id !== request.current) return;
       const first = project.specs[0];
       const file = firstLocalDocumentPath(project) ?? filePath(first, initialFile(first));
       setSelectedStep(1);
       setSelectedDocument(null);
       setSelectedFeatureSlug(first.slug);
-      setView({ state: 'ready', name: snapshot.name, files: snapshot.files, project, file });
+      setView({ state: 'ready', name: snapshot.name, files: snapshot.files, project, file, persisted: false, ...(persistenceWarning ? { persistenceWarning } : {}) });
     } catch (error) {
       if (id !== request.current) return;
-      setView({ state: 'error', message: error instanceof Error ? error.message : 'The selected repository could not be read.' });
+      setView({ state: 'error', message: errorMessage(error, 'The selected repository could not be read.') });
     } finally {
       inputElement.value = '';
+    }
+  };
+
+  const resumeSaved = async (saved: SavedLocalRepository) => {
+    const id = ++request.current;
+    setView({ state: 'reading' });
+    try {
+      const permission = await saved.handle.requestPermission({ mode: 'read' });
+      if (id !== request.current) return;
+      if (permission !== 'granted') {
+        setView({ state: 'resume', saved, permission });
+        return;
+      }
+      await openHandle(saved.handle, saved.name, saved.view, false);
+    } catch (error) {
+      if (id === request.current) setView({ state: 'error', message: errorMessage(error, 'The saved repository could not be reopened.'), canForget: true });
+    }
+  };
+
+  const forgetSaved = async () => {
+    request.current++;
+    try {
+      await clearLocalRepository();
+      setSelectedStep(1);
+      setSelectedDocument(null);
+      setSelectedFeatureSlug(null);
+      setView({ state: 'empty', notice: 'Saved local repository forgotten.' });
+    } catch (error) {
+      setView({ state: 'error', message: errorMessage(error, 'Could not forget the saved repository.'), canForget: true });
     }
   };
 
@@ -76,37 +231,42 @@ export function LocalWorkspace({ onExit }: Props) {
     setView({ state: 'empty' });
     onExit();
   };
-  const reselect = () => {
-    request.current++;
-    openPicker();
-  };
 
   const ready = view.state === 'ready' ? view : null;
   const selectedSpec = ready?.project.specs.find(feature => feature.slug === selectedFeatureSlug) ?? null;
-
-  const selectFile = (file: string) => {
-    if (view.state !== 'ready') return;
-    const feature = view.project.specs.find(item => file.startsWith(`specs/${item.slug}/`));
-    if (feature) setSelectedFeatureSlug(feature.slug);
-    if (file === '.specify/memory/constitution.md') {
-      setSelectedStep(0);
-      setSelectedDocument(null);
-    } else if (stageIndexForFile(file) >= 0) {
-      const stage = stageIndexForFile(file);
-      setSelectedStep(stage);
-      setSelectedDocument(null);
-    } else {
-      setSelectedDocument(file);
-    }
-    setView({ ...view, file });
-  };
   const filePath = (feature: SpecFeature, file: string) => `specs/${feature.slug}/${file}`;
+  const persistView = (next: LocalRepositoryView) => {
+    if (ready?.persisted) void saveLocalView(next).catch(() => undefined);
+  };
+  const selectFile = (file: string) => {
+    if (!ready) return;
+    const feature = ready.project.specs.find(item => file.startsWith(`specs/${item.slug}/`));
+    const featureSlug = feature?.slug ?? selectedFeatureSlug ?? ready.project.specs[0]?.slug ?? null;
+    const stage = file === '.specify/memory/constitution.md' ? 0 : stageIndexForFile(file);
+    const nextStep = stage >= 0 ? stage : selectedStep;
+    const nextDocument = stage >= 0 ? null : file;
+    if (feature) setSelectedFeatureSlug(feature.slug);
+    setSelectedStep(nextStep);
+    setSelectedDocument(nextDocument);
+    setView({ ...ready, file });
+    persistView({ selectedFeatureSlug: featureSlug, selectedFilePath: file, selectedStep: nextStep, selectedDocumentPath: nextDocument });
+  };
   const selectSpec = (feature: SpecFeature) => {
     setSelectedFeatureSlug(feature.slug);
     setSelectedStep(1);
     setSelectedDocument(null);
     selectFile(filePath(feature, initialFile(feature)));
   };
+  const selectStep = (step: number) => {
+    if (!ready) return;
+    setSelectedStep(step);
+    setSelectedDocument(null);
+    const feature = selectedSpec ?? ready.project.specs[0];
+    const file = step === 0 ? '.specify/memory/constitution.md' : stageFile(PHASES[step].k, feature.slug);
+    setView({ ...ready, file });
+    persistView({ selectedFeatureSlug: feature.slug, selectedFilePath: file, selectedStep: step, selectedDocumentPath: null });
+  };
+
   const activeFeature = ready && (selectedSpec ?? ready.project.specs[0]);
   const activePhase = PHASES[selectedStep] ?? PHASES[1];
   const headingPath = ready && activeFeature
@@ -120,24 +280,37 @@ export function LocalWorkspace({ onExit }: Props) {
       <div className="sk-proj">{ready ? `Local · ${ready.name}` : 'Local repository'}</div>
       <div className="sk-spacer"></div>
       <span className="sk-who">READ ONLY</span>
-      {ready && <button className="btn btn-secondary sk-small" onClick={reselect}>Choose another</button>}
+      {ready && <button className="btn btn-secondary sk-small" onClick={() => void openPicker()}>Choose another</button>}
+      {ready?.persisted && <button className="btn btn-ghost sk-small" onClick={() => void forgetSaved()}>Forget saved folder</button>}
+      {view.state === 'error' && view.canForget && <button className="btn btn-ghost sk-small" onClick={() => void forgetSaved()}>Forget saved folder</button>}
       <button className="btn btn-ghost sk-small" onClick={leave}>Exit local mode</button>
       <input ref={input} type="file" multiple hidden onChange={event => void selected(event)} aria-label="Choose a local repository directory" />
     </nav>
 
-    {view.state === 'empty' || view.state === 'error' || view.state === 'reading'
+    {view.state !== 'ready'
       ? <main className="sk-repos">
         <div className="sk-repos-head">
           <h2>Open a local repository</h2>
           <p className="sk-connect-lead">Choose a project folder. Its supported Spec Kit files are read in this tab only; they are not uploaded or changed.</p>
         </div>
         {view.state === 'error' && <div className="sk-warn" role="alert"><Icon n="alert" s={16} /><span>{view.message}</span></div>}
+        {view.state === 'resume' && <LocalRepositoryResumeActions
+          permission={view.permission}
+          onResume={() => void resumeSaved(view.saved)}
+          onChoose={() => void openPicker()}
+          onForget={() => void forgetSaved()}
+        />}
         {view.state === 'reading' && <p className="sk-ns-cursor" role="status">Reading selected Spec Kit files…</p>}
+        {view.state === 'restoring' && <p className="sk-ns-cursor" role="status">Checking for a saved local repository…</p>}
+        {view.state === 'empty' && view.notice && <p className="text-muted" role="status">{view.notice}</p>}
+        {supportsDirectoryPicker() && !supportsPersistentDirectoryAccess() && <div className="sk-warn" role="status"><Icon n="alert" s={14} /><span>This browser cannot save folder access. Choose the folder again after reloading.</span></div>}
+        {!supportsDirectoryPicker() && canChooseFileInputDirectory() && <div className="sk-warn" role="status"><Icon n="alert" s={14} /><span>This browser cannot remember folder access. Choose the folder again after reloading.</span></div>}
         {!supported && <div className="sk-warn" role="status"><Icon n="alert" s={14} /><span>Directory selection is not supported in this browser. Demo and GitHub modes remain available.</span></div>}
         <div className="sk-actions">
-          <button className="btn btn-primary" onClick={openPicker} disabled={!supported || view.state === 'reading'}>
+          <button className="btn btn-primary" onClick={() => void openPicker()} disabled={!supported || view.state === 'reading' || view.state === 'restoring'}>
             Choose repository folder<Icon n="arrow" s={14} />
           </button>
+          {view.state === 'error' && view.canForget && <button className="btn btn-secondary" onClick={() => void openPicker()}>Choose another folder</button>}
         </div>
         <p className="text-muted sk-sm">Local mode is read-only. Gate approvals, PR tracking, and Copilot are available in GitHub mode.</p>
       </main>
@@ -146,8 +319,9 @@ export function LocalWorkspace({ onExit }: Props) {
           <aside className="sk-side">
             <div className="sk-pad">
               <Label>Local repository</Label>
-              <p className="text-muted sk-sm">Files stay in this browser tab. Select another folder to refresh.</p>
+              <p className="text-muted sk-sm">Files are read again from the selected folder and stay in this browser tab. Select another folder to refresh.</p>
             </div>
+            {ready.persistenceWarning && <div className="sk-pad sk-rule"><div className="sk-warn" role="status"><Icon n="alert" s={14} /><span>{ready.persistenceWarning}</span></div></div>}
             {ready.project.constitution && <div className="sk-pad sk-rule">
               <Label>Project files</Label>
               <ul className="sk-list"><li><button className="sk-qitem" aria-current={ready.file === '.specify/memory/constitution.md' ? 'page' : undefined} onClick={() => selectFile('.specify/memory/constitution.md')}><b>Constitution</b><span>.specify/memory/constitution.md</span></button></li></ul>
@@ -173,7 +347,7 @@ export function LocalWorkspace({ onExit }: Props) {
               <h2>{headingTitle}</h2>
             </div>
             <LocalFlow project={ready.project} feature={activeFeature}
-              selected={selectedStep} onSelect={step => { setSelectedStep(step); setSelectedDocument(null); }} />
+              selected={selectedStep} onSelect={selectStep} />
             {selectedDocument
               ? <div className="sk-doc" role="tabpanel" aria-label={selectedDocument}><Markdown>{ready.files.get(selectedDocument) ?? ''}</Markdown></div>
               : <LocalStageContent feature={activeFeature} files={ready.files} selected={selectedStep} />}
@@ -188,6 +362,24 @@ export function LocalWorkspace({ onExit }: Props) {
         </div>
       </>}
   </div>;
+}
+
+export function LocalRepositoryResumeActions({ permission, onResume, onChoose, onForget }: {
+  permission: LocalPermissionState;
+  onResume: () => void;
+  onChoose: () => void;
+  onForget: () => void;
+}) {
+  return <>
+    <div className="sk-warn" role="status"><Icon n="lock" s={14} /><span>{permission === 'denied'
+      ? 'Access to the saved folder was denied. Resume to grant read access or choose another folder.'
+      : 'The saved folder needs your permission before it can be reopened.'}</span></div>
+    <div className="sk-actions">
+      <button type="button" className="btn btn-primary" onClick={onResume}>Resume saved folder</button>
+      <button type="button" className="btn btn-secondary" onClick={onChoose}>Choose another folder</button>
+      <button type="button" className="btn btn-ghost" onClick={onForget}>Forget saved folder</button>
+    </div>
+  </>;
 }
 
 const stageFile = (key: PhaseKey, slug: string) => {

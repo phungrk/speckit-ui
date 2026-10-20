@@ -28,6 +28,13 @@ type Boot =
   | { kind: 'ready'; backend: Backend; user: CurrentUser; defaultRepo: string | null };
 
 const forceDemo = () => new URLSearchParams(location.search).has('demo');
+const forceLocal = () => new URLSearchParams(location.search).has('local');
+const setLocalModeUrl = (active: boolean) => {
+  const url = new URL(location.href);
+  if (active) url.searchParams.set('local', '');
+  else url.searchParams.delete('local');
+  history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+};
 const message = (e: unknown, d: string) => (e instanceof Error ? e.message : d);
 
 /** Who the user is decides everything they can see (FR-013). */
@@ -48,7 +55,12 @@ async function identify(backend: Backend): Promise<Boot> {
  */
 export function Root() {
   const [settings, setSettings] = useState<Settings | null>(() => (STATIC ? loadSettings() : null));
-  const [boot, setBoot] = useState<Boot>(() => forceDemo() ? { kind: 'demo' } : STATIC && !settings ? { kind: 'connect', error: null, busy: false } : { kind: 'loading' });
+  const [boot, setBoot] = useState<Boot>(() => forceDemo() ? { kind: 'demo' } : forceLocal() ? { kind: 'local' } : STATIC && !settings ? { kind: 'connect', error: null, busy: false } : { kind: 'loading' });
+
+  const openLocal = () => {
+    setLocalModeUrl(true);
+    setBoot({ kind: 'local' });
+  };
 
   const start = () => {
     setBoot({ kind: 'loading' });
@@ -71,6 +83,7 @@ export function Root() {
 
   if (boot.kind === 'demo') return <App />;
   if (boot.kind === 'local') return <LocalWorkspace onExit={() => {
+    setLocalModeUrl(false);
     if (STATIC && !settings) setBoot({ kind: 'connect', error: null, busy: false });
     else start();
   }} />;
@@ -79,17 +92,17 @@ export function Root() {
     <h2>Choose a workspace</h2>
     <p className="sk-connect-lead">Open a Spec Kit repository from this computer without connecting GitHub, or explore the sample workspace.</p>
     <div className="sk-actions">
-      <button className="btn btn-primary" onClick={() => setBoot({ kind: 'local' })}>Open local repository<Icon n="arrow" s={14} /></button>
+      <button className="btn btn-primary" onClick={openLocal}>Open local repository<Icon n="arrow" s={14} /></button>
       <button className="btn btn-secondary" onClick={() => setBoot({ kind: 'demo' })}>Open the demo</button>
     </div>
   </div>;
-  if (boot.kind === 'connect') return <Connect initial={settings} error={boot.error} busy={boot.busy} onConnect={s => void connect(s)} onLocal={() => setBoot({ kind: 'local' })} />;
-  if (boot.kind === 'signin') return <SignIn error={boot.error} onLocal={() => setBoot({ kind: 'local' })} />;
-  if (boot.kind === 'setup') return <TokenSetup error={boot.error} onRetry={start} onLocal={() => setBoot({ kind: 'local' })} />;
+  if (boot.kind === 'connect') return <Connect initial={settings} error={boot.error} busy={boot.busy} onConnect={s => void connect(s)} onLocal={openLocal} />;
+  if (boot.kind === 'signin') return <SignIn error={boot.error} onLocal={openLocal} />;
+  if (boot.kind === 'setup') return <TokenSetup error={boot.error} onRetry={start} onLocal={openLocal} />;
   if (boot.kind === 'ready') {
     const actions: SessionActions = boot.backend.kind === 'browser'
-      ? { onDisconnect: disconnect, onSettings: () => setBoot({ kind: 'connect', error: null, busy: false }), onLocal: () => setBoot({ kind: 'local' }) }
-      : { ...(boot.user.mode === 'signin' ? { onSignOut: () => void doSignOut() } : {}), onLocal: () => setBoot({ kind: 'local' }) };
+      ? { onDisconnect: disconnect, onSettings: () => setBoot({ kind: 'connect', error: null, busy: false }), onLocal: openLocal }
+      : { ...(boot.user.mode === 'signin' ? { onSignOut: () => void doSignOut() } : {}), onLocal: openLocal };
     const storage: PrefsStorage = STATIC && !settings?.remember ? 'session' : 'local';
     return <Session key={boot.user.login} backend={boot.backend} user={boot.user} defaultRepo={boot.defaultRepo} storage={storage} actions={actions}
       onAuthLost={() => { boot.backend.reset(); setBoot({ kind: 'signin', error: 'Your session ended. Sign in again.' }); }} />;
@@ -102,7 +115,7 @@ export function Root() {
         <div className="sk-warn"><Icon n="alert" s={16} /><span>{boot.message}</span></div>
         <div className="sk-actions">
           <button className="btn btn-primary" onClick={start}>Try again<Icon n="arrow" s={14} /></button>
-          <button className="btn btn-secondary" onClick={() => setBoot({ kind: 'local' })}>Open local repository</button>
+          <button className="btn btn-secondary" onClick={openLocal}>Open local repository</button>
           <a className="btn btn-secondary" href="?demo">Open the demo</a>
         </div>
       </div>}

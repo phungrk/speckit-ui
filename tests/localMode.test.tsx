@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { LocalWorkspace } from '../src/project/LocalWorkspace';
+import { LocalRepositoryResumeActions, LocalWorkspace } from '../src/project/LocalWorkspace';
 import { buildLocalProject } from '../src/project/localProject';
 import { LocalFlow, LocalStageContent } from '../src/project/LocalWorkspace';
 
@@ -103,6 +103,29 @@ describe('LocalWorkspace', () => {
     expect((html.match(/type="button"/g) ?? [])).toHaveLength(7);
     expect((html.match(/tabindex="-1"/g) ?? [])).toHaveLength(6);
     expect(html).toContain('id="local-flow-tab-1" type="button" role="tab" aria-selected="true" aria-controls="local-flow-panel" tabindex="0"');
+  });
+});
+
+describe('LocalRepositoryResumeActions', () => {
+  it('explains a permission prompt and offers resume, choose, and forget actions', () => {
+    const html = renderToStaticMarkup(<LocalRepositoryResumeActions
+      permission="prompt" onResume={() => {}} onChoose={() => {}} onForget={() => {}}
+    />);
+
+    expect(html).toContain('needs your permission');
+    expect(html).toContain('Resume saved folder');
+    expect(html).toContain('Choose another folder');
+    expect(html).toContain('Forget saved folder');
+    expect(html).toContain('role="status"');
+  });
+
+  it('explains denied access without presenting saved repository content', () => {
+    const html = renderToStaticMarkup(<LocalRepositoryResumeActions
+      permission="denied" onResume={() => {}} onChoose={() => {}} onForget={() => {}}
+    />);
+
+    expect(html).toContain('Access to the saved folder was denied');
+    expect(html).not.toContain('Wallet App');
   });
 });
 

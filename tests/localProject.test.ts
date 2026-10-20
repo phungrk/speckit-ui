@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildLocalProject, firstLocalDocumentPath, readLocalDirectory } from '../src/project/localProject';
+import { buildLocalProject, firstLocalDocumentPath, readLocalDirectory, readLocalDirectoryHandle } from '../src/project/localProject';
+import type { LocalDirectoryHandle, LocalFileHandle } from '../src/project/localRepositoryPersistence';
 
 const documents = ['spec.md', 'plan.md', 'tasks.md', 'analysis.md', 'research.md'];
 
@@ -82,5 +83,72 @@ describe('readLocalDirectory', () => {
     expect(snapshot.files.get('specs/001-local/plan.md')).toBe('# Readable plan');
     expect(snapshot.files.has('specs/001-local/spec.md')).toBe(false);
     expect(snapshot.warnings).toEqual(['Could not read specs/001-local/spec.md: permission denied']);
+  });
+});
+
+describe('readLocalDirectoryHandle', () => {
+  const fileHandle = (name: string, text: string): LocalFileHandle => ({
+    kind: 'file',
+    getFile: async () => new File([text], name, { type: 'text/markdown' })
+  });
+  const directoryHandle = (name: string, entries: Array<[string, LocalFileHandle | LocalDirectoryHandle]>): LocalDirectoryHandle => ({
+    kind: 'directory',
+    name,
+    entries: async function* () { yield* entries; },
+    queryPermission: async () => 'granted',
+    requestPermission: async () => 'granted'
+  });
+
+  it('reads supported files recursively and ignores unrelated files', async () => {
+    const handle = directoryHandle('fixture', [
+      ['README.md', fileHandle('README.md', '# Ignore')],
+      ['specs', directoryHandle('specs', [
+        ['001-local', directoryHandle('001-local', [
+          ['spec.md', fileHandle('spec.md', '# Local spec')],
+          ['notes.txt', fileHandle('notes.txt', 'Ignore')]
+        ])]
+      ])]
+    ]);
+
+    const snapshot = await readLocalDirectoryHandle(handle);
+
+    expect(snapshot.name).toBe('fixture');
+    expect(snapshot.files).toEqual(new Map([['specs/001-local/spec.md', '# Local spec']]));
+    expect(snapshot.warnings).toEqual([]);
+  });
+
+  it('keeps readable documents and reports an individual read failure', async () => {
+    const unreadable: LocalFileHandle = {
+      kind: 'file',
+      getFile: async () => { throw new Error('permission denied'); }
+    };
+    const handle = directoryHandle('fixture', [
+      ['specs', directoryHandle('specs', [
+        ['001-local', directoryHandle('001-local', [
+          ['spec.md', unreadable],
+          ['plan.md', fileHandle('plan.md', '# Plan')]
+        ])]
+      ])]
+    ]);
+
+    const snapshot = await readLocalDirectoryHandle(handle);
+
+    expect(snapshot.files).toEqual(new Map([['specs/001-local/plan.md', '# Plan']]));
+    expect(snapshot.warnings).toEqual(['Could not read specs/001-local/spec.md: permission denied']);
+  });
+
+  it('reports when a saved directory can no longer be read', async () => {
+    const handle: LocalDirectoryHandle = {
+      kind: 'directory',
+      name: 'missing-repository',
+      entries: async function* () { throw new Error('directory unavailable'); },
+      queryPermission: async () => 'granted',
+      requestPermission: async () => 'granted'
+    };
+
+    const snapshot = await readLocalDirectoryHandle(handle);
+
+    expect(snapshot.files).toEqual(new Map());
+    expect(snapshot.warnings).toEqual(['Could not read missing-repository: directory unavailable']);
   });
 });
