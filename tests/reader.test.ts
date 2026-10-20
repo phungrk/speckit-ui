@@ -131,10 +131,21 @@ describe('no hard-coded colours (research R8)', () => {
   const HEX = /#(?:fff|ffffff|000|000000)\b/i;
   const KEYWORD = /:\s*[^;{}]*\b(?:white|black)\b/i;
 
+  /** Constitution IV 1.3.0: the highlight colours live in one :root block of reader.css, as --hl-* tokens. */
+  const HL_TOKENS = /:root\s*\{[^}]*--hl-[^}]*\}/;
+
   it.each(['src/styles/workspace.css', 'src/styles/live.css', 'src/styles/reader.css'])('%s', f => {
-    const text = css(f);
+    const text = css(f).replace(HL_TOKENS, '');
     expect(text.match(HEX)?.[0] ?? null).toBeNull();
     expect(text.match(KEYWORD)?.[0] ?? null).toBeNull();
+  });
+
+  it('declares the highlight colours once, as --hl-* tokens, and uses them only through var()', () => {
+    const r = css('src/styles/reader.css');
+    const blocks = r.match(new RegExp(HL_TOKENS.source, 'g')) ?? [];
+    expect(blocks).toHaveLength(1);
+    const rest = r.replace(HL_TOKENS, '');
+    expect(rest.match(/#[0-9a-f]{3,8}\b/gi) ?? []).toEqual([]);
   });
 
   it('modernist.css only has them inside :root token definitions', () => {

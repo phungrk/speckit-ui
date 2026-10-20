@@ -6,6 +6,8 @@ Phần highlight và ghi chú (mục D–E của mô tả gốc) chuyển sang s
 phần đã viết và các quyết định đã chốt, để `/speckit-clarify` của spec annotations dùng làm đầu vào.
 File này không phải yêu cầu của 010-reader-highlights.
 
+**CSS đã có sẵn (2026-10-20):** toàn bộ CSS highlight của bản thiết kế đã nằm trong `src/styles/reader.css` (thanh công cụ `.sk-tb*`, panel `.sk-hlp*`, `::highlight(sk-*)`, `.hl-*`, tab ba cột `.sk-rtabs.is-3`). Màu là token `--hl-*` (constitution 1.3.0). Ghim ghi chú đổi tên từ `.sk-pin` của bản thiết kế thành `.sk-hl-pin`, vì `.sk-pin` đã là nút ghim repo (specs/003).
+
 ## Quyết định đã chốt (Session 2026-10-20)
 
 - Q: Highlight dùng chung lưu ở đâu, ai xem và ai sửa được? → A: Highlight đi kèm spec, lưu thành **một file JSON riêng** trong thư mục của spec. Ai đọc được spec thì xem được mọi highlight. Chỉ người tạo (owner) sửa hoặc xoá được highlight của mình, giống ghi chú của Google Docs. (Thay cho phương án "khối JSON trong thân issue" chọn trước đó.)
