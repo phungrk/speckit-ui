@@ -1,6 +1,6 @@
 # Feature Specification: Chú thích (annotation) trên tài liệu của spec
 
-**Feature Branch**: `feat/009-spec-annotations`
+**Feature Branch**: `feat/010-spec-annotations`
 
 **Created**: 2026-10-18
 
