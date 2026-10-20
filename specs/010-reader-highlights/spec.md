@@ -13,6 +13,7 @@
 ### Session 2026-10-20
 
 - Q: Highlight dùng chung lưu ở đâu, ai xem và ai sửa được? → A: Highlight đi kèm spec, lưu thành **một file JSON riêng** trong thư mục của spec. Ai đọc được spec thì xem được mọi highlight. Chỉ người tạo (owner) sửa hoặc xoá được highlight của mình, giống ghi chú của Google Docs. (Thay cho phương án "khối JSON trong thân issue" chọn trước đó.)
+- Q: Khi lưu highlight, file được commit vào nhánh nào? → A: Nhánh mà người dùng đang xem spec: `feat/NNN` khi spec chưa merge, `main` khi đã merge. Nhánh bị bảo vệ hoặc đã xoá thì highlight chỉ xem được, kèm thông báo.
 - Q: Áp dụng cho chế độ nào, demo có đổi theo thiết kế mới không? → A: Server, Pages và local đều có đủ chức năng như nhau (cài đặt đọc, theme, sidebar, highlight, ghi chú, panel, brief). Demo cập nhật theo thiết kế mới, lấy lại mốc so ảnh pixel.
 
 ## Bối cảnh
@@ -146,6 +147,8 @@ Sidebar phải có ba tab: **Gate**, **Highlights {số lượng}**, **Copilot**
 - **Hai người lưu highlight cùng lúc:** không ai mất highlight (FR-026).
 - **File highlight quá lớn:** không lưu thêm được, kèm thông báo; highlight cũ không bị mất (FR-027).
 - **Spec chưa có file highlight:** highlight đầu tiên tạo file (FR-025).
+- **Nhánh đang xem bị bảo vệ hoặc đã bị xoá sau khi merge:** highlight chỉ xem được, kèm lý do (FR-015a).
+- **Spec đang xem ở nhánh `feat/` được merge vào main:** highlight đi theo file vào main qua PR, như các file khác của spec.
 - **Người chỉ có quyền đọc repo:** xem được mọi highlight, không tạo được; thanh công cụ chỉ còn Copy và Ask.
 - **File highlight bị sửa tay làm hỏng:** ứng dụng không ghi đè; panel báo lỗi và chỉ cho đọc highlight cho tới khi file được sửa.
 
@@ -179,6 +182,7 @@ Sidebar phải có ba tab: **Gate**, **Highlights {số lượng}**, **Copilot**
 - **FR-013**: Mỗi highlight có ghi chú MUST có ghim ở lề phải, ngang dòng đầu tiên của nó. Bấm ghim thì mở trình sửa ghi chú.
 - **FR-014**: Highlight MUST được gắn bằng chính đoạn văn, cộng khoảng 32 ký tự trước và sau, cộng vị trí lúc tạo để chọn đúng lần xuất hiện khi đoạn văn lặp lại. Không tìm thấy đoạn văn thì highlight là **"Outdated, text changed"**: vẫn hiện trong panel, không tô trên văn bản.
 - **FR-015**: Highlight của một spec MUST được lưu trong **một file JSON riêng nằm trong thư mục của spec** đó, đi kèm spec trong git. File chứa highlight của mọi bước (artifact) của spec. Ứng dụng MUST NOT sửa file nào khác của repo khi lưu highlight.
+- **FR-015a**: Mỗi lần lưu MUST commit file highlight vào đúng nhánh mà người dùng đang xem spec: nhánh `feat/` khi spec chưa merge (spec 003), `main` khi đã merge. Nếu không commit được vào nhánh đó (nhánh bị bảo vệ, đã xoá, hoặc người dùng không có quyền push), highlight MUST vẫn xem được và ứng dụng MUST báo rõ lý do không lưu được.
 - **FR-016**: Ai đọc được spec MUST xem được mọi highlight của spec. Ai có quyền ghi vào repo thì tạo được highlight. Như ghi chú của Google Docs, chỉ người tạo (owner) sửa màu, sửa ghi chú hoặc xoá được highlight của mình; người khác chỉ xem, Copy và Ask. Ứng dụng là nơi thực thi quy tắc này: người có quyền push vẫn sửa tay được file, và lịch sử git là nơi đối chiếu.
 - **FR-017**: Tạo hoặc sửa ghi chú MUST để lại dấu vết hoạt động: "{tên} noted on {Phase}: "{60 ký tự đầu}"". Dấu vết là thông điệp commit của lần lưu file highlight, nên đọc được trong lịch sử git của file.
 
