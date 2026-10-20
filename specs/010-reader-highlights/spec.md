@@ -14,6 +14,7 @@
 
 - Q: Highlight dùng chung lưu ở đâu, ai xem và ai sửa được? → A: Highlight đi kèm spec, lưu thành **một file JSON riêng** trong thư mục của spec. Ai đọc được spec thì xem được mọi highlight. Chỉ người tạo (owner) sửa hoặc xoá được highlight của mình, giống ghi chú của Google Docs. (Thay cho phương án "khối JSON trong thân issue" chọn trước đó.)
 - Q: Khi lưu highlight, file được commit vào nhánh nào? → A: Nhánh mà người dùng đang xem spec: `feat/NNN` khi spec chưa merge, `main` khi đã merge. Nhánh bị bảo vệ hoặc đã xoá thì highlight chỉ xem được, kèm thông báo.
+- Q: Ở local, người dùng có được tạo, sửa, xoá highlight bằng cách ghi thẳng vào file highlight không? → A: Có, chỉ đúng file highlight; ứng dụng không commit, không push. Tác giả là tên người dùng tự nhập một lần. Spec 007 được sửa để cho phép đúng ngoại lệ này.
 - Q: Áp dụng cho chế độ nào, demo có đổi theo thiết kế mới không? → A: Server, Pages và local đều có đủ chức năng như nhau (cài đặt đọc, theme, sidebar, highlight, ghi chú, panel, brief). Demo cập nhật theo thiết kế mới, lấy lại mốc so ảnh pixel.
 
 ## Bối cảnh
@@ -143,7 +144,9 @@ Sidebar phải có ba tab: **Gate**, **Highlights {số lượng}**, **Copilot**
 - **Cuộn cột đọc khi thanh công cụ đang mở:** thanh công cụ đóng.
 - **Ghim ở lề:** không bao giờ gây cuộn ngang. Cột đọc chừa khoảng 28px bên phải cho ghim.
 - **Spec trên nhánh chưa merge** (spec 003): highlight gắn với bản đang xem của nhánh đó.
-- **Chế độ local:** đọc file highlight trong thư mục đã chọn, nên thấy highlight của cả nhóm (FR-028).
+- **Chế độ local:** đọc và ghi file highlight trong thư mục đã chọn, nên thấy highlight của cả nhóm và thêm được highlight của mình (FR-028).
+- **Trình duyệt không cho ghi vào thư mục đã chọn, hoặc người dùng từ chối quyền ghi:** ở local, highlight chỉ xem được, kèm lý do.
+- **Người dùng local chưa nhập tên:** ứng dụng hỏi tên ở lần highlight đầu tiên.
 - **Hai người lưu highlight cùng lúc:** không ai mất highlight (FR-026).
 - **File highlight quá lớn:** không lưu thêm được, kèm thông báo; highlight cũ không bị mất (FR-027).
 - **Spec chưa có file highlight:** highlight đầu tiên tạo file (FR-025).
@@ -208,7 +211,8 @@ Sidebar phải có ba tab: **Gate**, **Highlights {số lượng}**, **Copilot**
 - **FR-025**: Nếu spec chưa có file highlight, highlight đầu tiên MUST tạo file. Xoá highlight cuối cùng để lại file rỗng, không xoá file.
 - **FR-026**: Mỗi lần lưu MUST đọc lại bản mới nhất của file, gộp thay đổi theo mã highlight, rồi mới ghi, và chỉ ghi khi file chưa bị đổi kể từ lúc đọc. Hai người lưu gần như cùng lúc thì không highlight nào bị mất. Nếu vẫn xung đột, ứng dụng thử lại, rồi báo lỗi; không âm thầm ghi đè.
 - **FR-027**: Khi file highlight vượt một ngưỡng kích thước, ứng dụng MUST từ chối lưu thêm và báo rõ; highlight đã có không bị mất. Plan chọn ngưỡng.
-- **FR-028**: Ở local, ứng dụng MUST đọc file highlight trong thư mục đã chọn và hiện highlight, ghim, panel và brief như server và Pages. Local MUST NOT gửi đoạn trích ra mạng.
+- **FR-028**: Ở local, ứng dụng MUST đọc file highlight trong thư mục đã chọn và hiện highlight, ghim, panel và brief như server và Pages. Tạo, sửa và xoá highlight MUST ghi thẳng vào file highlight đó, và chỉ file đó. Ứng dụng MUST NOT commit, push, sửa file nào khác của repo, hay gửi đoạn trích ra mạng; người dùng tự commit bằng git. Đây là ngoại lệ duy nhất với quy tắc chỉ đọc của spec 007 (FR-006), và spec 007 MUST được cập nhật cho khớp.
+- **FR-028a**: Ở local, tác giả là tên người dùng tự nhập ở lần highlight đầu tiên, lưu trong trình duyệt. Quy tắc chỉ tác giả được sửa hoặc xoá (FR-016) áp theo tên đó.
 - **FR-029**: Demo MUST có đủ chức năng như trên với dữ liệu mẫu, lưu trong trình duyệt, và MUST NOT gọi GitHub.
 
 ### Key Entities
@@ -240,9 +244,9 @@ Sidebar phải có ba tab: **Gate**, **Highlights {số lượng}**, **Copilot**
 
 - **Chế độ bị ảnh hưởng** (nguyên tắc III): cả bốn.
   - Server và Pages: đủ chức năng; highlight lưu trong file highlight của spec (FR-015).
-  - Local: đọc file highlight (FR-028).
+  - Local: đọc và ghi file highlight, không commit (FR-028).
   - Demo: đổi theo bản thiết kế mới; mốc so ảnh pixel được lấy lại ở bước implement, sau khi so với prototype.
-- **Người dùng ở local:** không có login GitHub, nên tác giả là "You" và cài đặt đọc lưu chung cho trình duyệt đó.
+- **Người dùng ở local:** không có login GitHub, nên tác giả là tên tự nhập (FR-028a), và cài đặt đọc lưu chung cho trình duyệt đó. Tên tự nhập không được xác thực; ở local, quy tắc chỉ tác giả được sửa chỉ để tránh sửa nhầm.
 - **"Theo người dùng":** là tài khoản GitHub đang đăng nhập.
   - Ứng dụng đang lưu tuỳ chọn theo login GitHub trong trình duyệt (`localStorage` khi bật Remember, `sessionStorage` trên Pages nếu không). Cài đặt đọc dùng cùng cơ chế đó.
   - Đồng bộ sang thiết bị khác cần một nơi lưu hồ sơ phía server mà ứng dụng chưa có. Việc đó nằm ngoài phạm vi.
