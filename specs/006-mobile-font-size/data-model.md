@@ -18,11 +18,14 @@ Khai báo trong `:root` của `src/styles/modernist.css`. Tên biến `N` là c�
 | `--fs-17` | 17px | 18px | 2 |
 | `--fs-18` | 18px | 18px | 1 |
 | `--fs-20` | 20px | 20px | 4 |
+| `--fs-22` | 22px | 21px | 0 (thêm ở specs/010: chữ mẫu "Aa" của chế độ đọc) |
 | `--fs-24` | 24px | 22px | 1 |
 | `--fs-25` | 25px | 22px | 1 |
 | `--fs-28` | 28px | 26px | 2 |
 | `--fs-32` | 32px | 26px | 1 |
 | `--fs-42` | 42px | 30px | 1 |
+
+Từ specs/010 thang có 16 biến: `--fs-22` được thêm cho chữ mẫu "Aa" của chế độ đọc. Cỡ chữ đọc do người dùng chọn đi qua `--rd-size*`, ngoại lệ được ghi ở specs/010 (research R5).
 
 Tổng: 123 khai báo trong CSS (khớp số đếm ở research R1) và 13 chỗ trong TSX.
 

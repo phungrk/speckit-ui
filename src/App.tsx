@@ -10,6 +10,9 @@ import { STATIC, browserCopilot, loadSettings } from './backend';
 import { offlineAnswer } from './copilot/offline';
 import { SpecView } from './views/SpecView';
 import { AnalyzeView, ClarifyView, ConstitutionView, ImplementView, PlanView, SummaryView, TasksView } from './views/views';
+import { ReaderMenu, SidebarToggle } from './reader/ReaderControls';
+import { DEMO_OWNER, useReader, useSidebarKeys } from './reader/useReader';
+import type { LayoutPrefs } from './reader/settings';
 
 const STATUS_LABEL = { done: 'Approved', review: 'In review', locked: 'Locked' };
 
@@ -19,7 +22,11 @@ const save = (k: string, v: unknown) => { try { localStorage.setItem('sk.' + k, 
 
 interface QueueItem { fid: string; pi: number; t: string; s: string }
 
-export function App() {
+/** The demo workspace. `initialLayout` lets tests render it with sidebars hidden. */
+export function App({ initialLayout }: { initialLayout?: LayoutPrefs } = {}) {
+  const rd = useReader(DEMO_OWNER, 'local', initialLayout);
+  const [aaOpen, setAaOpen] = useState(false);
+  useSidebarKeys(rd.layout, rd.setLayout);
   const [role, setRole] = useState<Role>(() => { const r = load<Role>('role', 'QA'); return ROLES.includes(r) ? r : 'QA'; });
   const [fid, setFid] = useState(() => load('fid', '003'));
   const [features, setFeatures] = useState<Feature[]>(SK.features);
@@ -140,15 +147,18 @@ export function App() {
 
   return <div className="sk">
     <nav className="nav sk-nav">
+      <SidebarToggle side="left" open={rd.layout.left} onToggle={() => rd.setLayout({ ...rd.layout, left: !rd.layout.left })} />
       <div className="nav-brand">Speckit</div>
       <div className="sk-proj">{SK.project}<span className="text-muted">/ specs</span></div>
       <div className="sk-spacer"></div>
       <div className="sk-rolelabel" id="sk-role-label">Viewing as</div>
       <div className="seg" role="group" aria-labelledby="sk-role-label">{ROLES.map(r => <button key={r} className={'seg-opt sk-segbtn' + (role === r ? ' on' : '')} aria-pressed={role === r} onClick={() => setRole(r)}>{r}</button>)}</div>
       <div className="sk-avatar" title={SK.people[role].name}>{SK.people[role].ini}</div>
+      <ReaderMenu reader={rd.reader} open={aaOpen} setOpen={setAaOpen} onChange={rd.setReader} onReset={rd.reset} />
+      <SidebarToggle side="right" open={rd.layout.right} onToggle={() => rd.setLayout({ ...rd.layout, right: !rd.layout.right })} />
     </nav>
-    <div className="sk-body">
-      <aside className="sk-side">
+    <div className={'sk-body' + (rd.layout.left ? '' : ' no-left') + (rd.layout.right ? '' : ' no-right')}>
+      {rd.layout.left && <aside className="sk-side">
         <div className="sk-pad"><Label>My queue · {role}</Label>
           {queue.length === 0 ? <p className="text-muted sk-sm">Nothing waiting on you.</p> :
             <ul className="sk-list">{queue.map((q, i) => <li key={i}><button className="sk-qitem" onClick={() => { setFid(q.fid); setSel(q.pi); }}><b>{q.t}</b><span>{q.s}</span><Icon n="arrow" s={14} /></button></li>)}</ul>}
@@ -163,7 +173,7 @@ export function App() {
             </button></li>;
           })}</ul>
         </div>
-      </aside>
+      </aside>}
       <main className="sk-main">
         <div className="sk-fhead">
           <div className="sk-file"><Icon n="branch" s={14} />{f.slug}</div>
@@ -177,7 +187,7 @@ export function App() {
             <span className="sk-st">{s === 'done' ? <Icon n="check" s={12} /> : s === 'locked' ? <Icon n="lock" s={12} /> : <Icon n="dot" s={12} />}{p.k === 'implement' && s === 'review' ? 'Building' : STATUS_LABEL[s]}</span>
           </button>;
         })}</div>
-        <div className="sk-doc" role="tabpanel">{view}</div>
+        <div className="sk-doc" role="tabpanel"><div className="sk-col">{view}</div></div>
         <div className="sk-cmd">
           {log.length > 0 && <div className="sk-log" ref={logRef} aria-live="polite">{log.map((l, i) => <div key={i} className={l.startsWith('›') ? 'in' : ''}>{l}</div>)}</div>}
           <div className="sk-cmdrow">
@@ -187,7 +197,7 @@ export function App() {
           </div>
         </div>
       </main>
-      <aside className={'sk-right' + (rtab === 'ai' ? ' is-ai' : '')}>
+      {rd.layout.right && <aside className={'sk-right' + (rtab === 'ai' ? ' is-ai' : '')}>
         <div className="sk-rtabs" role="tablist">
           <button role="tab" aria-selected={rtab === 'gate'} onClick={() => setRtab('gate')}>Gate & activity</button>
           <button role="tab" aria-selected={rtab === 'ai'} onClick={() => setRtab('ai')}><span className="sk-ai-badge">AI</span>Copilot{msgs.length > 0 && <span className="sk-rtab-n">{Math.ceil(msgs.length / 2)}</span>}</button>
@@ -219,7 +229,7 @@ export function App() {
             <ul className="sk-activity">{activity.slice(0, 9).map((a, i) => <li key={i}><span className="sk-avatar sm">{SK.people[a[0]].ini}</span><div><b>{SK.people[a[0]].name}</b> {a[1]}<span>{a[2]}</span></div></li>)}</ul>
           </div>
         </>}
-      </aside>
+      </aside>}
     </div>
     {nsOpen && <NewSpecDialog nextId={nextId} features={features} onClose={() => setNsOpen(false)} onCreate={createSpec} />}
   </div>;

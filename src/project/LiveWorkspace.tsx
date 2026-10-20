@@ -8,7 +8,9 @@ import { GATE_NAME, blockingGates } from './gates';
 import { GatePanel, type DecideResult } from './GatePanel';
 import { buildOverview } from './overview';
 import { LIVE_CLASS, LIVE_LABEL, PHASES, blobUrl, phaseStatus, type LiveStatus } from './phases';
-import type { LastViewed } from './prefs';
+import type { LastViewed, PrefsStorage } from './prefs';
+import { ReaderMenu, SidebarToggle } from '../reader/ReaderControls';
+import { useReader, useSidebarKeys } from '../reader/useReader';
 import { accessProblem } from './repoLoader';
 import { SessionButtons, type SessionActions } from './SessionNav';
 import { SignInRequired, type GateAction } from './trackingApi';
@@ -38,6 +40,8 @@ interface Props extends SessionActions {
   project: Project;
   backend: Backend;
   user: CurrentUser;
+  /** Where this user's preferences live (Pages without Remember: the tab only). */
+  storage: PrefsStorage;
   refreshing: boolean;
   onRefresh: () => void;
   /** Spec and step to open, restored from the URL or the last visit (FR-005). */
@@ -53,9 +57,12 @@ interface Props extends SessionActions {
   onAuthLost: () => void;
 }
 
-export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, initial, onPosition, threads, onThreads, repos, onSwitch, onAllRepos, onOverview, onAuthLost, ...actions }: Props) {
+export function LiveWorkspace({ project, backend, user, storage, refreshing, onRefresh, initial, onPosition, threads, onThreads, repos, onSwitch, onAllRepos, onOverview, onAuthLost, ...actions }: Props) {
   const [slug, setSlug] = useState(() => initial?.spec ?? '');
   const [sel, setSel] = useState<number | null>(() => initial?.step ?? null);
+  const rd = useReader(user.login, storage);
+  const [aaOpen, setAaOpen] = useState(false);
+  useSidebarKeys(rd.layout, rd.setLayout);
   const [rtab, setRtab] = useState<'spec' | 'ai'>('spec');
   const [tracking, setTracking] = useState<Tracking | null>(null);
   const [trackingError, setTrackingError] = useState<string | null>(null);
@@ -165,6 +172,7 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
 
   return <div className="sk sk-live">
     <nav className="nav sk-nav">
+      <SidebarToggle side="left" open={rd.layout.left} onToggle={() => rd.setLayout({ ...rd.layout, left: !rd.layout.left })} />
       <div className="nav-brand" title={`Build ${__BUILD__}`}>Speckit</div>
       <div className="sk-proj">
         <select className="sk-repo-switch" aria-label="Repository" value={project.repo} onChange={e => e.target.value === '*' ? onAllRepos() : onSwitch(e.target.value)}>
@@ -183,9 +191,11 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
       </a>
       <button className="btn btn-secondary sk-small" onClick={refreshAll} disabled={refreshing}>{refreshing ? 'Refreshing…' : 'Refresh'}</button>
       <SessionButtons user={user} {...actions} />
+      <ReaderMenu reader={rd.reader} open={aaOpen} setOpen={setAaOpen} onChange={rd.setReader} onReset={rd.reset} />
+      <SidebarToggle side="right" open={rd.layout.right} onToggle={() => rd.setLayout({ ...rd.layout, right: !rd.layout.right })} />
     </nav>
-    <div className="sk-body">
-      <aside className="sk-side">
+    <div className={'sk-body' + (rd.layout.left ? '' : ' no-left') + (rd.layout.right ? '' : ' no-right')}>
+      {rd.layout.left && <aside className="sk-side">
         <div className="sk-pad"><Label>Next up</Label>
           {next.length === 0 ? <p className="text-muted sk-sm">Every spec is done.</p> :
             <ul className="sk-list">{next.map(n => <li key={n.slug}><button className="sk-qitem" onClick={() => { setSlug(n.slug); setSel(n.step); }}><b>{n.label}</b><span>{n.slug}{n.branch ? ` · ${shortBranch(n.branch)}` : ''}</span><Icon n="arrow" s={14} /></button></li>)}</ul>}
@@ -204,7 +214,7 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
             </button></li>;
           })}</ul>
         </div>
-      </aside>
+      </aside>}
       <main className="sk-main">
         <div className="sk-fhead">
           <div className="sk-file"><Icon n="branch" s={14} />{f ? <>{f.branch ? `${f.branch} · ` : ''}{f.slug}</> : project.repo}
@@ -224,7 +234,7 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
             <span className="sk-st">{cls === 'done' ? <Icon n="check" s={12} /> : s === 'pending' ? <Icon n="lock" s={12} /> : <Icon n="dot" s={12} />}{label}</span>
           </button>;
         })}</div>
-        <div className="sk-doc" role="tabpanel">{view}</div>
+        <div className="sk-doc" role="tabpanel"><div className="sk-col">{view}</div></div>
         <div className="sk-cmd">
           {log.length > 0 && <div className="sk-log" ref={logRef} aria-live="polite">{log.map((l, i) => <div key={i} className={l.startsWith('›') ? 'in' : ''}>{l}</div>)}</div>}
           {f?.unmerged && f.branch && !cmdLocked && <div className="sk-cmdhint">Run on <b>{f.branch}</b>: <code>git switch {f.branch}</code></div>}
@@ -238,7 +248,7 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
           </div>
         </div>
       </main>
-      <aside className={'sk-right' + (rtab === 'ai' ? ' is-ai' : '')}>
+      {rd.layout.right && <aside className={'sk-right' + (rtab === 'ai' ? ' is-ai' : '')}>
         <div className="sk-rtabs" role="tablist">
           <button role="tab" aria-selected={rtab === 'spec'} onClick={() => setRtab('spec')}>Gate & PRs</button>
           <button role="tab" aria-selected={rtab === 'ai'} onClick={() => setRtab('ai')} disabled={!f}><span className="sk-ai-badge">AI</span>Copilot{msgs.length > 0 && <span className="sk-rtab-n">{Math.ceil(msgs.length / 2)}</span>}</button>
@@ -267,7 +277,7 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
             {project.warnings.map(w => <div key={w} className="sk-warn"><Icon n="alert" s={14} />{w}</div>)}
           </div>}
         </>}
-      </aside>
+      </aside>}
     </div>
   </div>;
 }

@@ -1,14 +1,16 @@
 <!--
 Sync Impact Report
-- Version change: 1.0.0 → 1.1.0 (MINOR: mở rộng nguyên tắc II cho bản server có đăng nhập)
-- Modified principles: II. Khoá thuộc về người dùng. Bản có server được giữ khoá trong biến môi
-  trường hoặc trong phiên đăng nhập ở bộ nhớ của tiến trình server; trình duyệt chỉ giữ mã phiên
-  trong cookie HttpOnly. Không nới lỏng điều nào: khoá vẫn không bao giờ xuống trình duyệt.
+- Version change: 1.1.0 → 1.2.0 (MINOR: mở rộng nguyên tắc IV cho bảng nền của chế độ đọc)
+- Modified principles: IV. Trung thành với thiết kế.
+  - Màu được đến từ token Modernist hoặc từ bảng nền của chế độ đọc (một nơi khai báo, áp qua
+    token). Thêm nền hay màu vào bảng phải qua spec và đạt tương phản 4.5:1.
+  - Demo giống bản thiết kế từng pixel, trừ những phần mà spec ghi rõ là thuộc một spec khác chưa
+    xong; phần chênh được liệt kê trong mô tả PR.
 - Added sections: none
 - Removed sections: none
-- Lý do: specs/002-multi-repo-workspace (đăng nhập GitHub App), analysis.md mục C1
+- Lý do: specs/010-reader-highlights (chế độ đọc kiểu Kindle), analysis.md mục C1, C2
 - Templates: không cần sửa; plan-template đọc nguyên tắc lúc chạy ✅
-- Follow-up: CLAUDE.md ghi version 1.1.0; plan.md của 002 dẫn tới bản 1.1.0 ✅
+- Follow-up: CLAUDE.md ghi version 1.2.0; plan.md của 010 dẫn tới bản 1.2.0 ✅
 -->
 
 # speckit-ui Constitution
@@ -74,9 +76,14 @@ khó thấy nhất vì người viết thường chỉ thử một chế độ.
 
 - UI dùng design system Modernist: lấy màu, khoảng cách, viền từ token và class trong
   `src/styles/modernist.css`. Không thêm màu mới, không bo góc, không dùng component ngoài hệ thống.
-- Chế độ demo PHẢI giữ giống bản thiết kế `Speckit Workspace.html` từng pixel. PR đụng UI demo
-  hoặc CSS dùng chung PHẢI so ảnh chụp ở 1440×900 và 924×540 (màn hình chính và hộp thoại New
-  spec).
+- Ngoại lệ duy nhất về màu: bảng nền của chế độ đọc (White, Sepia, Green, Dark; specs/010), khai
+  báo một lần trong `src/reader/settings.ts` và áp bằng cách ghi đè token ở `:root`. Component vẫn
+  chỉ đọc token, không viết màu cứng. Thêm nền hoặc màu vào bảng PHẢI qua spec và PHẢI đạt tương
+  phản chữ thường từ 4.5:1 trên nền và bề mặt của nền đó, có test kiểm.
+- Chế độ demo PHẢI giữ giống bản thiết kế `Speckit Workspace.html` từng pixel, trừ những phần mà
+  spec đang làm ghi rõ là thuộc một spec khác chưa xong; PR PHẢI liệt kê các phần chênh đó.
+  PR đụng UI demo hoặc CSS dùng chung PHẢI so ảnh chụp ở 1440×900 và 924×540 (màn hình chính và
+  hộp thoại New spec).
 - Mọi phần tử tương tác dùng được bằng bàn phím, có `:focus-visible` theo hệ thống, và có nhãn
   cho trình đọc màn hình khi không có chữ hiển thị.
 - Bố cục PHẢI dùng được ở bề rộng điện thoại.
@@ -157,4 +164,4 @@ thứ phải bảo trì và bảo mật.
 - Gate "Constitution Check" trong `/speckit-plan` PHẢI pass. Vi phạm có chủ đích phải ghi vào
   Complexity Tracking kèm lý do; `/speckit-analyze` coi vi phạm không được biện minh là CRITICAL.
 
-**Version**: 1.1.0 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-10-17
+**Version**: 1.2.0 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-10-20

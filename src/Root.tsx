@@ -258,7 +258,7 @@ function Session({ backend, user, defaultRepo, storage, actions, onAuthLost }: S
 
   const link = deepLink.current?.repo === repo ? deepLink.current : null;
   const initial: LastViewed | null = link && (link.spec || link.step != null) ? { spec: link.spec, step: link.step, branch: link.branch } : prefs.getLast(repo);
-  return <LiveWorkspace key={repo} project={open.project} backend={backend} user={user} refreshing={refreshing} onRefresh={() => void refresh()}
+  return <LiveWorkspace key={repo} project={open.project} backend={backend} user={user} storage={storage} refreshing={refreshing} onRefresh={() => void refresh()}
     initial={initial}
     onPosition={v => { deepLink.current = null; prefs.setLast(repo, v); writeUrl({ repo, spec: v.spec, branch: v.branch, step: v.step }); }}
     threads={threads[repo] ?? {}} onThreads={t => setThreads(x => ({ ...x, [repo]: t }))}
