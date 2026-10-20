@@ -102,7 +102,7 @@ Hai nút ở hai đầu header ẩn hoặc hiện sidebar trái (hàng chờ và
 **Cài đặt đọc (A)**
 
 - **FR-001**: Header MUST có nút **Aa** mở popover cài đặt đọc gồm: Font (4 lựa chọn), Size (15, 16, 17, 18, 20, 22px), Spacing (giãn dòng 1.5, 1.7, 1.9), Width (600, 700, 820px), Page (White, Sepia, Green, Dark) và "Reset to default". Mặc định là Literata, 18px, 1.7, 700px, White.
-- **FR-002**: Font đọc, cỡ, giãn dòng và độ rộng MUST chỉ áp cho văn xuôi trong cột đọc. Bảng, danh sách tiêu chí và checklist nhỏ hơn 2px. Giá trị ngắn (ô khoá–giá trị, lựa chọn clarify) nhỏ hơn 3px. Tiêu đề, mã artifact, đường dẫn file, dòng meta, nhãn, nút và dấu `[NEEDS CLARIFICATION]` MUST giữ font giao diện; mã artifact giữ cỡ 12px.
+- **FR-002**: Font đọc, cỡ, giãn dòng và độ rộng MUST chỉ áp cho văn xuôi trong cột đọc. Bảng, danh sách tiêu chí và checklist nhỏ hơn 2px. Giá trị ngắn (ô khoá–giá trị, lựa chọn clarify) nhỏ hơn 3px. Tiêu đề, mã artifact, đường dẫn file, dòng meta, nhãn, nút và dấu "cần làm rõ" của Clarify MUST giữ font giao diện; mã artifact giữ cỡ 12px.
 - **FR-003**: Font đọc MUST có đủ dấu tiếng Việt. Không dùng font của Amazon.
 - **FR-004**: Cài đặt đọc và trạng thái sidebar MUST được nhớ cho từng người dùng đã đăng nhập (không theo vai trò), theo cùng cách ứng dụng đang lưu tuỳ chọn khác. Cài đặt MUST được áp dụng trước lần hiển thị đầu tiên.
 
