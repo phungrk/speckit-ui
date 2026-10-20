@@ -17,6 +17,7 @@
 .sk-col .sk-opt, .sk-col .sk-kv b { font-family: var(--rd-font); font-size: var(--rd-size-xs); line-height: var(--rd-lh); }
 .sk-col :is(h1, h2, h3, h4, h5, h6, .sk-id, .sk-path, .sk-owner, .sk-meta, .sk-file, .tag, button, .btn, .sk-pass, .sk-nc, code, pre, th) { font-family: var(--font-body); }
 .sk-col .sk-id { font-size: var(--fs-12); }
+.sk-col ::selection { background: rgba(70, 160, 235, .35); }
 
 /* Header controls (contracts §4). */
 .sk-navbtn { all: unset; cursor: pointer; box-sizing: border-box; width: 36px; height: 36px; display: grid; place-items: center; flex: none; color: color-mix(in srgb, var(--color-text) 55%, transparent); }
@@ -32,7 +33,7 @@
 .sk-aa:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 
 /* Aa popover (contracts §5). */
-.sk-rdp { position: absolute; top: calc(100% + 10px); right: 0; z-index: 40; width: 340px; box-sizing: border-box; background: var(--color-bg); color: var(--color-text); border: 2px solid var(--color-text); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-4); text-align: left; }
+.sk-rdp { position: absolute; top: calc(100% + 10px); right: 0; z-index: 25; width: 340px; box-sizing: border-box; background: var(--color-bg); color: var(--color-text); border: 2px solid var(--color-text); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-4); text-align: left; }
 .sk-rdp .sk-label { margin-bottom: 6px; }
 .sk-rdp button { all: unset; cursor: pointer; box-sizing: border-box; }
 .sk-rdp button:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
@@ -42,7 +43,7 @@
 .sk-rdp-fonts span { font-size: var(--fs-22); line-height: 1.1; }
 .sk-rdp-fonts button.on, .sk-rdp-seg button.on { background: var(--color-text); color: var(--color-bg); }
 .sk-rdp-size { display: grid; grid-template-columns: 36px 1fr 36px; align-items: center; gap: 8px; }
-.sk-rdp-size > button { height: 36px; display: grid; place-items: center; border: 1px solid var(--color-divider); font-family: "Literata", Georgia, serif; }
+.sk-rdp-size > button { height: 36px; display: grid; place-items: center; border: 1px solid var(--color-divider); font-family: "Literata", serif; }
 .sk-rdp-size > button:disabled { opacity: .35; cursor: default; }
 .sk-rdp-a.sm { font-size: var(--fs-13); }
 .sk-rdp-a.lg { font-size: var(--fs-22); }
@@ -52,13 +53,13 @@
 .sk-rdp-ticks button.on i { background: var(--color-text); }
 .sk-rdp-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
 .sk-rdp-seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--color-divider); }
-.sk-rdp-seg button { display: grid; place-items: center; height: 36px; }
+.sk-rdp-seg button { display: grid; place-items: center; height: 34px; }
 .sk-rdp-seg button + button { border-left: 1px solid var(--color-divider); }
 .sk-rdp-themes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .sk-rdp-themes button { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: var(--fs-11); }
-.sk-rdp-themes span { width: 100%; height: 44px; display: grid; place-items: center; font-family: "Literata", Georgia, serif; font-size: var(--fs-18); border: 1px solid var(--color-divider); }
+.sk-rdp-themes span { width: 100%; height: 44px; display: grid; place-items: center; font-family: "Literata", serif; font-size: var(--fs-18); border: 1px solid rgba(0, 0, 0, .18); }
 .sk-rdp-themes button.on span { outline: 2px solid var(--color-accent); outline-offset: 2px; }
-.sk-rdp .sk-rdp-reset { align-self: flex-start; font-size: var(--fs-12); font-weight: 600; color: var(--color-accent-700); }
+.sk-rdp .sk-rdp-reset { align-self: flex-start; }
 @media (pointer: coarse) {
   .sk-navbtn, .sk-rdp-size > button, .sk-rdp-ticks button, .sk-rdp-seg button { min-height: 44px; }
   .sk-navbtn { min-width: 44px; }
