@@ -68,3 +68,20 @@ Không có. T001 (baseline), T030 (README), T033 (cổng kiểm tra) là task ch
 2. Sửa tay `tasks.md` và `plan.md` cho U1 (`Root.tsx` truyền `storage`), G1 (đo layout shift), A1 (regex).
 3. Ghi I1 và I2 vào Assumptions của spec. Spec đã duyệt Clarify, nên đây là sửa câu chữ nhỏ.
 4. Các mục LOW (G2, G3, I3, I4) làm được trong lúc implement hoặc bỏ qua.
+
+## Resolution (2026-10-20)
+
+Người dùng đồng ý sửa ("ok, sửa đi"). Đã sửa cùng nhánh:
+
+| ID | Đã làm |
+|----|--------|
+| C1 | Constitution 1.1.0 → 1.2.0 (MINOR): nguyên tắc IV cho phép bảng nền của chế độ đọc, khai báo một lần, áp qua token, có test tương phản. Plan: Constitution Check IV ✅, bỏ các dòng IV khỏi Complexity Tracking. CLAUDE.md ghi v1.2.0. |
+| C2 | Cùng bản 1.2.0: demo được thiếu phần thuộc spec khác chưa xong, PR liệt kê. Spec Assumptions "Thiết kế" dẫn tới quy tắc này. |
+| U1 | T017: thêm prop `storage` cho `LiveWorkspace`, truyền từ `Root.tsx`; plan thêm `src/Root.tsx`. |
+| I1 | Spec Assumptions: ngoại lệ với 006 FR-008 (ba biến `--rd-size*`, nấc `--fs-22`). |
+| I2 | FR-004 và Assumptions: bản cài đặt của thiết bị luôn ở `localStorage`, nêu hệ quả trên máy dùng chung. |
+| G1 | Quickstart §1 bước 6 và T032: đo khung của nav, rail, hai sidebar trước và sau khi đổi cỡ và độ rộng. |
+| G2 | FR-001 nói rõ "header của workspace"; Assumptions nêu các trang ngoài workspace. |
+| G3 | T021: kiểm `src/reader/` không import code gọi mạng hay ghi. |
+| A1 | T021: regex có ranh giới, không khớp `white-space` hay `#0000ff`. |
+| I3, I4 | Giữ nguyên (tooltip theo bản thiết kế; slug giữ để không mất liên kết issue #27). |

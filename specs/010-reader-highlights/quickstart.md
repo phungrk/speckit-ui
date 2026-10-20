@@ -25,6 +25,7 @@ Playwright (chỉ để kiểm tay và chụp ảnh, không nằm trong `npm tes
    (`getComputedStyle`).
 4. Nhấn Escape: popover đóng, focus về nút Aa. Mở lại, bấm ra ngoài: đóng. Bấm Aa lần nữa: đóng.
 5. Bấm "Reset to default": Literata, 18px, 1.7, 700px, White.
+6. FR-011: ghi lại `getBoundingClientRect()` của `nav.sk-nav`, `.sk-rail`, `aside.sk-side`, `aside.sk-right`; đổi cỡ 15→22 và độ rộng 600→820; bốn khung này không đổi, chỉ nội dung `.sk-col` dàn lại.
 
 ### 2. Nền phủ toàn bộ khung (US2, SC-002)
 

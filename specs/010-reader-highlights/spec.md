@@ -101,10 +101,10 @@ Hai nút ở hai đầu header ẩn hoặc hiện sidebar trái (hàng chờ và
 
 **Cài đặt đọc (A)**
 
-- **FR-001**: Header MUST có nút **Aa** mở popover cài đặt đọc gồm: Font (4 lựa chọn), Size (15, 16, 17, 18, 20, 22px), Spacing (giãn dòng 1.5, 1.7, 1.9), Width (600, 700, 820px), Page (White, Sepia, Green, Dark) và "Reset to default". Mặc định là Literata, 18px, 1.7, 700px, White.
+- **FR-001**: Header của workspace (demo, server, Pages, local) MUST có nút **Aa** mở popover cài đặt đọc gồm: Font (4 lựa chọn), Size (15, 16, 17, 18, 20, 22px), Spacing (giãn dòng 1.5, 1.7, 1.9), Width (600, 700, 820px), Page (White, Sepia, Green, Dark) và "Reset to default". Mặc định là Literata, 18px, 1.7, 700px, White.
 - **FR-002**: Font đọc, cỡ, giãn dòng và độ rộng MUST chỉ áp cho văn xuôi trong cột đọc. Bảng, danh sách tiêu chí và checklist nhỏ hơn 2px. Giá trị ngắn (ô khoá–giá trị, lựa chọn clarify) nhỏ hơn 3px. Tiêu đề, mã artifact, đường dẫn file, dòng meta, nhãn, nút và dấu "cần làm rõ" của Clarify MUST giữ font giao diện; mã artifact giữ cỡ 12px.
 - **FR-003**: Font đọc MUST có đủ dấu tiếng Việt. Không dùng font của Amazon.
-- **FR-004**: Cài đặt đọc và trạng thái sidebar MUST được nhớ cho từng người dùng đã đăng nhập (không theo vai trò), theo cùng cách ứng dụng đang lưu tuỳ chọn khác. Cài đặt MUST được áp dụng trước lần hiển thị đầu tiên.
+- **FR-004**: Cài đặt đọc và trạng thái sidebar MUST được nhớ cho từng người dùng đã đăng nhập (không theo vai trò), theo cùng cách ứng dụng đang lưu tuỳ chọn khác. Cài đặt MUST được áp dụng trước lần hiển thị đầu tiên; để làm được việc này, trình duyệt giữ thêm một bản cài đặt dùng gần nhất của thiết bị (xem Assumptions).
 
 **Theme (B)**
 
@@ -153,10 +153,14 @@ Hai nút ở hai đầu header ẩn hoặc hiện sidebar trái (hàng chờ và
 - **Thiết kế:**
   - Bản thiết kế tham chiếu là dự án claude.ai/design "Speckit Workspace" (`Speckit Workspace.html`, `speckit/reader.jsx`, `speckit/app.jsx`).
   - Người dùng đã gửi bản xuất của dự án (zip) ngày 2026-10-20. Màu, font, kích thước và bố cục trong spec này lấy từ đó. Token Modernist trong `styles.css` của prototype trùng với `src/styles/modernist.css`. Bản zip không được commit vào repo; plan chép các giá trị cần dùng vào `contracts/`.
-  - Bốn nền màu (kể cả White mới) là ngoại lệ có chủ ý so với constitution IV ("không thêm màu mới"). Bước plan phải ghi vào Complexity Tracking, hoặc đề xuất sửa constitution.
+  - Bốn nền màu (kể cả White mới) là ngoại lệ về màu mà constitution 1.2.0 (nguyên tắc IV) cho phép: khai báo một lần, áp qua token, có test tương phản.
+  - Demo được phép thiếu tab Highlights, thanh công cụ highlight và ghim của bản thiết kế (thuộc `010-spec-annotations`), theo constitution 1.2.0; PR liệt kê các phần chênh.
   - Đổi nền mặc định làm thay đổi ảnh so pixel của mọi màn hình, không chỉ demo; bước implement lấy lại toàn bộ mốc.
+- **Bản cài đặt của thiết bị:** để áp trước lần vẽ đầu (FR-004), cài đặt dùng gần nhất luôn được giữ trong `localStorage` của trình duyệt, kể cả trên Pages khi không bật Remember (khi đó các tuỳ chọn khác chỉ sống trong tab). Trên máy dùng chung, người sau thấy nền của người trước cho tới khi đăng nhập. Chấp nhận được vì cài đặt hiển thị không nhạy cảm.
+- **Ngoại lệ với spec 006 (FR-008):** cỡ chữ đọc do người dùng chọn đi qua ba biến `--rd-size*`, không qua thang `--fs-N`, và giữ nguyên trên điện thoại. Mọi cỡ chữ giao diện vẫn theo thang; thang có thêm nấc `--fs-22`.
 - **Font:** tải từ Google Fonts. Bản Pages hiện chỉ cho tải stylesheet từ `fonts.googleapis.com` và font từ `fonts.gstatic.com`. Bước plan cần kiểm tra CSP (constitution II).
 - **Nguyên tắc I:** tính năng này không ghi gì (FR-013), nên không cần sửa constitution về nơi ghi.
+- **Trang ngoài workspace** (Overview, chọn repo, đăng nhập, Connect): nền vẫn áp, nhưng không có nút Aa; đổi cài đặt từ workspace.
 
 ## Non-Goals
 
