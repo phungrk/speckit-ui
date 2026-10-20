@@ -75,7 +75,9 @@ specs/010-reader-highlights/
 
 ```text
 src/
-├── main.tsx                   # sửa: applyReader(loadDeviceReader()) trước render; import reader.css
+├── main.tsx                   # sửa: applyReader(loadDeviceReader()) trước render; import reader.css trước workspace.css
+public/reader-boot.js          # mới: script thường trong <head>, áp nền đã lưu trước lần vẽ đầu (R2)
+index.html                     # sửa: nạp reader-boot.js
 ├── ui.tsx                     # sửa: icon panelL, panelR
 ├── reader/                    # mới, dùng chung cho cả bốn chế độ
 │   ├── settings.ts            #   giá trị, mặc định, validate, readerVars(), applyReader(), tương phản

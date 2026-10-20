@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { Icon, Label } from '../ui';
 import { Markdown } from './Markdown';
+import { ReaderMenu, SidebarToggle } from '../reader/ReaderControls';
+import { LOCAL_OWNER, useReader, useSidebarKeys } from '../reader/useReader';
 import { buildLocalProject, firstLocalDocumentPath, readLocalDirectory, readLocalDirectoryHandle, type LocalFileSnapshot } from './localProject';
 import { LIVE_CLASS, PHASES, phaseStatus } from './phases';
 import {
@@ -55,6 +57,9 @@ const initialView = (): LocalRepositoryView => ({
 });
 
 export function LocalWorkspace({ onExit }: Props) {
+  const rd = useReader(LOCAL_OWNER, 'local');
+  const [aaOpen, setAaOpen] = useState(false);
+  useSidebarKeys(rd.layout, rd.setLayout);
   const input = useRef<HTMLInputElement>(null);
   const request = useRef(0);
   const supported = canChooseDirectory();
@@ -276,6 +281,7 @@ export function LocalWorkspace({ onExit }: Props) {
 
   return <div className="sk sk-live">
     <nav className="nav sk-nav">
+      {ready && <SidebarToggle side="left" open={rd.layout.left} onToggle={() => rd.setLayout({ ...rd.layout, left: !rd.layout.left })} />}
       <div className="nav-brand">Speckit</div>
       <div className="sk-proj">{ready ? `Local · ${ready.name}` : 'Local repository'}</div>
       <div className="sk-spacer"></div>
@@ -285,6 +291,8 @@ export function LocalWorkspace({ onExit }: Props) {
       {view.state === 'error' && view.canForget && <button className="btn btn-ghost sk-small" onClick={() => void forgetSaved()}>Forget saved folder</button>}
       <button className="btn btn-ghost sk-small" onClick={leave}>Exit local mode</button>
       <input ref={input} type="file" multiple hidden onChange={event => void selected(event)} aria-label="Choose a local repository directory" />
+      <ReaderMenu reader={rd.reader} open={aaOpen} setOpen={setAaOpen} onChange={rd.setReader} onReset={rd.reset} />
+      {ready && <SidebarToggle side="right" open={rd.layout.right} onToggle={() => rd.setLayout({ ...rd.layout, right: !rd.layout.right })} />}
     </nav>
 
     {view.state !== 'ready'
@@ -315,8 +323,8 @@ export function LocalWorkspace({ onExit }: Props) {
         <p className="text-muted sk-sm">Local mode is read-only. Gate approvals, PR tracking, and Copilot are available in GitHub mode.</p>
       </main>
       : ready && activeFeature && <>
-        <div className="sk-body">
-          <aside className="sk-side">
+        <div className={'sk-body' + (rd.layout.left ? '' : ' no-left') + (rd.layout.right ? '' : ' no-right')}>
+          {rd.layout.left && <aside className="sk-side">
             <div className="sk-pad">
               <Label>Local repository</Label>
               <p className="text-muted sk-sm">Files are read again from the selected folder and stay in this browser tab. Select another folder to refresh.</p>
@@ -340,7 +348,7 @@ export function LocalWorkspace({ onExit }: Props) {
                 </li>)}</ul>}
               </li>)}</ul>
             </div>
-          </aside>
+          </aside>}
           <main className="sk-main">
             <div className="sk-fhead">
               <div className="sk-file"><Icon n="file" s={14} />{headingPath}</div>
@@ -349,16 +357,16 @@ export function LocalWorkspace({ onExit }: Props) {
             <LocalFlow project={ready.project} feature={activeFeature}
               selected={selectedStep} onSelect={selectStep} />
             {selectedDocument
-              ? <div className="sk-doc" role="tabpanel" aria-label={selectedDocument}><Markdown>{ready.files.get(selectedDocument) ?? ''}</Markdown></div>
+              ? <div className="sk-doc" role="tabpanel" aria-label={selectedDocument}><div className="sk-col"><Markdown>{ready.files.get(selectedDocument) ?? ''}</Markdown></div></div>
               : <LocalStageContent feature={activeFeature} files={ready.files} selected={selectedStep} />}
           </main>
-          <aside className="sk-right">
+          {rd.layout.right && <aside className="sk-right">
             <div className="sk-pad"><Label>Local mode</Label>
               <div className="sk-warn" role="status"><Icon n="lock" s={14} /><span>Read-only</span></div>
               <p className="text-muted sk-sm">Approval gates, pull requests, and Copilot require GitHub mode.</p>
             </div>
             {ready.project.warnings.map(warning => <div className="sk-pad sk-rule" key={warning}><div className="sk-warn"><Icon n="alert" s={14} /><span>{warning}</span></div></div>)}
-          </aside>
+          </aside>}
         </div>
       </>}
   </div>;
@@ -449,7 +457,7 @@ export function LocalStageContent({ feature, files, selected }: {
     ? 'No clarification answers are recorded in this local spec.'
     : `No local ${phase.n.toLowerCase()} content is available for this spec.`;
 
-  return <div className="sk-doc" id="local-flow-panel" role="tabpanel" aria-labelledby={`local-flow-tab-${selected}`}>
+  return <div className="sk-doc" id="local-flow-panel" role="tabpanel" aria-labelledby={`local-flow-tab-${selected}`}><div className="sk-col">
     {phase.k === 'clarify'
       ? clarifications.length
         ? <div className="sk-qs">{clarifications.map((item, index) => <div className="sk-q" key={`${item.session}-${index}`}>
@@ -461,7 +469,7 @@ export function LocalStageContent({ feature, files, selected }: {
       : source
         ? <Markdown>{source}</Markdown>
         : <LocalStageEmpty title={`${phase.n} unavailable`} message={absentMessage} />}
-  </div>;
+  </div></div>;
 }
 
 function LocalStageEmpty({ title, message }: { title: string; message: string }) {

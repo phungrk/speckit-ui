@@ -27,6 +27,13 @@ Nguồn thiết kế: bản xuất dự án claude.ai/design mà người dùng 
   `localStorage`, kể cả Pages không bật Remember.
 - **Alternatives**: Chỉ lưu theo login (nháy ở màn hình đăng nhập và lúc khởi động); script nội
   tuyến (CSP chặn); cookie (server phải đọc, bản Pages không có server).
+- **Sửa lúc implement (2026-10-20)**: đo trên bản build, trình duyệt đôi khi vẽ khung đầu (~32ms)
+  trước khi bundle chạy (~35–41ms), vì module script luôn được hoãn. Thêm `public/reader-boot.js`:
+  một script thường trong `<head>` (file cùng origin nên CSP `script-src 'self'` cho phép), chặn
+  render, chép các biến mà `saveDeviceReader` đã lưu ở khoá `sk.reader.vars` lên `<html>`. Script
+  không chứa bảng màu (bảng chỉ nằm ở `settings.ts`), chỉ nhận khoá `--rd-*`, `--color-*`,
+  `--shadow-*` và tên nền hợp lệ. Đo lại: biến được áp ở ~20–38ms, khung đầu ở ~84–116ms.
+  `main.tsx` vẫn áp lại lúc khởi động cho lần đầu chưa có `sk.reader.vars`.
 
 ## R3. Lưu theo người dùng (FR-004)
 
@@ -51,6 +58,15 @@ Nguồn thiết kế: bản xuất dự án claude.ai/design mà người dùng 
   Markdown ở live/local (`.sk-md`) ra `p`, `li`, `td`, `code`, nên cùng bộ chọn phủ được.
 - **Rationale**: Một wrapper chung cho ba shell giữ nguyên tắc III; không phải sửa từng view.
 - **Alternatives**: Sửa từng view để gắn class (nhiều chỗ, dễ sót).
+
+## R4b. Thứ tự CSS (sửa lúc implement)
+
+- **Decision**: `reader.css` được nạp ngay sau `modernist.css`, trước `workspace.css` và `live.css`.
+- **Rationale**: Trong bản thiết kế, quy tắc `.sk-col p` đứng trước quy tắc của từng thành phần, nên
+  thành phần tự đặt cỡ chữ (ví dụ `.sk-finding p`) giữ cỡ của nó. Nạp sau thì văn bản của finding to
+  18px, lệch thiết kế. Các quy tắc trong `reader.css` cần thắng `workspace.css` dùng bộ chọn cụ thể
+  hơn (`.sk-doc > .sk-col`, `.sk-main .sk-doc`, `.sk-body.no-left`). Đo: 924×540 trùng thiết kế từng
+  pixel; 1440×900 chỉ lệch ở phần thuộc `010-spec-annotations`.
 
 ## R5. Cỡ chữ đọc và thang cỡ chữ của spec 006
 

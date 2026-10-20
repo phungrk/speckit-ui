@@ -252,6 +252,17 @@ The order is the `.gitmodules` order unless the root repo has `.specify/speckit-
 
 Entries are submodule paths or `owner/repo` names.
 
+## Reading mode
+
+Every workspace (demo, GitHub, Pages and local) has the same reading controls in its header:
+
+- **Aa** opens the reading settings: font (Literata, Source Serif 4, Atkinson Hyperlegible, Archivo), size (15–22px), line spacing, column width (600, 700, 820px) and page (White, Sepia, Green, Dark). Only prose in the reading column changes; headings, IDs, paths and buttons keep the interface font. The page theme recolours the whole app, including dialogs.
+- **Sidebar buttons** at both ends of the header hide or show the left (queue and specs) and right (gate and Copilot) columns. Keyboard: `[` and `]`.
+- The choice is kept in the browser, per GitHub login (local and demo: per browser). A copy of the last settings is kept in `localStorage` so the page opens in the right theme before anything is drawn. Nothing is written to GitHub or to the repository.
+- The fonts come from Google Fonts, which the Pages CSP already allows; there is no new network destination.
+
+See `specs/010-reader-highlights/`.
+
 ## Demo mode
 
 - **Phase rail**: the seven `/speckit.*` steps, each marked Approved, In review or Locked.
@@ -298,6 +309,7 @@ src/
   project/              GitHub mode: types, step derivation, gates, views, Copilot context,
                         repo list, overview, sign-in screens, prefs and URL state
   copilot/              Copilot panel, context builder, gate brief, API client, offline responder
+  reader/               reading mode: settings and page themes, Aa popover, sidebar toggles (specs/010)
   styles/               modernist.css (design system), workspace.css (app layout)
 server/
   routes.ts             every /api and /auth route (also mounted by the Vite dev server): modes, per-request access

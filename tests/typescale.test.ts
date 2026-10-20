@@ -4,12 +4,14 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const STYLES = ['modernist.css', 'workspace.css', 'live.css'].map(f => join('src/styles', f));
+const STYLES = ['modernist.css', 'workspace.css', 'live.css', 'reader.css'].map(f => join('src/styles', f));
+/** The reading size is the user's choice (specs/010 research R5): only reader.css may use these three. */
+const READER_SIZE = /^var\(--rd-size(?:-sm|-xs)?\)$/;
 const css = (f: string) => readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
 
 /** The phone values from specs/006-mobile-font-size/data-model.md. */
 const PHONE: Record<number, number> = {
-  10: 12, 11: 12, 12: 12, 13: 14, 14: 16, 15: 16, 16: 17, 17: 18, 18: 18, 20: 20, 24: 22, 25: 22, 28: 26, 32: 26, 42: 30
+  10: 12, 11: 12, 12: 12, 13: 14, 14: 16, 15: 16, 16: 17, 17: 18, 18: 18, 20: 20, 22: 21, 24: 22, 25: 22, 28: 26, 32: 26, 42: 30
 };
 
 const PHONE_BLOCK = /@media\s*\(max-width:\s*760px\)\s*\{\s*:root\s*\{([^}]*)\}([^@]*?)\n\}/;
@@ -32,7 +34,7 @@ describe('type scale', () => {
     expect(phone).not.toBeNull();
   });
 
-  it('declares the 15 variables on :root, each equal to its own px size (desktop is unchanged, SC-002)', () => {
+  it('declares the 16 variables on :root, each equal to its own px size (desktop is unchanged, SC-002)', () => {
     const desktop = vars(modernist.replace(PHONE_BLOCK, ''));
     expect(Object.keys(desktop).map(Number).sort((a, b) => a - b)).toEqual(Object.keys(PHONE).map(Number).sort((a, b) => a - b));
     for (const [n, px] of Object.entries(desktop)) expect(px, `--fs-${n}`).toBe(Number(n));
@@ -59,7 +61,7 @@ describe('type scale', () => {
 
   it.each(STYLES)('%s has no font size written as a number (FR-008)', f => {
     const text = css(f).replace(INPUT_RULE, '');
-    const bad = [...text.matchAll(/font-size\s*:\s*([^;}]+)/g)].map(m => m[1].trim()).filter(v => !/^var\(--fs-\d+\)$/.test(v));
+    const bad = [...text.matchAll(/font-size\s*:\s*([^;}]+)/g)].map(m => m[1].trim()).filter(v => !/^var\(--fs-\d+\)$/.test(v) && !(f.endsWith('reader.css') && READER_SIZE.test(v)));
     expect(bad).toEqual([]);
   });
 

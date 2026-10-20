@@ -38,7 +38,7 @@ Biến trên `:root`: `--rd-font`, `--rd-size`, `--rd-size-sm` (size − 2), `--
 ## 3. Cột đọc (FR-002, R4)
 
 ```text
-.sk-doc            padding-inline: var(--space-8) (giữ như hiện tại; annotations sẽ thêm 28px cho ghim)
+.sk-doc            padding-inline: var(--space-8) calc(var(--space-8) + 28px) (như bản thiết kế: chừa chỗ cho ghim của annotations)
 └─ .sk-col         max-width: var(--rd-measure); margin: 0 auto
 ```
 
@@ -71,8 +71,8 @@ focus `2px var(--color-accent)`. `.sk-aa`: hover viền `--color-text`; mở th�
 chữ `--color-bg`.
 
 Icon (Lucide, thêm vào `ICONS` trong `src/ui.tsx`):
-`panelL` = `<rect width="18" height="18" x="3" y="3"/><path d="M9 3v18"/>`,
-`panelR` = `<rect width="18" height="18" x="3" y="3"/><path d="M15 3v18"/>`.
+`panelL` = `<rect x="3" y="4" width="18" height="16"/><path d="M9 4v16"/>`,
+`panelR` = `<rect x="3" y="4" width="18" height="16"/><path d="M15 4v16"/>` (như prototype).
 
 ## 5. Popover "Aa" (FR-001, FR-009)
 

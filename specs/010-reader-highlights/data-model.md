@@ -35,7 +35,8 @@ Validate như trên: không phải boolean thì lấy mặc định.
 
 | Khoá | Kho | Chủ | Dùng khi |
 |---|---|---|---|
-| `sk.reader` | `localStorage` | thiết bị | `main.tsx` áp trước lần vẽ đầu (R2). Luôn là bản vừa dùng gần nhất. |
+| `sk.reader` | `localStorage` | thiết bị | `main.tsx` áp lúc khởi động (R2). Luôn là bản vừa dùng gần nhất. |
+| `sk.reader.vars` | `localStorage` | thiết bị | `{theme, vars}` đã tính sẵn, cho `public/reader-boot.js` chép lên `<html>` trước lần vẽ đầu (R2). Ghi cùng lúc với `sk.reader`. |
 | `sk.u.{login}.reader` | như `prefsFor` (local/session) | người dùng GitHub | Sau khi biết login (server, Pages). |
 | `sk.u.{login}.layout` | như `prefsFor` | người dùng GitHub | Như trên. |
 | `sk.u.~local.*`, `sk.u.~demo.*` | `localStorage` | trình duyệt | Local và demo không có login. |

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MAX_PINS, prefsFor } from '../src/project/prefs';
+import { DEFAULT_READER } from '../src/reader/settings';
 import { paramToStep, queryFor, readUrl, stepToParam } from '../src/project/urlState';
 
 class MemoryStorage {
@@ -58,6 +59,31 @@ describe('prefs', () => {
     expect(p.setPins(Array.from({ length: 25 }, (_, i) => `o/r${i}`))).toHaveLength(MAX_PINS);
     expect(p.getPins()).toHaveLength(MAX_PINS);
     expect(p.togglePin('o/r0')).not.toContain('o/r0');
+  });
+
+  it('keeps reader settings and sidebar layout per login (specs/010)', () => {
+    const { local, session } = stores();
+    expect(prefsFor('mai', 'local').getReader()).toBeNull();
+    expect(prefsFor('mai', 'local').getLayout()).toEqual({ left: true, right: true });
+    prefsFor('mai', 'local').setReader({ ...DEFAULT_READER, theme: 'sepia' });
+    prefsFor('mai', 'local').setLayout({ left: false, right: true });
+    prefsFor('lan', 'session').setReader({ ...DEFAULT_READER, size: 22 });
+    expect(JSON.parse(local.getItem('sk.u.mai.reader')!).theme).toBe('sepia');
+    expect(JSON.parse(session.getItem('sk.u.lan.reader')!).size).toBe(22);
+    expect(prefsFor('mai', 'local').getReader()).toEqual({ ...DEFAULT_READER, theme: 'sepia' });
+    expect(prefsFor('mai', 'local').getLayout()).toEqual({ left: false, right: true });
+    expect(prefsFor('lan', 'local').getReader()).toBeNull();
+    local.setItem('sk.u.mai.reader', '{"theme":"blue","size":20}');
+    expect(prefsFor('mai', 'local').getReader()).toEqual({ ...DEFAULT_READER, size: 20 });
+  });
+
+  it('keeps reader settings working when storage is blocked', () => {
+    vi.stubGlobal('localStorage', { getItem() { throw new Error('blocked'); }, setItem() { throw new Error('blocked'); } });
+    const p = prefsFor('mai', 'local');
+    expect(p.getReader()).toBeNull();
+    expect(p.getLayout()).toEqual({ left: true, right: true });
+    expect(() => p.setReader(DEFAULT_READER)).not.toThrow();
+    expect(() => p.setLayout({ left: false, right: false })).not.toThrow();
   });
 
   it('ignores corrupted values', () => {
