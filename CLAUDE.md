@@ -15,7 +15,9 @@ code. In short:
 - Every mode uses the current user's own GitHub access: Pages token, server sign-in (GitHub App),
   or a local token in `.env.local` (git-ignored; token mode listens on 127.0.0.1 only).
 - Three modes (demo, server, static) share one behaviour. Say which modes a change touches.
-- Demo mode stays pixel-identical to the design. Use Modernist tokens and classes only.
+- Demo mode stays pixel-identical to the design, except parts a spec marks as belonging to another
+  unfinished spec (list them in the PR). Use Modernist tokens and classes only; the one colour
+  exception is the reader page-theme table (specs/010), applied through tokens.
 - Tests use synthetic fixtures and mocked GitHub/Anthropic. This repo is public: never copy
   content from users' private repos into it.
 
