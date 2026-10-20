@@ -88,9 +88,11 @@ Icon (Lucide, thêm vào `ICONS` trong `src/ui.tsx`):
 | Font | lưới 4 ô; mỗi ô "Aa" (`--fs-22`) bằng font đó + tên (`--fs-11`) | ô chọn: nền mực, chữ giấy; `aria-pressed` |
 | Size · {n}px | nút `A` nhỏ (`aria-label="Smaller"`) · 6 vạch (`aria-label="{n}px"`) · nút `A` lớn (`"Larger"`) | vạch ≤ cỡ hiện tại được tô; hai đầu `disabled` ở giới hạn |
 | Spacing | 3 ô, icon 3 dòng giãn dần | `aria-label="Line spacing 1.5"`… |
+
+Ô Spacing và Width cao 34px (cộng viền 1px trên dưới thành 36px), như bản thiết kế. Ô mẫu nền có viền `1px solid rgba(0,0,0,.18)` cố định ở mọi nền, như bản thiết kế.
 | Width | 3 ô, icon 3 dòng dài dần | `aria-label="narrow width"`… |
 | Page | 4 ô mẫu cao 44px, "Aa" `--fs-18` màu mực của nền trên nền của nó, tên dưới | ô chọn: viền ngoài `2px var(--color-accent)`, cách 2px; `aria-pressed` |
-| — | "Reset to default" | `--fs-12`, đậm 600, `--color-accent-700` |
+| — | "Reset to default" | Chữ thường, cùng cỡ và màu với chữ của popover. Bản thiết kế khai báo `--fs-12`, đậm 600, `--color-accent-700`, nhưng `.sk-rdp button { all: unset }` thắng nên bản render là chữ thường; ứng dụng theo bản render (so pixel, 2026-10-20). |
 
 Mọi điều khiển là `<button>` thật, vùng bấm ≥ 36px (vạch cỡ chữ: cao 20px, vùng bấm mở rộng bằng
 padding tới 36px; ≥ 44px khi `pointer: coarse`), FR-010.

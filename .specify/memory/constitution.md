@@ -1,16 +1,15 @@
 <!--
 Sync Impact Report
-- Version change: 1.1.0 → 1.2.0 (MINOR: mở rộng nguyên tắc IV cho bảng nền của chế độ đọc)
-- Modified principles: IV. Trung thành với thiết kế.
-  - Màu được đến từ token Modernist hoặc từ bảng nền của chế độ đọc (một nơi khai báo, áp qua
-    token). Thêm nền hay màu vào bảng phải qua spec và đạt tương phản 4.5:1.
-  - Demo giống bản thiết kế từng pixel, trừ những phần mà spec ghi rõ là thuộc một spec khác chưa
-    xong; phần chênh được liệt kê trong mô tả PR.
+- Version change: 1.2.0 → 1.3.0 (MINOR: thêm một ngoại lệ màu vào nguyên tắc IV)
+- Modified principles: IV. Trung thành với thiết kế. Ngoài bảng nền của chế độ đọc, bảng màu
+  highlight (4 màu tô, 4 màu đặc, màu thanh công cụ luôn tối) được phép: khai báo một lần thành token
+  `--hl-*` trong `src/styles/reader.css`, chỉ dùng qua `var()`, có test kiểm.
 - Added sections: none
 - Removed sections: none
-- Lý do: specs/010-reader-highlights (chế độ đọc kiểu Kindle), analysis.md mục C1, C2
-- Templates: không cần sửa; plan-template đọc nguyên tắc lúc chạy ✅
-- Follow-up: CLAUDE.md ghi version 1.2.0; plan.md của 010 dẫn tới bản 1.2.0 ✅
+- Lý do: người dùng chọn đưa CSS highlight của bản thiết kế vào trước cho specs/010-spec-annotations
+  (PR fix/010-reader-design-parity, 2026-10-20). Bản trước: 1.2.0 (specs/010, bảng nền đọc).
+- Templates: không cần sửa ✅
+- Follow-up: CLAUDE.md ghi version 1.3.0 ✅
 -->
 
 # speckit-ui Constitution
@@ -76,10 +75,13 @@ khó thấy nhất vì người viết thường chỉ thử một chế độ.
 
 - UI dùng design system Modernist: lấy màu, khoảng cách, viền từ token và class trong
   `src/styles/modernist.css`. Không thêm màu mới, không bo góc, không dùng component ngoài hệ thống.
-- Ngoại lệ duy nhất về màu: bảng nền của chế độ đọc (White, Sepia, Green, Dark; specs/010), khai
-  báo một lần trong `src/reader/settings.ts` và áp bằng cách ghi đè token ở `:root`. Component vẫn
-  chỉ đọc token, không viết màu cứng. Thêm nền hoặc màu vào bảng PHẢI qua spec và PHẢI đạt tương
-  phản chữ thường từ 4.5:1 trên nền và bề mặt của nền đó, có test kiểm.
+- Hai ngoại lệ về màu, mỗi bảng khai báo đúng một nơi và chỉ dùng qua token:
+  - bảng nền của chế độ đọc (White, Sepia, Green, Dark; specs/010), trong `src/reader/settings.ts`,
+    áp bằng cách ghi đè token ở `:root`. Thêm nền hoặc màu vào bảng PHẢI qua spec và PHẢI đạt tương
+    phản chữ thường từ 4.5:1 trên nền và bề mặt của nền đó, có test kiểm;
+  - bảng màu highlight (màu tô, màu đặc, thanh công cụ luôn tối; specs/010-spec-annotations), là
+    token `--hl-*` trong một khối `:root` của `src/styles/reader.css`, giữ nguyên ở mọi nền.
+  Component vẫn chỉ đọc token, không viết màu cứng; test chặn màu viết cứng ngoài các bảng này.
 - Chế độ demo PHẢI giữ giống bản thiết kế `Speckit Workspace.html` từng pixel, trừ những phần mà
   spec đang làm ghi rõ là thuộc một spec khác chưa xong; PR PHẢI liệt kê các phần chênh đó.
   PR đụng UI demo hoặc CSS dùng chung PHẢI so ảnh chụp ở 1440×900 và 924×540 (màn hình chính và
@@ -164,4 +166,4 @@ thứ phải bảo trì và bảo mật.
 - Gate "Constitution Check" trong `/speckit-plan` PHẢI pass. Vi phạm có chủ đích phải ghi vào
   Complexity Tracking kèm lý do; `/speckit-analyze` coi vi phạm không được biện minh là CRITICAL.
 
-**Version**: 1.2.0 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-10-20
+**Version**: 1.3.0 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-10-20
