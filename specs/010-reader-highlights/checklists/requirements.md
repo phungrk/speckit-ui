@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,11 +31,11 @@
 
 ## Notes
 
-- Two [NEEDS CLARIFICATION] markers wait for the user's answers:
-  - Q1, FR-015: where shared highlights are stored;
-  - Q2, Assumptions: which modes the feature covers, and whether demo follows the new design.
+- Q1 and Q2 were answered on 2026-10-20 (see the spec's Clarifications):
+  - Q1: a JSON block in the tracking issue body (FR-015, FR-025–FR-027);
+  - Q2: full features in all four modes, with the demo re-baselined to the new design. Local stores highlights in the browser because spec 007 forbids file writes and network sends (FR-028).
 - The user's description lists exact pixel values, colors and API names, for example the CSS Custom Highlight API. The spec keeps the user-visible values (sizes, fonts, colors, timings) as acceptance detail. Implementation APIs are left for plan, which copies the full value tables into `contracts/`.
 - Constitution tension to resolve in plan:
   - IV ("no new colors"): four page themes and four highlight colors;
   - II: the CSP must allow the Google Fonts stylesheets;
-  - I: the only write is tracking issues (Q1).
+  - I: the only write is tracking issues. Satisfied by Q1 B, but a highlight can now create the tracking issue (FR-025).

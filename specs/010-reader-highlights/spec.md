@@ -8,6 +8,13 @@
 
 **Input**: User description: "Implement Kindle-style Reader Mode + Highlights for the Speckit web app". Mô tả đầy đủ (mục A–H, tham chiếu prototype `Speckit Workspace.html`, `speckit/reader.jsx`, `speckit/app.jsx` trong dự án claude.ai/design 89b4bbc2-…) được dán trong lệnh `/speckit-specify` ngày 2026-10-20. Các giá trị cụ thể (màu, cỡ chữ, kích thước) của mô tả đó là nguồn cho plan, và được chép vào `contracts/` ở bước plan.
 
+## Clarifications
+
+### Session 2026-10-20
+
+- Q: Highlight dùng chung lưu ở đâu? → A: Một khối JSON trong thân issue theo dõi của spec (phương án B), cạnh checklist cổng duyệt.
+- Q: Áp dụng cho chế độ nào, demo có đổi theo thiết kế mới không? → A: Server, Pages và local đều có đủ chức năng như nhau (cài đặt đọc, theme, sidebar, highlight, ghi chú, panel, brief). Demo cập nhật theo thiết kế mới, lấy lại mốc so ảnh pixel.
+
 ## Bối cảnh
 
 Việc chính của trang là **đọc và duyệt spec**. Tính năng này làm việc đọc giống đọc sách giấy (kiểu Kindle). Nó cũng cho người review **tô sáng và ghi chú** lên đoạn văn, để ghi chú trở thành đầu vào cho người duyệt cổng.
@@ -135,7 +142,11 @@ Sidebar phải có ba tab: **Gate**, **Highlights {số lượng}**, **Copilot**
 - **Cuộn cột đọc khi thanh công cụ đang mở:** thanh công cụ đóng.
 - **Ghim ở lề:** không bao giờ gây cuộn ngang. Cột đọc chừa khoảng 28px bên phải cho ghim.
 - **Spec trên nhánh chưa merge** (spec 003): highlight gắn với bản đang xem của nhánh đó.
-- **Chế độ local (chỉ đọc, không có GitHub):** cài đặt đọc, theme và ẩn/hiện sidebar vẫn dùng được; highlight bị tắt, kèm lời giải thích (xem Assumptions).
+- **Chế độ local:** có đủ chức năng như server và Pages. Highlight lưu trong trình duyệt, theo repo và spec, vì local không được ghi file và không được gửi nội dung file ra mạng (spec 007 FR-006, FR-007). Tab Highlights ghi rõ "Saved in this browser only" (FR-028).
+- **Hai người lưu highlight cùng lúc:** không ai mất highlight (FR-026).
+- **Thân issue gần chạm giới hạn của GitHub:** không lưu thêm được, kèm thông báo; highlight cũ không bị mất (FR-027).
+- **Spec chưa có issue theo dõi** (issue chỉ được tạo ở lần duyệt đầu): highlight đầu tiên tạo issue theo dõi, như lần duyệt đầu (FR-025).
+- **Có người sửa tay khối JSON trên GitHub, làm hỏng nó:** ứng dụng không ghi đè; panel báo lỗi và chỉ cho đọc highlight cho tới khi khối được sửa.
 - **Mất quyền ghi** (token chỉ đọc): xem được highlight của người khác, nhưng không tạo được; thanh công cụ chỉ còn Copy và Ask.
 
 ## Requirements *(mandatory)*
@@ -167,9 +178,9 @@ Sidebar phải có ba tab: **Gate**, **Highlights {số lượng}**, **Copilot**
 - **FR-012**: Trình sửa ghi chú MUST có: đoạn trích (tối đa 90 ký tự), ô nhập ("Add a note for the team…"), dòng "Visible to approvers", và hai nút thật Cancel (phụ) và Save note (chính). ⌘/Ctrl+Enter lưu, Escape huỷ.
 - **FR-013**: Mỗi highlight có ghi chú MUST có ghim ở lề phải, ngang dòng đầu tiên của nó. Bấm ghim thì mở trình sửa ghi chú.
 - **FR-014**: Highlight MUST được gắn bằng chính đoạn văn, cộng khoảng 32 ký tự trước và sau, cộng vị trí lúc tạo để chọn đúng lần xuất hiện khi đoạn văn lặp lại. Không tìm thấy đoạn văn thì highlight là **"Outdated, text changed"**: vẫn hiện trong panel, không tô trên văn bản.
-- **FR-015**: Highlight MUST được chia sẻ cho mọi người xem cùng spec, và được lưu ở [NEEDS CLARIFICATION: Q1 — lưu ở đâu? Constitution I chỉ cho ứng dụng ghi vào issue theo dõi có nhãn `speckit`].
-- **FR-016**: Ai có quyền ghi issue của repo cũng tạo được highlight. Chỉ người tạo được sửa hoặc xoá highlight của mình.
-- **FR-017**: Tạo hoặc sửa ghi chú MUST để lại dấu vết hoạt động: "{tên} noted on {Phase}: "{60 ký tự đầu}"".
+- **FR-015**: Ở server và Pages, highlight MUST được chia sẻ cho mọi người xem cùng spec, và được lưu trong **một khối JSON có đánh dấu trong thân issue theo dõi** của spec (issue nhãn `speckit`). Checklist cổng duyệt và nội dung khác của thân issue MUST giữ nguyên khi ghi khối này, và ngược lại khi duyệt cổng thì khối highlight MUST giữ nguyên.
+- **FR-016**: Ai có quyền ghi issue của repo cũng tạo được highlight. Ứng dụng MUST chỉ cho người tạo sửa hoặc xoá highlight của mình. GitHub không chặn được việc này vì cả khối nằm chung trong thân issue: người có quyền ghi issue vẫn sửa tay được trên GitHub. Lịch sử sửa thân issue của GitHub là nơi đối chiếu.
+- **FR-017**: Tạo hoặc sửa ghi chú MUST để lại dấu vết hoạt động: "{tên} noted on {Phase}: "{60 ký tự đầu}"". Ở server và Pages, dấu vết là một comment trên issue theo dõi, như comment khi duyệt cổng. Ở local và demo, dấu vết chỉ nằm trong trình duyệt.
 
 **Panel và cổng (E)**
 
@@ -187,6 +198,14 @@ Sidebar phải có ba tab: **Gate**, **Highlights {số lượng}**, **Copilot**
 - **FR-022**: Mọi điều khiển MUST dùng được bằng bàn phím và có viền focus rõ. Popover Aa và thanh công cụ MUST được trình đọc màn hình nhận là hộp thoại có tên.
 - **FR-023**: Vùng bấm MUST từ 36px trở lên trên máy tính và 44px trên cảm ứng. Khi người dùng bật "giảm chuyển động", không có chuyển màu theme hay hiệu ứng gạch chân.
 - **FR-024**: Đổi font hoặc cỡ chữ MUST chỉ làm cột đọc dàn lại, không làm phần khác của trang xê dịch.
+
+**Lưu trữ (theo Clarifications)**
+
+- **FR-025**: Nếu spec chưa có issue theo dõi, highlight đầu tiên MUST tạo issue theo dõi đúng như lần duyệt đầu (tiêu đề, nhãn, checklist cổng chưa tick). Việc này không tính là duyệt cổng nào.
+- **FR-026**: Mỗi lần lưu MUST đọc lại thân issue mới nhất, gộp thay đổi theo mã highlight, rồi mới ghi. Hai người lưu gần như cùng lúc thì không highlight nào bị mất. Nếu vẫn xung đột, ứng dụng thử lại, rồi báo lỗi; không âm thầm ghi đè.
+- **FR-027**: Khi thân issue sắp vượt giới hạn độ dài của GitHub, ứng dụng MUST từ chối lưu thêm và báo rõ; highlight đã có không bị mất. Plan chọn ngưỡng và cách rút gọn (ví dụ bỏ phần trước/sau).
+- **FR-028**: Ở local, highlight, ghi chú, ghim, panel và brief MUST hoạt động như server và Pages, nhưng lưu trong trình duyệt theo repo và spec. Local MUST NOT ghi vào file của repo hay gửi đoạn trích ra mạng. Tab Highlights MUST ghi "Saved in this browser only".
+- **FR-029**: Demo MUST có đủ chức năng như trên với dữ liệu mẫu, lưu trong trình duyệt, và MUST NOT gọi GitHub.
 
 ### Key Entities
 
@@ -215,15 +234,18 @@ Sidebar phải có ba tab: **Gate**, **Highlights {số lượng}**, **Copilot**
 
 ## Assumptions
 
-- **Chế độ bị ảnh hưởng** (nguyên tắc III): [NEEDS CLARIFICATION: Q2 — áp dụng cho chế độ nào, và demo có đổi theo bản thiết kế mới không?]. Bản server và bản Pages là hai chế độ chính.
-- **Chế độ local (chỉ đọc):**
-  - Cài đặt đọc, theme và ẩn/hiện sidebar dùng được.
-  - Highlight bị tắt vì không có nơi lưu chung. Tab Highlights giải thích "Connect GitHub to highlight and share notes".
+- **Chế độ bị ảnh hưởng** (nguyên tắc III): cả bốn.
+  - Server và Pages: đủ chức năng; highlight lưu trong issue theo dõi.
+  - Local: đủ chức năng; highlight lưu trong trình duyệt (FR-028).
+  - Demo: đổi theo bản thiết kế mới; mốc so ảnh pixel được lấy lại ở bước implement, sau khi so với prototype.
+- **Chế độ local:** vẫn chỉ đọc đối với repo (spec 007). Highlight ở local không chia sẻ được cho người khác; muốn chia sẻ thì mở cùng repo ở chế độ GitHub. Chuyển highlight từ local lên GitHub nằm ngoài phạm vi.
+- **Người dùng ở local:** không có login GitHub, nên tác giả là "You" và cài đặt đọc lưu chung cho trình duyệt đó.
 - **"Theo người dùng":** là tài khoản GitHub đang đăng nhập.
   - Ứng dụng đang lưu tuỳ chọn theo login GitHub trong trình duyệt (`localStorage` khi bật Remember, `sessionStorage` trên Pages nếu không). Cài đặt đọc dùng cùng cơ chế đó.
   - Đồng bộ sang thiết bị khác cần một nơi lưu hồ sơ phía server mà ứng dụng chưa có. Việc đó nằm ngoài phạm vi.
 - **Vai trò:** ứng dụng thật không có vai trò Director, Designer, Engineer, QA như bản demo. "Người duyệt" là bất kỳ ai có quyền duyệt cổng (spec 001, 004).
-- **Hoạt động** (FR-017): ứng dụng thật chưa có bảng hoạt động. Dấu vết hoạt động nằm cùng nơi lưu highlight (Q1), để người khác thấy trên GitHub.
+- **Hoạt động** (FR-017): ứng dụng thật chưa có bảng hoạt động. Comment trên issue theo dõi là dấu vết, và cũng báo cho người theo dõi issue.
+- **Nguyên tắc I:** khối highlight và comment hoạt động đều nằm trên issue theo dõi có nhãn `speckit`, nên không thêm nơi ghi mới. Tạo issue khi highlight đầu tiên (FR-025) là một lý do mới để tạo issue; plan ghi nhận việc này.
 - **Thiết kế:**
   - Bản thiết kế tham chiếu là dự án claude.ai/design "Speckit Workspace" (`Speckit Workspace.html`, `speckit/reader.jsx`, `speckit/app.jsx`).
   - Session này không truy cập được dự án đó, vì không có MCP `claude_design`. Bước plan cần đọc được prototype để so khớp.
@@ -234,6 +256,7 @@ Sidebar phải có ba tab: **Gate**, **Highlights {số lượng}**, **Copilot**
 ## Non-Goals
 
 - Không đồng bộ cài đặt đọc giữa các thiết bị (chưa có nơi lưu hồ sơ phía server).
+- Không chia sẻ highlight ở local, và không chuyển highlight từ local lên GitHub.
 - Không khoá nút Approve khi còn ghi chú Issue.
 - Không trả lời ghi chú thành chuỗi thảo luận.
 - Không highlight trong Copilot hay trong sidebar; chỉ trong cột đọc.
