@@ -1,15 +1,17 @@
 <!--
 Sync Impact Report
-- Version change: 1.2.0 → 1.3.0 (MINOR: thêm một ngoại lệ màu vào nguyên tắc IV)
-- Modified principles: IV. Trung thành với thiết kế. Ngoài bảng nền của chế độ đọc, bảng màu
-  highlight (4 màu tô, 4 màu đặc, màu thanh công cụ luôn tối) được phép: khai báo một lần thành token
-  `--hl-*` trong `src/styles/reader.css`, chỉ dùng qua `var()`, có test kiểm.
+- Version change: 1.3.0 → 1.4.0 (MINOR: mở rộng nguyên tắc I cho một nơi ghi thứ hai)
+- Modified principles: I. Git là nguồn sự thật. Ngoài issue theo dõi, ứng dụng được ghi file
+  `specs/*/highlights.json` của spec đang xem: mỗi lần lưu là một commit chỉ đổi file đó, trên nhánh
+  đang xem, bằng tài khoản người dùng, thông điệp có `[skip ci]`, sau bước xác nhận một lần cho mỗi
+  repo. Vẫn cấm tạo branch, PR hay file nào khác.
 - Added sections: none
 - Removed sections: none
-- Lý do: người dùng chọn đưa CSS highlight của bản thiết kế vào trước cho specs/010-spec-annotations
-  (PR fix/010-reader-design-parity, 2026-10-20). Bản trước: 1.2.0 (specs/010, bảng nền đọc).
+- Lý do: specs/010-spec-annotations (plan.md, Complexity Tracking), người dùng đồng ý 2026-10-21.
+  Bản trước: 1.3.0 (màu highlight).
 - Templates: không cần sửa ✅
-- Follow-up: CLAUDE.md ghi version 1.3.0 ✅
+- Follow-up: CLAUDE.md ghi version 1.4.0 và nơi ghi mới ✅; README cập nhật quyền Contents: Read and
+  write trong PR implement của specs/010-spec-annotations
 -->
 
 # speckit-ui Constitution
@@ -26,8 +28,13 @@ Tài liệu này là luật phát triển cho repo `speckit-ui`.
 
 - Mọi trạng thái của dự án được quản lý (bước nào xong, task nào đã tích, spec nào đang làm)
   PHẢI được suy ra từ file trong repo đó. speckit-ui KHÔNG có database hay kho dữ liệu riêng.
-- Nơi ghi duy nhất là issue theo dõi cổng: có nhãn `speckit` và dấu
-  `<!-- speckit-ui:spec=... -->`. Ứng dụng KHÔNG tạo commit, branch hay file trong repo người dùng.
+- Ứng dụng chỉ ghi ở hai nơi:
+  - issue theo dõi cổng: có nhãn `speckit` và dấu `<!-- speckit-ui:spec=... -->`;
+  - file `specs/*/highlights.json` của chính spec đang xem (specs/010-spec-annotations): mỗi lần lưu
+    là một commit chỉ đổi file đó, trên nhánh đang xem, bằng tài khoản người dùng, thông điệp có
+    `[skip ci]`, sau bước xác nhận một lần cho mỗi repo. Ở chế độ local, ứng dụng ghi thẳng file đó
+    và không commit.
+  Ứng dụng KHÔNG tạo branch, PR hay file nào khác trong repo người dùng.
 - Thêm bất kỳ loại ghi mới nào ra GitHub (hoặc dịch vụ khác) PHẢI đi đủ quy trình Spec Kit và có
   bước xác nhận rõ ràng trong UI trước khi thực hiện.
 - Định dạng file của Spec Kit được đọc nguyên trạng. Parser thích nghi với Spec Kit, không đòi dự
@@ -166,4 +173,4 @@ thứ phải bảo trì và bảo mật.
 - Gate "Constitution Check" trong `/speckit-plan` PHẢI pass. Vi phạm có chủ đích phải ghi vào
   Complexity Tracking kèm lý do; `/speckit-analyze` coi vi phạm không được biện minh là CRITICAL.
 
-**Version**: 1.3.0 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-10-20
+**Version**: 1.4.0 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-10-21

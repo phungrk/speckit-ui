@@ -48,7 +48,7 @@ sửa ba shell, `GatePanel`, `localProject`, `prefs`, README.
 
 | Nguyên tắc | Đánh giá | Ghi chú |
 |---|---|---|
-| I. Git là nguồn sự thật | ❌ cần sửa constitution | Ứng dụng sẽ tạo commit vào repo người dùng (file highlight), trong khi I ghi "Nơi ghi duy nhất là issue theo dõi… Ứng dụng KHÔNG tạo commit, branch hay file trong repo người dùng." Đây là loại ghi mới, đi đủ quy trình Spec Kit và có bước xác nhận trong UI (FR-009a), đúng điều kiện của I, nhưng câu cấm phải được sửa. Đề xuất ở Complexity Tracking; MUST được duyệt và gộp trước khi implement. |
+| I. Git là nguồn sự thật | ✅ (constitution 1.4.0) | Ứng dụng tạo commit vào repo người dùng, chỉ đổi `specs/*/highlights.json` của spec đang xem. Bản 1.3.0 cấm việc này; bản 1.4.0 (sửa cùng nhánh, người dùng đồng ý 2026-10-21) cho phép đúng file đó, với commit `[skip ci]` trên nhánh đang xem và bước xác nhận một lần cho mỗi repo (FR-009a). Đây là loại ghi mới nên đi đủ quy trình Spec Kit. |
 | II. Khoá thuộc về người dùng | ✅ có cập nhật | Cần thêm quyền **Contents: Read and write** (R10); spec và README nêu rõ, đúng yêu cầu "tính năng cần thêm quyền PHẢI nêu rõ". Bản server ghi qua `POST /api/highlights` cùng origin, token ở server. Không có điểm đến mạng mới. Đoạn trích và ghi chú render như văn bản thuần (FR-007). |
 | III. Ba chế độ, một hành vi | ✅ | `server/highlights.ts` dùng chung cho server và Pages; `HighlightStore` cho bốn chế độ (R14). |
 | IV. Trung thành với thiết kế | ✅ | Theo prototype; CSS và màu `--hl-*` đã có (1.3.0). Demo có đủ highlight nên khớp bản thiết kế cả phần trước đây được miễn. Bàn phím, nhãn, điện thoại: contracts. |
@@ -58,7 +58,7 @@ sửa ba shell, `GatePanel`, `localProject`, `prefs`, README.
 
 Checklist cho cổng Plan của speckit-ui (tick khi pass):
 
-- [ ] **I. Git là nguồn sự thật**: chờ sửa constitution 1.4.0 (Complexity Tracking)
+- [x] **I. Git là nguồn sự thật**: constitution 1.4.0 cho phép ghi `specs/*/highlights.json` (Complexity Tracking)
 - [x] **II. Khoá thuộc về người dùng**: quyền Contents: write được nêu trong spec và README
 - [x] **III. Ba chế độ, một hành vi**
 - [x] **IV. Trung thành với thiết kế**
@@ -66,7 +66,7 @@ Checklist cho cổng Plan của speckit-ui (tick khi pass):
 - [x] **VI. AI chỉ đề xuất**
 - [x] **VII. Đơn giản trước**
 
-**Sau Phase 1**: vẫn chỉ vướng I (cần sửa constitution); các nguyên tắc khác pass.
+**Sau Phase 1**: pass. Nguyên tắc I được sửa thành 1.4.0 cùng nhánh này (người dùng đồng ý 2026-10-21).
 
 ## Project Structure
 
@@ -131,7 +131,7 @@ README (quyền Contents: Read and write, mục Highlights), `specs/007-local-re
 | I: ứng dụng tạo commit trong repo người dùng | Người dùng chọn "highlight đi kèm spec, file JSON riêng, lưu là chia sẻ ngay" (Clarify 2026-10-20, 2026-10-21). | Issue comment hoặc khối JSON trong issue (đã cân nhắc và bị người dùng thay); bản nháp + publish (người dùng bỏ ở 2026-10-21). |
 | II: quyền token rộng hơn (Contents: write) | Commit cần quyền này. | Không có cách commit nào cần ít quyền hơn. Người không cấp vẫn xem được. |
 
-**Đề xuất sửa constitution (cần người dùng duyệt, MINOR 1.4.0)**: nguyên tắc I đổi câu
+**Constitution 1.4.0 (đã sửa, người dùng đồng ý 2026-10-21)**: nguyên tắc I đổi câu
 "Nơi ghi duy nhất là issue theo dõi… Ứng dụng KHÔNG tạo commit, branch hay file trong repo người
 dùng." thành:
 
@@ -141,4 +141,4 @@ dùng." thành:
 > `[skip ci]`, sau bước xác nhận một lần cho mỗi repo. Ứng dụng KHÔNG tạo branch, PR hay file nào
 > khác trong repo người dùng.
 
-Cùng lần sửa: `CLAUDE.md` ("The app's only write is to tracking issues…").
+Cùng lần sửa: `CLAUDE.md` (mục Rules, dòng đầu tiên).
