@@ -16,7 +16,18 @@ export interface FakeRepo {
   patchStatus?: number;
   /** Make POST …/comments fail with this status. */
   commentStatus?: number;
+  /** Files written through the Contents API, by branch then path (specs/010-spec-annotations). */
+  files?: Record<string, Record<string, string>>;
+  /** Status for every PUT …/contents, to simulate a refused or protected branch. */
+  putStatus?: number;
+  /** Runs before a PUT is checked, e.g. to let "someone else" commit first. */
+  beforePut?: (files: Record<string, Record<string, string>>) => void;
+  /** Commits made through PUT …/contents: branch, path, message. */
+  commits?: { branch: string; path: string; message: string }[];
 }
+
+let blobN = 0;
+const blobSha = (text: string) => `blob-${text.length}-${[...text].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7).toString(16)}`;
 
 let clock = Date.UTC(2026, 9, 17, 10, 0, 0);
 /** A strictly increasing updated_at. */
@@ -51,6 +62,29 @@ export function fakeGitHub(repos: Record<string, FakeRepo>, extra?: (u: URL, met
     if (rest.startsWith('/git/trees/')) {
       if (r.delay) await sleep(r.delay);
       return ok({ truncated: false, tree: Object.keys(r.specs ?? {}).map(slug => ({ path: `specs/${slug}/spec.md`, type: 'blob' })) });
+    }
+    const content = rest.match(/^\/contents\/(specs\/[^/]+\/highlights\.json)$/);
+    if (content) {
+      const path = decodeURIComponent(content[1]);
+      const files = (r.files ??= {});
+      if (method === 'GET') {
+        const text = files[u.searchParams.get('ref') ?? 'main']?.[path];
+        if (text === undefined) return new Response('{}', { status: 404 });
+        if ((headers.Accept ?? '').includes('raw')) return new Response(text, { status: 200 });
+        return ok({ sha: blobSha(text), content: Buffer.from(text).toString('base64'), encoding: 'base64' });
+      }
+      if (method === 'PUT') {
+        r.beforePut?.(files);
+        if (r.putStatus) return new Response('{}', { status: r.putStatus });
+        const branch = String(body!.branch);
+        const current = files[branch]?.[path];
+        if ((current === undefined) !== (body!.sha === undefined) || (current !== undefined && blobSha(current) !== body!.sha)) return new Response('{"message":"sha does not match"}', { status: 409 });
+        const text = Buffer.from(String(body!.content), 'base64').toString('utf8');
+        (files[branch] ??= {})[path] = text;
+        (r.commits ??= []).push({ branch, path, message: String(body!.message) });
+        const sha = `c${++blobN}`;
+        return ok({ content: { sha: blobSha(text) }, commit: { sha, html_url: `https://github.com/${m[1]}/commit/${sha}` } });
+      }
     }
     const file = rest.match(/^\/contents\/specs\/([^/]+)\/spec\.md$/);
     if (file) return new Response(r.specs?.[decodeURIComponent(file[1])] ?? '', { status: 200 });

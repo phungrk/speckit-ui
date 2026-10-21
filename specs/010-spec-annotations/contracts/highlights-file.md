@@ -38,7 +38,7 @@ saveHighlight(src, { slug, branch, change, user }) →
 
 1. `GET /repos/{o}/{r}/contents/specs/{slug}/highlights.json?ref={branch}` → `sha`, nội dung
    (404 → file mới).
-2. Parse; hỏng → lỗi "highlights.json cannot be read; fix it on GitHub first." (không ghi).
+2. Parse; hỏng → lỗi "highlights.json cannot be read; fix the file first." (không ghi).
 3. Áp `change` (data-model "Thay đổi"); kiểm tra tác giả; kiểm tra kích thước.
 4. `PUT …/contents/specs/{slug}/highlights.json` với
    `{ message, content: base64(json), branch, sha? }`.

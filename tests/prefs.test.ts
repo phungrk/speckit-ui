@@ -86,6 +86,29 @@ describe('prefs', () => {
     expect(() => p.setLayout({ left: false, right: false })).not.toThrow();
   });
 
+  it('remembers highlight consent per repo and the local author name (specs/010-spec-annotations)', () => {
+    stores();
+    const p = prefsFor('mai', 'local');
+    expect(p.getHighlightConsent('o/a')).toBe(false);
+    p.setHighlightConsent('o/a', true);
+    expect(p.getHighlightConsent('o/a')).toBe(true);
+    expect(p.getHighlightConsent('o/b')).toBe(false);
+    expect(prefsFor('lan', 'local').getHighlightConsent('o/a')).toBe(false);
+    p.setHighlightConsent('o/a', false);
+    expect(p.getHighlightConsent('o/a')).toBe(false);
+    expect(prefsFor('~local', 'local').getAuthorName()).toBeNull();
+    prefsFor('~local', 'local').setAuthorName('  Mai  ');
+    expect(prefsFor('~local', 'local').getAuthorName()).toBe('Mai');
+  });
+
+  it('keeps consent and author name safe when storage is blocked', () => {
+    vi.stubGlobal('localStorage', { getItem() { throw new Error('blocked'); }, setItem() { throw new Error('blocked'); } });
+    const p = prefsFor('mai', 'local');
+    expect(() => p.setHighlightConsent('o/a', true)).not.toThrow();
+    expect(p.getHighlightConsent('o/a')).toBe(false);
+    expect(p.getAuthorName()).toBeNull();
+  });
+
   it('ignores corrupted values', () => {
     const { local } = stores();
     local.setItem('sk.u.mai.pins', '{"not":"a list"}');
