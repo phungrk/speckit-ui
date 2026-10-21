@@ -101,5 +101,7 @@ Luôn một `selectedId` (shell giữ). `focusId` của 010 (gạch chân 1,6 gi
 
 ## Demo (constitution IV)
 
-- Demo dùng chung component; dữ liệu mẫu của 010 có ghi chú nên rail sẽ hiện ở 1440×900. Đây là lệch so
-  với bản thiết kế (Complexity Tracking). Khi chưa có nhận xét nào, màn hình khớp thiết kế (SC-008).
+- Demo dùng chung component; dữ liệu mẫu của 010 có ghi chú nên rail hiện ở 1440×900. Bản thiết kế sẽ được
+  cập nhật có rail (Clarify 2026-10-21); demo PHẢI khớp bản mới từng pixel. Khi chưa có nhận xét nào,
+  màn hình khớp thiết kế (SC-008). Nếu bản thiết kế mới khác contract này thì bản thiết kế thắng và
+  contract được sửa theo.

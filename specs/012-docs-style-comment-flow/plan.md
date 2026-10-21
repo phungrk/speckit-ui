@@ -37,7 +37,7 @@
 | I. Git là nguồn sự thật | ✅ | Không thêm loại ghi. Vẫn chỉ ghi `specs/*/highlights.json` theo constitution 1.4.0 của 010. Spec đã bỏ đường issue (Q1 = C). Trạng thái "đang chọn", bản nháp, ETag chỉ ở bộ nhớ trang. Giá trị màu `n` là mở rộng tuỳ chọn có mặc định của định dạng. |
 | II. Khoá thuộc về người dùng | ✅ | Không thêm điểm đến mạng: CSP `connect-src` và `img-src` giữ nguyên, vì avatar là chữ cái đầu, không tải ảnh (R10). Không thêm quyền token (vẫn Contents: write của 010). Server mode kiểm tra nhận xét mới qua route cùng origin, token ở server. Nội dung nhận xét render như chữ thuần (FR-004). |
 | III. Ba chế độ, một hành vi | ✅ | Rail, thẻ, composer, chọn, trạng thái lưu là component dùng chung của `src/annotations/`; chỉ `HighlightStore.refresh` khác theo chế độ (R8). Demo và local không cần kiểm tra định kỳ. |
-| IV. Trung thành với thiết kế | ⚠️ cần xác nhận | Rail nhận xét **không có trong bản thiết kế** `Speckit Workspace.html`. Ghi vào Complexity Tracking. Chỉ dùng token và class Modernist, màu `n` suy từ `--color-text` bằng `color-mix`, không thêm hex. |
+| IV. Trung thành với thiết kế | ✅ có điều kiện | Rail không có trong bản thiết kế hiện tại; người dùng chọn **cập nhật bản thiết kế** (Clarify 2026-10-21). Điều kiện: bản `Speckit Workspace.html` mới có rail được cung cấp trước khi merge, và demo khớp bản đó từng pixel. Chỉ dùng token và class Modernist, màu `n` suy từ `--color-text` bằng `color-mix`, không thêm hex. |
 | V. Test trước khi merge | ✅ | Unit test cho bố trí, reducer, so sánh, parser với `n`, route GET với ETag/304 và lỗi; không ghi GitHub thật. |
 | VI. AI chỉ đề xuất | ✅ | Không đổi. Nhận xét không tự chặn hay tự duyệt cổng. |
 | VII. Đơn giản trước | ✅ | Không dependency, không kết nối đẩy, không lớp đa ngôn ngữ. Kiểm tra định kỳ dùng yêu cầu có điều kiện thay vì máy chủ thời gian thực. |
@@ -47,12 +47,12 @@ Checklist cho cổng Plan của speckit-ui (tick khi pass):
 - [x] **I. Git là nguồn sự thật**: không thêm loại ghi, cùng một file của 010
 - [x] **II. Khoá thuộc về người dùng**: không điểm đến mạng mới, không quyền mới
 - [x] **III. Ba chế độ, một hành vi**
-- [ ] **IV. Trung thành với thiết kế**: rail chưa có trong thiết kế (Complexity Tracking, chờ xác nhận)
+- [x] **IV. Trung thành với thiết kế**: cập nhật bản thiết kế có rail (Complexity Tracking); điều kiện merge: có bản thiết kế mới
 - [x] **V. Test trước khi merge**
 - [x] **VI. AI chỉ đề xuất**
 - [x] **VII. Đơn giản trước**
 
-**Sau Phase 1**: pass, trừ IV. Mục IV là một lệch thiết kế có chủ đích, đã ghi lý do; cần người sở hữu thiết kế đồng ý trước khi implement.
+**Sau Phase 1**: pass. Mục IV có điều kiện: bản thiết kế `Speckit Workspace.html` cập nhật có rail do người dùng cung cấp. Implement dựng theo `contracts/comment-rail-ui.md`; khi có bản thiết kế mới thì so lại và chỉnh. Không có bản đó thì PR chưa merge được (ngoại lệ của constitution IV chỉ áp cho phần thuộc spec khác chưa xong, không áp cho rail).
 
 ## Project Structure
 
@@ -117,5 +117,5 @@ README.md                # sửa: mục Highlights nói về nhận xét, kiểm
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| IV: rail nhận xét không có trong bản thiết kế `Speckit Workspace.html`, và demo (có highlight mẫu) sẽ khác ảnh thiết kế ở 1440×900 | Spec 012 yêu cầu thẻ thẳng hàng với đoạn chữ như Google Docs (FR-007); ghim ở lề và tab Highlights của 010 không đạt. | Giữ nguyên ghim và danh sách của 010: không đạt G4/G5. Đặt rail sau công tắc "Show comments" mặc định tắt: giữ được ảnh thiết kế nhưng giấu đúng tính năng khách muốn thấy. Cần người sở hữu thiết kế chọn: cập nhật thiết kế (khuyên dùng) hoặc công tắc. |
+| IV: rail nhận xét không có trong bản thiết kế `Speckit Workspace.html` hiện tại, nên demo (có highlight mẫu) sẽ khác ảnh thiết kế ở 1440×900 cho tới khi thiết kế được cập nhật | Spec 012 yêu cầu thẻ thẳng hàng với đoạn chữ như Google Docs (FR-007); ghim ở lề và tab Highlights của 010 không đạt. | Giữ nguyên ghim và danh sách của 010: không đạt G4/G5. Đặt rail sau công tắc "Show comments" mặc định tắt: giữ được ảnh thiết kế nhưng giấu đúng tính năng người dùng muốn thấy. Người dùng đã chọn cập nhật bản thiết kế (Clarify 2026-10-21); việc này là điều kiện merge, không phải điều kiện bắt đầu code. |
 | Hoạt động mạng nền: kiểm tra `highlights.json` mỗi phút khi tab mở (server, Pages) | Q3 = B yêu cầu biết có nhận xét mới mà không phải tải lại. | Chỉ làm mới thủ công (Q3 = A) bị bỏ. Yêu cầu có điều kiện cho 304 nên không tốn giới hạn tốc độ; dừng khi tab ẩn; có backoff. |

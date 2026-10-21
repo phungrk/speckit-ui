@@ -47,7 +47,7 @@ Cả bốn phải qua trước khi merge (constitution V).
 ## Kiểm tra giao diện (constitution IV)
 
 - Chụp 1440×900 và 924×540 màn hình chính và hộp thoại New spec **khi chưa có nhận xét nào**: phải khớp thiết kế từng pixel (SC-008).
-- Demo có highlight mẫu có ghi chú nên rail hiện; so với thiết kế là lệch có chủ đích (Complexity Tracking, cần xác nhận).
+- Demo có highlight mẫu có ghi chú nên rail hiện: so với bản `Speckit Workspace.html` **cập nhật có rail** (người dùng cung cấp, điều kiện merge), phải khớp từng pixel. Chưa có bản đó thì chỉ so được trạng thái chưa có nhận xét nào.
 - Kiểm tra bốn nền của chế độ đọc: màu tô `n`, `sk-sel` và `sk-draft` đọc được.
 
 ## Kiểm tra tự động (điểm chính)
