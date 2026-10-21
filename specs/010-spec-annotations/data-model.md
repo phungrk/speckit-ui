@@ -11,7 +11,7 @@
 | `prefix` | string | ≤ 32 ký tự ngay trước `quote` |
 | `suffix` | string | ≤ 32 ký tự ngay sau `quote` |
 | `startHint` | number | vị trí ký tự trong `textContent` của cột đọc lúc tạo, ≥ 0 |
-| `docSha` | string | sha blob của tài liệu lúc tạo (để biết tài liệu đã đổi) |
+| `docSha` | string · null | phiên bản tài liệu lúc tạo, để biết tài liệu đã đổi: server và Pages lấy sha blob của file từ tree của spec; local và demo dùng hash nội dung (`h:` + FNV-1a 32 bit dạng hex, tính đồng bộ, không cần Web Crypto); null khi không tính được. Chỉ để tham khảo, việc gắn dùng `locate` |
 | `color` | string | `y` (Key) · `b` (Question) · `p` (Issue) · `o` (Change) |
 | `note` | string | 0–2.000 ký tự; văn bản thuần |
 | `author` | object | `{ login: string }` (server, Pages) hoặc `{ name: string, local: true }` (local) hoặc `{ name, demo: true }` |

@@ -156,13 +156,13 @@ Tài liệu của spec đổi sau khi đã có highlight (ví dụ spec được
 
 **Chế độ**
 
-- **FR-016**: Ở local, ứng dụng MUST đọc file highlight trong thư mục đã chọn và hiện highlight, ghim, panel và brief như server và Pages. Tạo, sửa và xoá MUST ghi thẳng vào file highlight đó, và chỉ file đó. Ứng dụng MUST NOT commit, push, sửa file nào khác của repo, hay gửi đoạn trích ra mạng; người dùng tự commit bằng git. Đây là ngoại lệ duy nhất với quy tắc chỉ đọc của spec 007 (FR-006), và spec 007 MUST được cập nhật cho khớp.
+- **FR-016**: Ở local, ứng dụng MUST đọc file highlight trong thư mục đã chọn và hiện highlight, ghim và tab Highlights như server và Pages (local không có cổng duyệt nên không có "Before you approve"). Tạo, sửa và xoá MUST ghi thẳng vào file highlight đó, và chỉ file đó. Ứng dụng MUST NOT commit, push, sửa file nào khác của repo, hay gửi đoạn trích ra mạng; người dùng tự commit bằng git. Đây là ngoại lệ duy nhất với quy tắc chỉ đọc của spec 007 (FR-006), và spec 007 MUST được cập nhật cho khớp.
 - **FR-017**: Ở local, tác giả là tên người dùng tự nhập ở lần highlight đầu tiên, lưu trong trình duyệt. Quy tắc chỉ tác giả được sửa hoặc xoá (FR-011) áp theo tên đó.
 - **FR-018**: Demo MUST có đủ chức năng như trên, theo bản thiết kế, với dữ liệu mẫu lưu trong trình duyệt, và MUST NOT gọi GitHub.
 
 **Panel và cổng**
 
-- **FR-019**: Sidebar phải MUST có ba tab rộng bằng nhau: Gate · Highlights {số lượng của spec} · Copilot.
+- **FR-019**: Sidebar phải MUST có ba tab rộng bằng nhau: Gate · Highlights {số lượng của spec} · Copilot. Live giữ nhãn hiện có "Gate & PRs" cho tab đầu (tab đó có danh sách PR). Local không có cổng duyệt và Copilot, nên có hai tab: Local mode · Highlights {số lượng}.
 - **FR-020**: Tab Highlights MUST có:
   - bộ lọc theo màu, kèm số lượng;
   - nhóm theo bước, theo thứ tự các bước;
@@ -170,7 +170,7 @@ Tài liệu của spec đổi sau khi đã có highlight (ví dụ spec được
   - nhãn "Outdated, text changed" cho highlight không còn gắn được;
   - một dòng giới thiệu khi chưa có highlight nào.
 - **FR-021**: Bấm một mục MUST chuyển sang bước của nó, cuộn đoạn văn tới khoảng 120px từ đầu cột và gạch chân khoảng 1.6 giây.
-- **FR-022**: "Before you approve" ở tab Gate MUST thêm mọi ghi chú của bước đó vào sau các kiểm tra tự động, ở dạng "{Người viết}: {ghi chú}", ghi chú Issue lên đầu. Phần này ẩn khi không có gì. Highlight MUST không chặn và không tự duyệt cổng nào.
+- **FR-022**: "Before you approve" ở tab Gate MUST thêm mọi ghi chú của bước đó vào sau các kiểm tra tự động, ở dạng "{Người viết}: {ghi chú}", ghi chú Issue lên đầu. Phần này ẩn khi không có gì. Highlight MUST không chặn và không tự duyệt cổng nào. Ở local không có phần này (không có cổng).
 
 **Chất lượng**
 
