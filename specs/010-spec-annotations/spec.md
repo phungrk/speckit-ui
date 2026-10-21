@@ -23,6 +23,7 @@ Các quyết định này được chốt khi làm `specs/010-reader-highlights`
 
 - Q: Khi người dùng lưu một highlight, nó được chia sẻ ngay cho cả nhóm, hay vẫn là bản nháp riêng cho tới khi bấm publish? → A: Lưu là chia sẻ ngay: mỗi lần lưu commit vào file JSON trong thư mục spec, trên nhánh đang xem. Bỏ bản nháp và bỏ publish thành comment trên issue (thay cho mô hình "bản nháp ở local, publish thành comment" của Session 2026-10-18).
 - Q: Người dùng phải xác nhận việc commit lúc nào? → A: Một lần cho mỗi repo, ở lần lưu đầu tiên ("Highlights are committed to `<branch>` as you"). Trình duyệt nhớ lựa chọn, có thể bật lại trong Settings. Mỗi lần lưu hiện thông báo "Saved · commit abc1234" kèm liên kết.
+- Q: Commit highlight có nên tránh kích hoạt CI không? → A: Có. Thông điệp commit kết thúc bằng `[skip ci]`, nên GitHub Actions bỏ qua lần push đó ở mọi repo.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -146,7 +147,7 @@ Tài liệu của spec đổi sau khi đã có highlight (ví dụ spec được
 - **FR-008**: Lưu (tạo, đổi màu, sửa ghi chú, xoá) MUST là chia sẻ ngay: không có bản nháp và không có bước publish riêng. Highlight của một spec MUST nằm trong **một file JSON riêng trong thư mục của spec**, chứa highlight của mọi bước. Ứng dụng MUST NOT sửa file nào khác của repo khi lưu highlight.
 - **FR-009**: Ở server và Pages, mỗi lần lưu MUST là một commit vào đúng nhánh mà người dùng đang xem spec: nhánh `feat/` khi spec chưa merge (spec 003), `main` khi đã merge, bằng chính tài khoản GitHub của người đó. Nếu không commit được (nhánh bị bảo vệ, đã xoá, hoặc không có quyền ghi nội dung repo), highlight MUST vẫn xem được và ứng dụng MUST báo rõ lý do không lưu được.
 - **FR-009a**: Ở server và Pages, lần lưu đầu tiên trong mỗi repo MUST hiện bước xác nhận nêu rõ highlight sẽ được commit vào nhánh nào, bằng tài khoản nào ("Highlights are committed to `<branch>` as you"). Huỷ thì không ghi gì và highlight đang soạn còn nguyên. Sau khi đồng ý, trình duyệt nhớ lựa chọn cho repo đó; người dùng bật lại được bước xác nhận trong Settings. Mỗi lần lưu thành công MUST hiện thông báo ngắn "Saved · commit {mã ngắn}" kèm liên kết tới commit. Local và demo không có bước này (không commit).
-- **FR-010**: Thông điệp commit MUST mô tả việc vừa làm, ví dụ "{tên} noted on {Phase}: "{60 ký tự đầu}"", để lịch sử git của file là dấu vết hoạt động.
+- **FR-010**: Thông điệp commit MUST mô tả việc vừa làm, ví dụ "{tên} noted on {Phase}: "{60 ký tự đầu}"", để lịch sử git của file là dấu vết hoạt động. Thông điệp MUST kết thúc bằng `[skip ci]` để GitHub Actions không chạy CI hay deploy cho lần push chỉ đổi file highlight.
 - **FR-011**: Ai đọc được spec MUST xem được mọi highlight của spec. Như ghi chú của Google Docs, chỉ người tạo đổi màu, sửa ghi chú hoặc xoá được highlight của mình; người khác chỉ xem, Copy và Ask. Ứng dụng là nơi thực thi quy tắc này; người có quyền push vẫn sửa tay được file, và lịch sử git là nơi đối chiếu.
 - **FR-012**: Mỗi lần lưu MUST đọc lại bản mới nhất của file, gộp thay đổi theo mã highlight, rồi mới ghi, và chỉ ghi khi file chưa bị đổi kể từ lúc đọc. Hai người lưu gần như cùng lúc thì không highlight nào bị mất. Nếu vẫn xung đột, ứng dụng thử lại, rồi báo lỗi; không âm thầm ghi đè.
 - **FR-013**: Nếu spec chưa có file highlight, highlight đầu tiên MUST tạo file. Xoá highlight cuối cùng để lại file rỗng, không xoá file. Khi file vượt một ngưỡng kích thước, ứng dụng MUST từ chối lưu thêm và báo rõ; highlight đã có không bị mất. Plan chọn ngưỡng.
@@ -187,7 +188,7 @@ Tài liệu của spec đổi sau khi đã có highlight (ví dụ spec được
 
 - **SC-001**: Từ lúc bôi đen tới lúc highlight hiện trên văn bản cần không quá 2 thao tác, ở cả máy tính và điện thoại.
 - **SC-002**: Highlight do người A lưu hiện cho người B ở lần làm mới kế tiếp, và gắn đúng đoạn văn, kể cả khi đoạn đó lặp lại trong tài liệu.
-- **SC-003**: Mỗi lần lưu thành công tạo đúng một commit, chỉ đổi file highlight của spec đó; 0 file khác của repo bị đổi.
+- **SC-003**: Mỗi lần lưu thành công tạo đúng một commit, chỉ đổi file highlight của spec đó; 0 file khác của repo bị đổi, và 0 lần chạy GitHub Actions do commit đó gây ra.
 - **SC-004**: Hai người lưu highlight gần như cùng lúc trên cùng spec: 0 highlight bị mất.
 - **SC-005**: Khi đoạn văn đã tô bị sửa mất, 100% highlight của nó vẫn còn trong panel với nhãn "Outdated, text changed".
 - **SC-006**: Với 200 highlight trong một spec, mở một tài liệu và chuyển bước vẫn hiện highlight trong dưới 1 giây.
