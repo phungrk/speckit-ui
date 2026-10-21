@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain (2 remain: Q1 read-only reviewers in FR-016, Q2 uncoloured comments in FR-003)
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -33,5 +33,6 @@
 
 - The gap table (G1–G12) compares the 4 reference screenshots with `specs/010-spec-annotations` (spec.md, contracts/annotations-ui.md, research.md). G6 and G7 are owned by `011-annotation-threads`; G11 is a deliberate non-goal; G12 is already better than Google Docs.
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.
-- After Q1 and Q2 are answered, replace the markers in FR-003 and FR-016, add the answers under Clarifications, and tick the first item under Requirement Completeness.
+- Q1 (anyone who can read the spec may comment; read-only users fall back to a comment on the tracking issue) and Q2 (A: fifth "no colour" value) answered 2026-10-21 and recorded under Clarifications.
+- Open follow-ups for `/speckit-clarify` (defaults documented in Assumptions): create the tracking issue from a comment when none exists (FR-020); 011 must be updated to cover replies/resolve on issue-stored comments; plan must record the new kind of write in the Constitution Check.
 - The spec names the highlight file and commits only because 010 defines them as product behaviour; no framework or library is named.
