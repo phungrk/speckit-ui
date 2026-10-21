@@ -17,7 +17,7 @@
 - Q: Số spec? → A: 012, vì 011 đã dùng cho `011-annotation-threads` trên cùng nhánh này.
 - Q1: Người duyệt chỉ có quyền đọc repo thì có nhận xét được không? → A: Không. Chỉ người có quyền ghi nội dung repo mới nhận xét được, và nhận xét lưu vào file `highlights.json` như 010. Người chỉ có quyền đọc xem được mọi nhận xét nhưng không thêm được; nút Thêm nhận xét bị tắt kèm lý do (FR-016). Không có đường lưu thứ hai: không dùng comment trên issue theo dõi, không dùng review comment của PR. (Chọn phương án C ngày 2026-10-21. Câu trả lời đầu "bất kỳ ai cũng comment được" từng dẫn tới dự kiến dự phòng bằng comment trên issue; phương án đó đã bị bỏ, và "bất kỳ ai" nay nghĩa là bất kỳ ai có quyền ghi nội dung repo.)
 - Q2: Nhận xét không chọn màu thì được coi là gì? → A: Thêm giá trị thứ năm "không màu": nhận xét thường, tô trung tính, không mặc định Key. Vẫn vào "Before you approve", xếp sau Issue (FR-003).
-- Q3: Khi người khác thêm nhận xét mới, ứng dụng cập nhật cho người dùng thế nào? → A: Tự kiểm tra nhẹ định kỳ khi tab đang mở và hiện dấu "có nhận xét mới", kèm nút làm mới thủ công. Nhận xét mới chỉ được chèn khi người dùng bấm vào dấu hoặc khi họ không đang soạn; không bao giờ tự chèn giữa lúc đang soạn hay đang đọc (FR-014).
+- Q3: Khi người khác thêm nhận xét mới, ứng dụng cập nhật cho người dùng thế nào? → A: Tự kiểm tra nhẹ định kỳ khi tab đang mở và hiện dấu "có nhận xét mới", kèm nút làm mới thủ công. Nhận xét mới chỉ được chèn khi người dùng bấm vào dấu hoặc nút làm mới; không bao giờ tự chèn, nên không làm nhảy thẻ lúc đang soạn hay đang đọc (FR-014).
 
 ## Gap giữa 010 và luồng Google Docs
 
@@ -27,7 +27,7 @@ So từng bước của luồng trong 4 ảnh với `specs/010-spec-annotations`
 |---|------------------------------|-------------|-----|-------|
 | G1 | Chọn chữ thì hiện nút nổi **Thêm nhận xét** cạnh đoạn chọn, chưa tô gì (Ảnh 1). | Chọn chữ thì hiện thanh công cụ có 4 ô màu, Note, Copy, Ask. Chọn màu là tạo highlight ngay; Note là nút phụ. | Nhận xét chưa phải hành động chính. Người muốn góp ý bằng lời phải chọn một màu hoặc tìm nút Note. Không có đường đi "chỉ nhận xét". | **Spec này** (US1) |
 | G2 | Nhận xét không bắt buộc phân loại. Một kiểu tô duy nhất. | Mọi chú thích có một trong 4 màu có nghĩa (Key, Issue, Question, Change); ghi chú không chọn màu thì mặc định Key. | Mặc định Key dán nhãn "quan trọng" cho mọi nhận xét, kể cả khi người viết không có ý đó, và Key lại tính vào "Before you approve". Chưa quyết nhận xét có cần màu không. | **Spec này** (US1, câu hỏi Q2) |
-| G3 | Hộp soạn hiện **ở thanh bên**, ngang đoạn chữ, có ảnh đại diện và tên người viết, nút Hủy / Nhận xét (Ảnh 2). | Trình sửa ghi chú là hộp nổi cạnh đoạn chọn, không có ảnh và tên người viết; nút Cancel / Save note. | Soạn ở chỗ khác với nơi đọc thảo luận; không thấy mình đang nhận xét dưới tên ai. | **Spec này** (US1) |
+| G3 | Hộp soạn hiện **ở thanh bên**, ngang đoạn chữ, có ảnh đại diện và tên người viết, nút Hủy / Nhận xét (Ảnh 2). | Trình sửa ghi chú là hộp nổi cạnh đoạn chọn, không có avatar (chữ cái đầu) và tên người viết; nút Cancel / Save note. | Soạn ở chỗ khác với nơi đọc thảo luận; không thấy mình đang nhận xét dưới tên ai. | **Spec này** (US1) |
 | G4 | Thẻ nhận xét nằm ở thanh bên, **thẳng hàng với đoạn chữ**; chọn thẻ thì đoạn chữ sáng hơn và ngược lại (Ảnh 2–4). | Ghim nhỏ ở lề phải; danh sách ở tab Highlights, nhóm theo bước, không thẳng hàng với văn bản. Bấm mục trong danh sách thì cuộn tới đoạn chữ (một chiều); bấm đoạn chữ thì mở trình sửa. | Không có thẻ cạnh đoạn chữ; không có trạng thái "đang chọn" của highlight; liên kết hai chiều chưa đầy đủ. Đọc tài liệu và đọc thảo luận là hai việc ở hai chỗ. | **Spec này** (US2) |
 | G5 | Highlight đổi độ đậm khi thẻ được chọn hoặc không (Ảnh 2 so với Ảnh 3 và 4). | Một độ đậm; chỉ có gạch chân 1,6 giây khi nhảy tới. | Không biết nhận xét nào đang xem. | **Spec này** (US2) |
 | G6 | Mọi người đáp lại ngay dưới nhận xét; có emoji (Ảnh 4). | Loại trừ trả lời theo chuỗi (Non-goals). | Thiếu trả lời và emoji. | `011` |
@@ -42,16 +42,16 @@ So từng bước của luồng trong 4 ảnh với `specs/010-spec-annotations`
 
 ### User Story 1 - Nhận xét là hành động chính khi chọn chữ (Priority: P1)
 
-Người duyệt bôi chọn một đoạn chữ trong tài liệu. Cạnh đoạn chọn hiện một nút nổi **Thêm nhận xét**. Bấm vào, một hộp soạn mở ở thanh bên, thẳng hàng với đoạn chữ, ghi ảnh và tên người dùng hiện tại, có ô nhập và hai nút **Hủy** / **Nhận xét**. Gửi xong, nhận xét thành thẻ ở thanh bên và đoạn chữ được tô. Màu phân loại (Key, Issue, Question, Change) của 010 vẫn dùng được nhưng là bước tuỳ chọn, không phải điều kiện để góp ý (theo câu trả lời Q2).
+Người duyệt bôi chọn một đoạn chữ trong tài liệu. Cạnh đoạn chọn hiện một nút nổi **Thêm nhận xét**. Bấm vào, một hộp soạn mở ở thanh bên, thẳng hàng với đoạn chữ, ghi avatar (chữ cái đầu) và tên người dùng hiện tại, có ô nhập và hai nút **Hủy** / **Nhận xét**. Gửi xong, nhận xét thành thẻ ở thanh bên và đoạn chữ được tô. Màu phân loại (Key, Issue, Question, Change) của 010 vẫn dùng được nhưng là bước tuỳ chọn, không phải điều kiện để góp ý (theo câu trả lời Q2).
 
 **Why this priority**: Khoảng cách G1 đến G3 nằm ở đúng thao tác người duyệt làm nhiều nhất. Nếu phải chọn màu hoặc đi tìm nút Note thì họ ngại góp ý, và "Before you approve" thiếu nội dung.
 
-**Independent Test**: Bôi chọn một câu, bấm Thêm nhận xét, gõ, bấm Nhận xét. Thẻ xuất hiện ở thanh bên ngang câu đó, mang ảnh và tên người dùng; câu được tô. Làm lại và bấm Hủy: không có gì được tạo.
+**Independent Test**: Bôi chọn một câu, bấm Thêm nhận xét, gõ, bấm Nhận xét. Thẻ xuất hiện ở thanh bên ngang câu đó, mang avatar (chữ cái đầu) và tên người dùng; câu được tô. Làm lại và bấm Hủy: không có gì được tạo.
 
 **Acceptance Scenarios**:
 
 1. **Given** người dùng chọn một đoạn chữ hợp lệ (theo quy tắc chọn của 010), **When** thả chuột hoặc nhấc tay, **Then** hiện nút Thêm nhận xét cạnh đoạn chọn, có nhãn cho bàn phím và trình đọc màn hình.
-2. **Given** người dùng bấm Thêm nhận xét, **When** hộp soạn mở, **Then** hộp nằm ở thanh bên ngang đoạn chữ, hiện ảnh và tên người dùng, con trỏ nằm sẵn trong ô nhập, đoạn chữ được đánh dấu là đang soạn.
+2. **Given** người dùng bấm Thêm nhận xét, **When** hộp soạn mở, **Then** hộp nằm ở thanh bên ngang đoạn chữ, hiện avatar (chữ cái đầu) và tên người dùng, con trỏ nằm sẵn trong ô nhập, đoạn chữ được đánh dấu là đang soạn.
 3. **Given** hộp soạn có nội dung, **When** người dùng bấm Nhận xét (hoặc ⌘/Ctrl+Enter), **Then** nhận xét được lưu, hiện thành thẻ có tên, giờ, nội dung, và đoạn chữ được tô.
 4. **Given** hộp soạn đang mở, **When** người dùng bấm Hủy hoặc nhấn Escape, **Then** không có nhận xét nào được tạo, đoạn chữ trở lại bình thường; nếu đã gõ chữ thì được hỏi lại trước khi bỏ.
 5. **Given** hộp soạn để trống, **When** người dùng bấm Nhận xét, **Then** không gửi gì và ô nhập nhắc cần nhập nội dung.
@@ -123,7 +123,7 @@ Mỗi nhận xét cho biết trạng thái: đang gửi, đã lưu (kèm liên k
 **Thêm nhận xét (US1, G1–G3, G10)**
 
 - **FR-001**: Khi người dùng chọn một đoạn chữ hợp lệ theo quy tắc của 010, ứng dụng MUST hiện một nút Thêm nhận xét cạnh đoạn chọn. Nút MUST là lựa chọn nổi bật nhất, và MUST có nhãn cho bàn phím và trình đọc màn hình.
-- **FR-002**: Bấm Thêm nhận xét MUST mở hộp soạn ở thanh bên, ngang đoạn chữ, hiện ảnh và tên người dùng hiện tại, có ô nhập, nút Hủy và nút Nhận xét; con trỏ MUST nằm sẵn trong ô nhập và đoạn chữ MUST được đánh dấu là đang soạn.
+- **FR-002**: Bấm Thêm nhận xét MUST mở hộp soạn ở thanh bên, ngang đoạn chữ, hiện avatar (chữ cái đầu) và tên người dùng hiện tại, có ô nhập, nút Hủy và nút Nhận xét; con trỏ MUST nằm sẵn trong ô nhập và đoạn chữ MUST được đánh dấu là đang soạn.
 - **FR-003**: Nhận xét MUST tạo được mà không phải chọn màu. Màu phân loại của 010 MUST vẫn gán được khi tạo hoặc sau đó. Nhận xét không chọn màu MUST là giá trị thứ năm "không màu" (nhận xét thường), tô trung tính, không mặc định Key. Nó MUST vẫn vào "Before you approve" của bước đó, xếp sau ghi chú Issue và trước các màu còn lại; việc này mở rộng 010 FR-022.
 - **FR-004**: Nhận xét trống MUST không được lưu. Nội dung dài tối đa 2.000 ký tự như 010 (FR-004). Nội dung MUST được hiển thị như chữ thuần.
 - **FR-005**: Hủy hoặc Escape MUST bỏ hộp soạn không tạo gì; nếu đã gõ chữ, ứng dụng MUST hỏi trước khi bỏ. Chuyển sang đoạn chữ khác, tài liệu khác hoặc bước khác MUST không làm mất âm thầm nội dung đang soạn.
@@ -181,9 +181,9 @@ Spec này thêm vào file highlight của 010 đúng một giá trị màu mới
 - **Không thêm loại ghi mới:** vẫn chỉ ghi `highlights.json` của spec đang xem theo 010 và constitution 1.4.0, nên không thêm quyền token nào ngoài Contents: write mà 010 đã yêu cầu.
 - **"Bất kỳ ai" nghĩa là bất kỳ ai có quyền ghi nội dung repo:** không có nhận xét ẩn danh và không có nhận xét của người chỉ có quyền đọc. Đây là đánh đổi đã chọn (Q1 = C): đơn giản và nhất quán với 010, nhưng người duyệt chỉ có quyền đọc phải được cấp quyền ghi nếu muốn nhận xét trong ứng dụng.
 - **Ranh giới với 011:** nếu 011 và spec này cùng đụng một chỗ giao diện (thẻ trả lời trong thanh bên), spec này quyết bố cục, 011 quyết nội dung và dữ liệu của thẻ.
-- **Giao diện theo ảnh nhưng bằng Modernist:** bố cục thanh bên, thẻ, hộp soạn, tooltip theo 4 ảnh; màu, viền, khoảng cách theo token có sẵn. Nhãn tiếng Việt lấy từ ảnh: Thêm nhận xét, Nhận xét, Hủy, Đánh dấu là đã giải quyết và ẩn cuộc thảo luận.
+- **Giao diện theo ảnh nhưng bằng Modernist:** bố cục thanh bên, thẻ, hộp soạn, tooltip theo 4 ảnh; màu, viền, khoảng cách theo token có sẵn. Giao diện của ứng dụng hiện toàn tiếng Anh (spec 010 dùng "Note", "Save note"), nên nhãn trong ứng dụng cũng tiếng Anh: Add comment, Comment, Cancel. Các nhãn tiếng Việt trong spec (Thêm nhận xét, Nhận xét, Hủy) là nhãn tham chiếu từ ảnh; không dựng lớp đa ngôn ngữ trong spec này (constitution VII).
 - **Cập nhật nhận xét của người khác không cần thời gian thực:** kiểm tra định kỳ và dấu "có nhận xét mới" là đủ (FR-014); không dựng kết nối đẩy tức thì (constitution VII).
-- **Ảnh đại diện lấy từ tài khoản GitHub** (server, Pages), chữ cái đầu của tên ở local, người mẫu ở demo.
+- **Ảnh đại diện là chữ cái đầu của tên** (server, Pages, local, demo), dùng lại avatar chữ cái có sẵn của ứng dụng. Không tải ảnh từ GitHub vì CSP của bản tĩnh chỉ cho `img-src 'self' data:`; thêm điểm đến ảnh mới phải sửa CSP và README (constitution II). Ảnh thật là việc làm sau, nếu người dùng muốn.
 - **Tài liệu hỗ trợ** là các tài liệu markdown của spec trong cột đọc, như 010.
 
 ## Non-Goals
