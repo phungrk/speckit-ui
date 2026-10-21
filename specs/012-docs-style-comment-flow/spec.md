@@ -17,6 +17,7 @@
 - Q: Số spec? → A: 012, vì 011 đã dùng cho `011-annotation-threads` trên cùng nhánh này.
 - Q1: Người duyệt chỉ có quyền đọc repo thì có nhận xét được không? → A: Không. Chỉ người có quyền ghi nội dung repo mới nhận xét được, và nhận xét lưu vào file `highlights.json` như 010. Người chỉ có quyền đọc xem được mọi nhận xét nhưng không thêm được; nút Thêm nhận xét bị tắt kèm lý do (FR-016). Không có đường lưu thứ hai: không dùng comment trên issue theo dõi, không dùng review comment của PR. (Chọn phương án C ngày 2026-10-21. Câu trả lời đầu "bất kỳ ai cũng comment được" từng dẫn tới dự kiến dự phòng bằng comment trên issue; phương án đó đã bị bỏ, và "bất kỳ ai" nay nghĩa là bất kỳ ai có quyền ghi nội dung repo.)
 - Q2: Nhận xét không chọn màu thì được coi là gì? → A: Thêm giá trị thứ năm "không màu": nhận xét thường, tô trung tính, không mặc định Key. Vẫn vào "Before you approve", xếp sau Issue (FR-003).
+- Q3: Khi người khác thêm nhận xét mới, ứng dụng cập nhật cho người dùng thế nào? → A: Tự kiểm tra nhẹ định kỳ khi tab đang mở và hiện dấu "có nhận xét mới", kèm nút làm mới thủ công. Nhận xét mới chỉ được chèn khi người dùng bấm vào dấu hoặc khi họ không đang soạn; không bao giờ tự chèn giữa lúc đang soạn hay đang đọc (FR-014).
 
 ## Gap giữa 010 và luồng Google Docs
 
@@ -93,8 +94,10 @@ Mỗi nhận xét cho biết trạng thái: đang gửi, đã lưu (kèm liên k
 1. **Given** người dùng bấm Nhận xét, **When** việc lưu đang chạy, **Then** thẻ hiện ngay với trạng thái đang gửi và không cho gửi lặp.
 2. **Given** lưu thành công, **When** hoàn tất, **Then** thẻ hiện đã lưu kèm liên kết tới commit (từ 010 FR-009a).
 3. **Given** lưu thất bại, **When** lỗi xảy ra, **Then** thẻ hiện lý do dễ hiểu và nút thử lại; nội dung nhận xét không mất (010 FR-015).
-4. **Given** người khác đã lưu nhận xét mới, **When** người dùng bấm làm mới trong thanh bên hoặc ứng dụng tự kiểm tra, **Then** nhận xét mới hiện mà không mất nội dung người dùng đang soạn.
-5. **Given** người dùng đang xem spec ở một nhánh, **When** nhận xét của người khác nằm ở nhánh khác của cùng spec, **Then** thanh bên cho biết đang xem nhận xét của nhánh nào và có thể có nhận xét khác ở nhánh còn lại.
+4. **Given** người khác đã lưu nhận xét mới và tab đang mở, **When** ứng dụng tự kiểm tra định kỳ, **Then** thanh bên hiện dấu "có nhận xét mới" (kèm số lượng) mà không đổi gì trong tài liệu hay trong hộp soạn đang mở.
+5. **Given** có dấu "có nhận xét mới", **When** người dùng bấm vào dấu hoặc bấm nút làm mới, **Then** nhận xét mới hiện đúng chỗ, thẻ đang soạn và nhận xét đang chọn được giữ nguyên.
+6. **Given** người dùng đang soạn nhận xét hoặc đang chọn một thẻ, **When** có nhận xét mới của người khác, **Then** chỉ dấu "có nhận xét mới" thay đổi; tài liệu không cuộn và thẻ không nhảy vị trí.
+7. **Given** người dùng đang xem spec ở một nhánh, **When** nhận xét của người khác nằm ở nhánh khác của cùng spec, **Then** thanh bên cho biết đang xem nhận xét của nhánh nào và có thể có nhận xét khác ở nhánh còn lại.
 
 ---
 
@@ -138,7 +141,7 @@ Mỗi nhận xét cho biết trạng thái: đang gửi, đã lưu (kèm liên k
 **Trạng thái lưu và cập nhật (US3, G8)**
 
 - **FR-013**: Mỗi nhận xét MUST cho biết trạng thái đang gửi, đã lưu hoặc thất bại. Đã lưu MUST kèm liên kết tới commit (server, Pages); thất bại MUST kèm lý do và nút thử lại, giữ nguyên nội dung (010 FR-015).
-- **FR-014**: Ứng dụng MUST có cách cập nhật nhận xét mới của người khác mà không mất nội dung đang soạn: nút làm mới trong thanh bên, và MUST cho biết lần cập nhật gần nhất. Cập nhật tức thì không bắt buộc.
+- **FR-014**: Khi tab đang mở, ứng dụng MUST tự kiểm tra định kỳ xem có nhận xét mới của người khác không, và nếu có MUST hiện dấu "có nhận xét mới" kèm số lượng ở thanh bên mà không đổi tài liệu hay hộp soạn. Nhận xét mới MUST chỉ được chèn khi người dùng bấm vào dấu hoặc nút làm mới; MUST NOT tự chèn khi người dùng đang soạn nhận xét hoặc đang chọn một thẻ. Thanh bên MUST luôn có nút làm mới thủ công và cho biết lần cập nhật gần nhất. Việc kiểm tra MUST dừng khi tab ẩn và MUST không vượt giới hạn tốc độ của GitHub (khoảng cách giữa các lần kiểm tra do plan chọn). Không dùng kết nối đẩy tức thì.
 - **FR-015**: Thanh bên MUST cho biết nhận xét đang hiển thị thuộc nhánh nào của spec (010 FR-009).
 
 **Quyền và chế độ**
@@ -165,6 +168,7 @@ Spec này thêm vào file highlight của 010 đúng một giá trị màu mới
 - **SC-003**: Trong tài liệu có 20 nhận xét, mỗi thẻ nằm lệch không quá một dòng chữ so với đoạn chữ của nó khi không có thẻ nào chen chỗ, và không có hai thẻ đè lên nhau trong mọi trường hợp.
 - **SC-004**: Chọn một nhận xét bằng bất kỳ cách nào (thẻ, đoạn chữ, ghim, tab Highlights) cho cùng một trạng thái: 100% trường hợp thử cho đúng một thẻ mở rộng và đúng một đoạn chữ đậm.
 - **SC-005**: 100% lần lưu hiện đúng trạng thái trong vòng 1 giây sau khi có kết quả; 0 nhận xét đang soạn bị mất khi lưu thất bại hoặc khi chuyển chỗ chọn.
+- **SC-010**: Nhận xét do người khác lưu thành công hiện dấu "có nhận xét mới" ở máy đang mở tab trong vòng 2 phút; 0 lần dấu này làm thay đổi tài liệu, vị trí cuộn hoặc nội dung đang soạn.
 - **SC-006**: Với 200 nhận xét trong một spec, mở tài liệu và cuộn vẫn mượt, thẻ vẫn thẳng hàng đúng sau khi đổi cỡ chữ.
 - **SC-007**: Toàn bộ luồng làm được chỉ bằng bàn phím và ở bề rộng 390px không có cuộn ngang.
 - **SC-008**: Màn hình demo khi chưa có nhận xét khớp thiết kế gốc từng pixel ở 1440×900 và 924×540 (constitution IV).
@@ -178,7 +182,7 @@ Spec này thêm vào file highlight của 010 đúng một giá trị màu mới
 - **"Bất kỳ ai" nghĩa là bất kỳ ai có quyền ghi nội dung repo:** không có nhận xét ẩn danh và không có nhận xét của người chỉ có quyền đọc. Đây là đánh đổi đã chọn (Q1 = C): đơn giản và nhất quán với 010, nhưng người duyệt chỉ có quyền đọc phải được cấp quyền ghi nếu muốn nhận xét trong ứng dụng.
 - **Ranh giới với 011:** nếu 011 và spec này cùng đụng một chỗ giao diện (thẻ trả lời trong thanh bên), spec này quyết bố cục, 011 quyết nội dung và dữ liệu của thẻ.
 - **Giao diện theo ảnh nhưng bằng Modernist:** bố cục thanh bên, thẻ, hộp soạn, tooltip theo 4 ảnh; màu, viền, khoảng cách theo token có sẵn. Nhãn tiếng Việt lấy từ ảnh: Thêm nhận xét, Nhận xét, Hủy, Đánh dấu là đã giải quyết và ẩn cuộc thảo luận.
-- **Cập nhật nhận xét của người khác không cần thời gian thực:** làm mới thủ công hoặc theo chu kỳ đủ; không dựng kết nối đẩy tức thì (constitution VII).
+- **Cập nhật nhận xét của người khác không cần thời gian thực:** kiểm tra định kỳ và dấu "có nhận xét mới" là đủ (FR-014); không dựng kết nối đẩy tức thì (constitution VII).
 - **Ảnh đại diện lấy từ tài khoản GitHub** (server, Pages), chữ cái đầu của tên ở local, người mẫu ở demo.
 - **Tài liệu hỗ trợ** là các tài liệu markdown của spec trong cột đọc, như 010.
 
