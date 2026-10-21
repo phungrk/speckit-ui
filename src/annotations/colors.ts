@@ -9,3 +9,6 @@ export const HL_COLORS: readonly { key: HighlightColor; meaning: string }[] = [
 ];
 
 export const meaningOf = (k: HighlightColor) => HL_COLORS.find(c => c.key === k)?.meaning ?? 'Key';
+
+/** The document a step shows, relative to the spec folder ('' for the constitution). */
+export const PHASE_DOC: Record<string, string> = { constitution: '', specify: 'spec.md', clarify: 'spec.md', plan: 'plan.md', tasks: 'tasks.md', analyze: 'analysis.md', implement: 'tasks.md' };

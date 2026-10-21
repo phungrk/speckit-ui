@@ -8,7 +8,13 @@ import { GATE_NAME, blockingGates } from './gates';
 import { GatePanel, type DecideResult } from './GatePanel';
 import { buildOverview } from './overview';
 import { LIVE_CLASS, LIVE_LABEL, PHASES, blobUrl, phaseStatus, type LiveStatus } from './phases';
-import type { LastViewed, PrefsStorage } from './prefs';
+import { prefsFor, type LastViewed, type PrefsStorage } from './prefs';
+import { Annotator } from '../annotations/Annotator';
+import { HighlightsPanel } from '../annotations/HighlightsPanel';
+import { gitHubStore } from '../annotations/store';
+import { briefNotes } from '../annotations/brief';
+import { PHASE_DOC } from '../annotations/colors';
+import type { Highlight } from './types';
 import { ReaderMenu, SidebarToggle } from '../reader/ReaderControls';
 import { useReader, useSidebarKeys } from '../reader/useReader';
 import { accessProblem } from './repoLoader';
@@ -63,7 +69,15 @@ export function LiveWorkspace({ project, backend, user, storage, refreshing, onR
   const rd = useReader(user.login, storage);
   const [aaOpen, setAaOpen] = useState(false);
   useSidebarKeys(rd.layout, rd.setLayout);
-  const [rtab, setRtab] = useState<'spec' | 'ai'>('spec');
+  const [rtab, setRtab] = useState<'spec' | 'hl' | 'ai'>('spec');
+  const [seed, setSeed] = useState<string | null>(null);
+  // Highlights saved in this tab, by slug@branch, until the next load shows the commit (specs/010-spec-annotations).
+  const [savedHls, setSavedHls] = useState<Record<string, Highlight[]>>({});
+  const [focusId, setFocusId] = useState<string | null>(null);
+  const [outdated, setOutdated] = useState<string[]>([]);
+  const [refused, setRefused] = useState<string | null>(null);
+  const prefs = prefsFor(user.login, storage);
+  const [askConsent, setAskConsent] = useState(() => !prefs.getHighlightConsent(project.repo));
   const [tracking, setTracking] = useState<Tracking | null>(null);
   const [trackingError, setTrackingError] = useState<string | null>(null);
   const [cmd, setCmd] = useState('');
@@ -122,6 +136,11 @@ export function LiveWorkspace({ project, backend, user, storage, refreshing, onR
   const pi = sel ?? (f ? current : 0);
   const phase = PHASES[pi];
   const st = status[pi];
+  const hlBranch = f ? f.branch ?? project.ref : null;
+  const hlKey = f ? `${f.slug}@${hlBranch}` : '';
+  const hls = f ? savedHls[hlKey] ?? f.highlights?.items ?? [] : [];
+  const hlReadOnly = !f ? null : project.pinned ? `Highlights are read-only while the app is pinned to ${project.ref}.` : f.highlights?.error ?? refused;
+  const hlStore = gitHubStore(backend, project.repo, hlReadOnly);
   const locks = f ? locksOf(status, f.slug) : status.map(() => null);
   const lockedBy = locks[pi];
   // A locked step's command is never offered; without approvals we can't tell, so none is (specs/004 FR-003, SC-001).
@@ -234,7 +253,14 @@ export function LiveWorkspace({ project, backend, user, storage, refreshing, onR
             <span className="sk-st">{cls === 'done' ? <Icon n="check" s={12} /> : s === 'pending' ? <Icon n="lock" s={12} /> : <Icon n="dot" s={12} />}{label}</span>
           </button>;
         })}</div>
-        <div className="sk-doc" role="tabpanel"><div className="sk-col">{view}</div></div>
+        {f ? <Annotator items={hls} target={{ slug: f.slug, branch: hlBranch, phase: phase.k, doc: PHASE_DOC[phase.k] ?? '', docSha: f.blobs?.[PHASE_DOC[phase.k] ?? ''] ?? null }}
+          store={hlStore} author={{ login: user.login }} focusId={focusId} clearFocus={() => setFocusId(null)} onOutdated={setOutdated}
+          consent={{ needed: askConsent, branch: hlBranch ?? project.ref, login: user.login, accept: () => { prefs.setHighlightConsent(project.repo, true); setAskConsent(false); } }}
+          onItems={items => setSavedHls(x => ({ ...x, [hlKey]: items }))}
+          onRefused={reason => setRefused(reason)}
+          onAsk={text => { setRtab('ai'); setSeed(`Explain this passage from ${phase.n} and flag any risk or gap: "${text}"`); }}
+          docProps={{ role: 'tabpanel' }}>{view}</Annotator>
+          : <div className="sk-doc" role="tabpanel"><div className="sk-col">{view}</div></div>}
         <div className="sk-cmd">
           {log.length > 0 && <div className="sk-log" ref={logRef} aria-live="polite">{log.map((l, i) => <div key={i} className={l.startsWith('›') ? 'in' : ''}>{l}</div>)}</div>}
           {f?.unmerged && f.branch && !cmdLocked && <div className="sk-cmdhint">Run on <b>{f.branch}</b>: <code>git switch {f.branch}</code></div>}
@@ -249,14 +275,18 @@ export function LiveWorkspace({ project, backend, user, storage, refreshing, onR
         </div>
       </main>
       {rd.layout.right && <aside className={'sk-right' + (rtab === 'ai' ? ' is-ai' : '')}>
-        <div className="sk-rtabs" role="tablist">
+        <div className="sk-rtabs is-3" role="tablist">
           <button role="tab" aria-selected={rtab === 'spec'} onClick={() => setRtab('spec')}>Gate & PRs</button>
+          <button role="tab" aria-selected={rtab === 'hl'} onClick={() => setRtab('hl')} disabled={!f}>Highlights{hls.length > 0 && <span className="sk-rtab-n">{hls.length}</span>}</button>
           <button role="tab" aria-selected={rtab === 'ai'} onClick={() => setRtab('ai')} disabled={!f}><span className="sk-ai-badge">AI</span>Copilot{msgs.length > 0 && <span className="sk-rtab-n">{Math.ceil(msgs.length / 2)}</span>}</button>
         </div>
-        {rtab === 'ai' && f ? <Copilot label={<>Reading <b>{f.id}</b> · {phase.n} · {project.repo}</>} tag={`${f.id} · ${phase.n}`} audience="this spec" suggestions={LIVE_SUGGEST}
-          placeholder={`Ask about ${f.title}…`} refPattern={liveRefPattern(f)} msgs={msgs} setMsgs={setMsgs} ask={ask} seed={null} clearSeed={() => {}}
+        {rtab === 'hl' && f ? <HighlightsPanel items={hls} phases={PHASES.map(p => ({ key: p.k, name: p.n }))} outdated={outdated}
+          onOpen={h => { const i = PHASES.findIndex(p => p.k === h.phase); if (i >= 0) setSel(i); setFocusId(h.id); }}
+          ask={{ on: askConsent, set: on => { prefs.setHighlightConsent(project.repo, !on); setAskConsent(on); } }} readOnly={hlReadOnly} now={now} />
+          : rtab === 'ai' && f ? <Copilot label={<>Reading <b>{f.id}</b> · {phase.n} · {project.repo}</>} tag={`${f.id} · ${phase.n}`} audience="this spec" suggestions={LIVE_SUGGEST}
+          placeholder={`Ask about ${f.title}…`} refPattern={liveRefPattern(f)} msgs={msgs} setMsgs={setMsgs} ask={ask} seed={seed} clearSeed={() => setSeed(null)}
           onRef={r => setSel(liveRefPhase(f, r))} /> : <>
-          {f && <GatePanel project={project} f={f} pi={pi} status={st} tracking={tracking} trackingError={trackingError} onDecide={decide} blockedBy={lockedBy} />}
+          {f && <GatePanel project={project} f={f} pi={pi} status={st} tracking={tracking} trackingError={trackingError} onDecide={decide} blockedBy={lockedBy} notes={briefNotes(hls, phase.k)} onAskBrief={() => { setRtab('ai'); setSeed(`What should I check before approving ${phase.n}?`); }} />}
           <div className={f ? 'sk-pad sk-rule' : 'sk-pad'}>
             {!f && <><Label>Step · {phase.n}</Label><p className="sk-what">{phase.what}</p></>}
             {f && <>

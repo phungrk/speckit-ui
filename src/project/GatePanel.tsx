@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { Icon, Label } from '../ui';
 import { blockedReason, canApprove, gateChecks } from './gates';
 import { PHASES, type LiveStatus } from './phases';
+import { GateBrief } from '../copilot/Copilot';
 import type { GateAction } from './trackingApi';
 import { GATE_KEYS, type GateKey, type Project, type SpecFeature, type SpecPR, type Tracking } from './types';
 
@@ -19,6 +20,9 @@ interface Props {
   onDecide: (gate: GateKey, action: GateAction, note: string) => Promise<DecideResult>;
   /** The earlier gate that must be approved first (specs/004), if any. */
   blockedBy?: GateKey | null;
+  /** "{Author}: {note}" for this step, Issue first; shown as "Before you approve" (specs/010-spec-annotations FR-022). */
+  notes?: string[];
+  onAskBrief?: () => void;
 }
 
 export interface DecideResult {
@@ -27,7 +31,7 @@ export interface DecideResult {
   unchanged: boolean;
 }
 
-export function GatePanel({ project, f, pi, status, tracking, trackingError, onDecide, blockedBy = null }: Props) {
+export function GatePanel({ project, f, pi, status, tracking, trackingError, onDecide, blockedBy = null, notes = [], onAskBrief = () => {} }: Props) {
   const [busy, setBusy] = useState(false);
   // Set synchronously, so a second click before React re-renders is ignored (specs/001 FR-003).
   const inFlight = useRef(false);
@@ -84,6 +88,7 @@ export function GatePanel({ project, f, pi, status, tracking, trackingError, onD
                 <button key="reopen" className="btn btn-secondary btn-block" disabled={busy} onClick={() => decide('reopen')}>{busy ? 'Saving…' : 'Reopen gate'}</button>
               </div>
               : <div className="sk-gateact">
+                {notes.length > 0 && <GateBrief items={notes} onAsk={onAskBrief} />}
                 {blockedBy
                   ? <div className="sk-warn"><Icon n="lock" s={14} />{blockedReason(blockedBy)}</div>
                   : <>
