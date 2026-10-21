@@ -58,7 +58,11 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
   const [toast, setToast] = useState<{ sha: string; url: string } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const close = () => { setTb(null); setError(null); window.getSelection()?.removeAllRanges(); };
+  const close = () => {
+    // Keyboard users go back to the text they were reading.
+    if (document.activeElement?.closest?.('.sk-tb')) docRef.current?.focus();
+    setTb(null); setError(null); window.getSelection()?.removeAllRanges();
+  };
 
   useEffect(() => {
     if (!tb) return;
@@ -103,7 +107,8 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
         open({ mode: 'new', text: anchor.quote, anchor, x: b.left + b.width / 2, top: b.top, bottom: b.bottom });
         return;
       }
-      const o = caretOffset(root, x, y);
+      // Pointer: the character under it; keyboard (x < 0): the caret.
+      const o = x >= 0 ? caretOffset(root, x, y) : sel?.anchorNode && root.contains(sel.anchorNode) ? offsetIn(root, sel.anchorNode, sel.anchorOffset) : -1;
       const hit = anchors.current.find(a => o >= a.start && o < a.end);
       if (hit) openFor(hit.h.id);
     }, 0);
@@ -147,7 +152,12 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
     <div className="sk-doc" ref={docRef} {...docProps}
       onMouseUp={e => onUp(e.clientX, e.clientY, e.target)}
       onTouchEnd={e => { const t = e.changedTouches[0]; setTimeout(() => onUp(t.clientX, t.clientY, e.target), 300); }}
-      onKeyUp={e => { if (e.shiftKey) onUp(-1, -1, e.target); }}
+      onKeyUp={e => { if (e.shiftKey || e.key === 'Shift' || e.key === 'Enter') onUp(-1, -1, e.target); }}
+      onKeyDown={e => {
+        if (e.key !== 'Tab' || e.shiftKey || !tb) return;
+        const first = document.querySelector<HTMLElement>('.sk-tb button:not(:disabled), .sk-tb textarea');
+        if (first) { e.preventDefault(); first.focus(); }
+      }}
       onScroll={() => tb && !tb.noting && close()}>
       {unsupported && items.length > 0 && <p className="sk-hlp-empty" role="note">This browser cannot draw highlights in the text; they are listed in the Highlights tab.</p>}
       <div className="sk-col" ref={colRef}>{children}</div>

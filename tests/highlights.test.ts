@@ -196,3 +196,70 @@ describe('POST /api/highlights (T011, T026)', () => {
     expect(JSON.parse(res.out.body).error).toMatch(/needs Contents: Read and write/);
   });
 });
+
+describe('localFileStore with a fake folder (T031, FR-016)', () => {
+  type Dir = { kind: 'directory'; name: string; children: Map<string, Dir | File_> } & Record<string, unknown>;
+  type File_ = { kind: 'file'; text: string } & Record<string, unknown>;
+  const writes: string[] = [];
+  const file = (path: string, text = ''): File_ => {
+    const f: File_ = {
+      kind: 'file', text,
+      getFile: async () => ({ text: async () => f.text }),
+      createWritable: async () => { let buf = ''; return { write: async (s: string) => { buf += s; }, close: async () => { f.text = buf; writes.push(path); } }; }
+    };
+    return f;
+  };
+  const dir = (name: string, path: string, grant: 'granted' | 'denied'): Dir => {
+    const d: Dir = {
+      kind: 'directory', name, children: new Map(),
+      entries: async function* () { yield* d.children; },
+      queryPermission: async () => 'prompt',
+      requestPermission: async () => grant,
+      getDirectoryHandle: async (n: string) => { const c = d.children.get(n); if (c?.kind !== 'directory') throw new Error('NotFoundError'); return c; },
+      getFileHandle: async (n: string, o?: { create?: boolean }) => {
+        let c = d.children.get(n);
+        if (!c && o?.create) d.children.set(n, c = file(`${path}/${n}`));
+        if (c?.kind !== 'file') throw new Error('NotFoundError');
+        return c;
+      }
+    };
+    return d;
+  };
+  const tree = (grant: 'granted' | 'denied' = 'granted') => {
+    const root = dir('fixture', '', grant), specs = dir('specs', 'specs', grant), spec = dir('010-x', 'specs/010-x', grant);
+    root.children.set('specs', specs); specs.children.set('010-x', spec); spec.children.set('spec.md', file('specs/010-x/spec.md', '# Spec'));
+    return { root, spec };
+  };
+  const me = { name: 'Mai', local: true as const };
+  afterEach(() => { writes.length = 0; });
+
+  it('writes only specs/{slug}/highlights.json, creating it on the first save', async () => {
+    const { localFileStore } = await import('../src/annotations/store');
+    const { root, spec } = tree();
+    const store = localFileStore(root as never);
+    expect(store.readOnly).toBeNull();
+    const r = await store.save({ slug: '010-x', branch: null }, { type: 'add', highlight: H('h1', { author: me }) }, me);
+    expect(r.items.map(h => h.id)).toEqual(['h1']);
+    await store.save({ slug: '010-x', branch: null }, { type: 'update', id: 'h1', note: 'check' }, me);
+    expect(writes).toEqual(['specs/010-x/highlights.json', 'specs/010-x/highlights.json']);
+    expect(parseHighlights((spec.children.get('highlights.json') as File_).text).items[0]).toMatchObject({ id: 'h1', note: 'check', author: me });
+    expect((spec.children.get('spec.md') as File_).text).toBe('# Spec');
+  });
+
+  it('stays read-only without write handles, and writes nothing when write access is refused', async () => {
+    const { localFileStore } = await import('../src/annotations/store');
+    const msg = 'This folder was opened read-only. Choose it again with write access to save highlights.';
+    expect(localFileStore(null).readOnly).toBe(msg);
+    const { root } = tree('denied');
+    await expect(localFileStore(root as never).save({ slug: '010-x', branch: null }, { type: 'add', highlight: H('h1', { author: me }) }, me)).rejects.toThrow(msg);
+    expect(writes).toEqual([]);
+  });
+
+  it('keeps the author rule locally', async () => {
+    const { localFileStore } = await import('../src/annotations/store');
+    const { root } = tree();
+    const store = localFileStore(root as never);
+    await store.save({ slug: '010-x', branch: null }, { type: 'add', highlight: H('h1', { author: me }) }, me);
+    await expect(store.save({ slug: '010-x', branch: null }, { type: 'remove', id: 'h1' }, { name: 'Lan', local: true })).rejects.toThrow('Only Mai');
+  });
+});

@@ -4,11 +4,11 @@ Speckit Workspace: a web UI where a cross-functional team (Director, Designer, E
 
 Built from the Claude Design handoff `Speckit Workspace.html` (Modernist design system). It matches the prototype pixel for pixel.
 
-It runs in three modes, with or without a server (see [Local mode](#local-mode-read-only) and
+It runs in three modes, with or without a server (see [Local mode](#local-mode) and
 [GitHub Pages](#github-pages-no-server)):
 
 - **GitHub mode**: the app reads real Spec Kit projects (constitution, `specs/NNN-*/`) from GitHub, in [any repository your own access allows](#several-repositories). It also tracks gate approvals in GitHub issues and lists each spec's PRs across the repo and its submodules.
-- **Local mode**: choose a repository folder and inspect its real Spec Kit files in this browser tab. It is read-only and needs no credentials.
+- **Local mode**: choose a repository folder and inspect its real Spec Kit files in this browser tab. It needs no credentials and writes nothing except the highlights you save.
 - **Demo mode**: choose **Open the demo** from the no-configuration screen, or use `?demo` in the URL, to show the sample "Wallet App" workspace from the design, including approvals and the New spec flow.
 
 GitHub mode always uses the GitHub access of the person using it: the token they enter (Pages),
@@ -83,17 +83,17 @@ For the token, use a fine-grained personal access token. Give it, for each repos
 
 | Repository | Permissions |
 |---|---|
-| A Spec Kit repo | Contents: Read-only · Pull requests: Read-only · **Issues: Read and write** (for gate approvals) |
+| A Spec Kit repo | **Contents: Read and write** (for highlights) · Pull requests: Read-only · **Issues: Read and write** (for gate approvals) |
 | Each submodule repo | Contents: Read-only · Pull requests: Read-only |
 
-Without Issues write on a repo you can still read it; approving a gate there says the permission is missing.
+Without Issues write on a repo you can still read it; approving a gate there says the permission is missing. Without Contents write you can still read highlights; saving one says the permission is missing. A Pages token needs the same permissions.
 
 ### Sign-in mode (a server for a team)
 
 Register a **GitHub App** once for your organization (Settings → Developer settings → GitHub Apps):
 
 - **Callback URL:** `<your server>/auth/callback`. Tick *Expire user authorization tokens*.
-- **Permissions (repository):** Contents: Read-only · Pull requests: Read-only · Issues: Read and write · Metadata: Read-only. No account permissions are needed.
+- **Permissions (repository):** Contents: Read and write (highlights only) · Pull requests: Read-only · Issues: Read and write · Metadata: Read-only. No account permissions are needed.
 - Install it on the organization (all repositories, or the ones speckit-ui should see).
 - Put its client ID and a client secret in the server's `.env` as `GITHUB_APP_CLIENT_ID` and `GITHUB_APP_CLIENT_SECRET`. Set `PUBLIC_URL` if the server sits behind a proxy.
 
@@ -121,7 +121,7 @@ How it reads the project:
 - The result is cached per user and repository (the last 8). After 30 seconds the next request checks the branch head and downloads again only if the commit changed. **Refresh** forces that check.
 - Command names follow the project's integration: `/speckit-plan` when it invokes Claude skills with `-`, otherwise `/speckit.plan`.
 
-## Local mode (read-only)
+## Local mode
 
 Choose **Open local repository** from the no-configuration start screen, GitHub connect/sign-in
 screen, or signed-in workspace. Select the repository folder in the browser's directory dialog.
@@ -129,7 +129,7 @@ The viewer reads supported Spec Kit files under `specs/NNN-name/` and the option
 constitution/configuration files, then shows the actual local Markdown. Choose another folder to
 refresh, or exit local mode to return to the previous workspace choice.
 
-Local files stay in the browser tab: they are not uploaded, written, or saved across reloads.
+Local files stay in the browser tab: they are not uploaded or saved across reloads. The only file the app writes is `specs/NNN-name/highlights.json` when you save a highlight, after the browser asks for write access to the folder (see Highlights).
 GitHub approvals, PR tracking, and Copilot are unavailable in local mode; connect through GitHub
 mode to use them. Directory selection is supported in current desktop browsers. If the browser
 does not support it, the app explains the limitation and leaves the demo and GitHub options
@@ -262,6 +262,19 @@ Every workspace (demo, GitHub, Pages and local) has the same reading controls in
 - The fonts come from Google Fonts, which the Pages CSP already allows; there is no new network destination.
 
 See `specs/010-reader-highlights/`.
+
+## Highlights
+
+Select text in any step's document to highlight it in one of four colours (Key, Issue, Question, Change) or leave a note for the team. Notes show a pin in the margin, are listed in the **Highlights** tab and appear in **Before you approve** for that step. Highlights never block or approve a gate.
+
+- **Stored with the spec** in `specs/NNN-name/highlights.json`, on the branch you are viewing. Anyone who can read the spec sees its highlights.
+- **GitHub and Pages:** every save is one commit by you, ending in `[skip ci]` so CI does not run. The first save in a repository asks once to confirm (switch it back on under the Highlights tab). It needs Contents: Read and write; without it, or on a pinned commit, highlights are read-only.
+- **Local:** saves write the file in the folder, with no commit and no network; the first save asks for your name.
+- **Demo:** highlights are kept in this browser only.
+- **Only the author** can recolour, edit or remove a highlight; others can copy it or ask Copilot about it.
+- When the text under a highlight changes, it stays in the list marked **Outdated, text changed**.
+
+See `specs/010-spec-annotations/`.
 
 ## Demo mode
 

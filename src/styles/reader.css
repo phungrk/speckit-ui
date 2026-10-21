@@ -13,7 +13,7 @@
 @media (max-width: 760px) { .sk-main .sk-doc { padding-inline: var(--space-4); } }
 .sk-col, .sk-doc > .sk-col { max-width: var(--rd-measure); margin: 0 auto; }
 .sk-col p, .sk-col li, .sk-col blockquote, .sk-col q { font-family: var(--rd-font); font-size: var(--rd-size); line-height: var(--rd-lh); }
-.sk-col td, .sk-col .sk-ac, .sk-col .sk-cl li { font-family: var(--rd-font); font-size: var(--rd-size-sm); line-height: var(--rd-lh); }
+.sk-col td, .sk-col .sk-ac, .sk-col .sk-ac li, .sk-col .sk-cl li { font-family: var(--rd-font); font-size: var(--rd-size-sm); line-height: var(--rd-lh); }
 .sk-col .sk-opt, .sk-col .sk-kv b { font-family: var(--rd-font); font-size: var(--rd-size-xs); line-height: var(--rd-lh); }
 .sk-col :is(h1, h2, h3, h4, h5, h6, .sk-id, .sk-path, .sk-owner, .sk-meta, .sk-file, .tag, button, .btn, .sk-pass, .sk-nc, code, pre, th) { font-family: var(--font-body); }
 .sk-col .sk-id { font-size: var(--fs-12); }

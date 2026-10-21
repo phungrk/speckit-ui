@@ -65,3 +65,24 @@ describe('contentHash', () => {
     expect(contentHash('abc')).not.toBe(contentHash('abd'));
   });
 });
+
+describe('Outdated across versions (US4)', () => {
+  const a = 'Limits\nThe cap applies daily per account.\nReports show the cap applies daily per account too.\n';
+  const b = 'Limits\nThe limit resets every week for each account.\nReports show the weekly limit too.\n';
+  const c = 'Intro added above.\n' + a;
+
+  it('returns null on version B, where the sentence was edited', () => {
+    expect(locate(b, at(a, 'cap applies daily per account', 0))).toBeNull();
+    expect(locate(b, at(a, 'cap applies daily per account', 1))).toBeNull();
+  });
+
+  it('finds each highlight again at its own occurrence when version C restores the text', () => {
+    for (const nth of [0, 1]) {
+      const h = at(a, 'cap applies daily per account', nth);
+      const found = locate(c, h)!;
+      let want = -1;
+      for (let k = 0; k <= nth; k++) want = c.indexOf('cap applies daily per account', want + 1);
+      expect(found.start).toBe(want);
+    }
+  });
+});
