@@ -3,11 +3,12 @@
 // Every call names its repository; the user's own access decides what they can open.
 import { GitHubError, clearProjectCache, detectSpeckit, getProject, getSpecVariant, identityFor, json, listRepos, type Source } from '../server/github';
 import { clearTrackingCache, decideGate, getTracking } from '../server/tracking';
+import { saveHighlight, type SaveResult } from '../server/highlights';
 import type { CopilotMsg } from './copilot/Copilot';
 import { OfflineError, requestCopilot, toTurns } from './copilot/api';
 import type { Decided, GateAction } from './project/trackingApi';
 import { api, fetchTracking, postGate } from './project/trackingApi';
-import type { DetectResult, DetectTarget, GateKey, Project, ProjectResponse, RepoListing, SessionResponse, SpecFeature, Tracking } from './project/types';
+import type { DetectResult, DetectTarget, GateKey, HighlightChange, Project, ProjectResponse, RepoListing, SessionResponse, SpecFeature, Tracking } from './project/types';
 
 /** Built for GitHub Pages: no server, keys come from the viewer. */
 export const STATIC = import.meta.env.VITE_STATIC === '1';
@@ -25,6 +26,8 @@ export interface Backend {
   spec(repo: string, slug: string, branch: string | null): Promise<SpecFeature>;
   /** Resolves once GitHub has the decision; the tracking it returns already shows it. */
   decide(repo: string, slug: string, gate: GateKey, action: GateAction, note: string, branch?: string | null): Promise<Decided>;
+  /** Commits one highlight change to the spec's highlights.json on `branch` (specs/010-spec-annotations). */
+  saveHighlight(repo: string, slug: string, branch: string, change: HighlightChange): Promise<SaveResult>;
   /** Throws OfflineError when no Claude credentials are available. */
   copilot(context: string, hist: CopilotMsg[]): Promise<string>;
   /** Forget everything loaded in this tab (Disconnect, Sign out). */
@@ -50,6 +53,7 @@ export const serverBackend: Backend = {
   },
   tracking: fetchTracking,
   decide: postGate,
+  saveHighlight: (repo, slug, branch, change) => api<SaveResult>('/api/highlights', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ repo, slug, branch, change }) }),
   copilot: requestCopilot,
   reset: resetCaches
 };
@@ -137,6 +141,11 @@ export function browserBackend(settings: Settings): Backend {
       if (!f) throw new Error(`No spec ${slug}${branch ? ` on ${branch}` : ''} at ${project.sha.slice(0, 7)}.`);
       const { tracking, unchanged } = await decideGate(src, project, f, gate, action, note.trim().slice(0, 2000));
       return { tracking, unchanged };
+    },
+    async saveHighlight(repo, slug, branch, change) {
+      const src = await source(repo);
+      const me = await json<{ login: string }>({ owner: '', repo: '', token }, '/user');
+      return saveHighlight(src, { slug, branch, change, user: me.login });
     },
     copilot: (context, hist) => browserCopilot(settings.anthropicKey, context, hist),
     reset: resetCaches

@@ -4,12 +4,15 @@ Speckit Workspace: a web UI where a cross-functional team (Director, Designer, E
 
 Built from the Claude Design handoff `Speckit Workspace.html` (Modernist design system). It matches the prototype pixel for pixel.
 
-It runs in two modes, with or without a server (see [GitHub Pages](#github-pages-no-server)):
+It runs in three modes, with or without a server (see [Local mode](#local-mode) and
+[GitHub Pages](#github-pages-no-server)):
 
 - **GitHub mode**: the app reads real Spec Kit projects (constitution, `specs/NNN-*/`) from GitHub, in [any repository your own access allows](#several-repositories). It also tracks gate approvals in GitHub issues and lists each spec's PRs across the repo and its submodules.
-- **Demo mode**: with no GitHub configuration (or with `?demo` in the URL), it shows the sample "Wallet App" workspace from the design, including approvals and the New spec flow.
+- **Local mode**: choose a repository folder and inspect its real Spec Kit files in this browser tab. It needs no credentials and writes nothing except the highlights you save.
+- **Demo mode**: choose **Open the demo** from the no-configuration screen, or use `?demo` in the URL, to show the sample "Wallet App" workspace from the design, including approvals and the New spec flow.
 
-Whatever the mode, the app always uses the GitHub access of the person using it: the token they enter (Pages), their GitHub sign-in (a shared server), or their own token in `.env.local` (running locally).
+GitHub mode always uses the GitHub access of the person using it: the token they enter (Pages),
+their GitHub sign-in (a shared server), or their own token in `.env.local` (running locally).
 
 ## Run it
 
@@ -29,11 +32,15 @@ npm start                 # serves dist/ and the API on PORT (default 8787)
 
 Other scripts: `npm test` (Vitest) and `npm run typecheck`. Requires Node 22.18 or later, because the server runs TypeScript directly.
 
+With no GitHub configuration, the app offers local mode and the demo. Choose **Open local
+repository** to view a folder on this computer, or **Open the demo** to use the sample workspace.
+The explicit `?demo` URL continues to open the demo directly.
+
 ## GitHub Pages (no server)
 
 The app can also be built as static files and published to GitHub Pages. There's no speckit-ui server: the page calls GitHub, and optionally Claude, straight from the browser with keys the viewer enters.
 
-- **Connect screen:** the first visit asks for a GitHub token and an optional Anthropic API key. Under **Advanced** you can name a repository (and branch) to open first; otherwise the app lists every repository the token can read.
+- **Connect screen:** the first visit asks for a GitHub token and an optional Anthropic API key. You can also choose **Open local repository** without entering credentials. Under **Advanced** you can name a repository (and branch) to open first; otherwise the app lists every repository the token can read.
   - Keys are kept in `sessionStorage` (forgotten when the tab closes) unless **Remember on this device** is ticked, which uses `localStorage`.
   - **Disconnect** removes them. **Settings** changes them.
 - **Permissions:** every viewer uses their own token, so they only see repositories GitHub already lets them read. Gate approvals are recorded under their own GitHub login.
@@ -76,17 +83,17 @@ For the token, use a fine-grained personal access token. Give it, for each repos
 
 | Repository | Permissions |
 |---|---|
-| A Spec Kit repo | Contents: Read-only · Pull requests: Read-only · **Issues: Read and write** (for gate approvals) |
+| A Spec Kit repo | **Contents: Read and write** (for highlights) · Pull requests: Read-only · **Issues: Read and write** (for gate approvals) |
 | Each submodule repo | Contents: Read-only · Pull requests: Read-only |
 
-Without Issues write on a repo you can still read it; approving a gate there says the permission is missing.
+Without Issues write on a repo you can still read it; approving a gate there says the permission is missing. Without Contents write you can still read highlights; saving one says the permission is missing. A Pages token needs the same permissions.
 
 ### Sign-in mode (a server for a team)
 
 Register a **GitHub App** once for your organization (Settings → Developer settings → GitHub Apps):
 
 - **Callback URL:** `<your server>/auth/callback`. Tick *Expire user authorization tokens*.
-- **Permissions (repository):** Contents: Read-only · Pull requests: Read-only · Issues: Read and write · Metadata: Read-only. No account permissions are needed.
+- **Permissions (repository):** Contents: Read and write (highlights only) · Pull requests: Read-only · Issues: Read and write · Metadata: Read-only. No account permissions are needed.
 - Install it on the organization (all repositories, or the ones speckit-ui should see).
 - Put its client ID and a client secret in the server's `.env` as `GITHUB_APP_CLIENT_ID` and `GITHUB_APP_CLIENT_SECRET`. Set `PUBLIC_URL` if the server sits behind a proxy.
 
@@ -113,6 +120,20 @@ How it reads the project:
 - It parses them on the server (`server/parse.ts`) and serves the result at `GET /api/project`.
 - The result is cached per user and repository (the last 8). After 30 seconds the next request checks the branch head and downloads again only if the commit changed. **Refresh** forces that check.
 - Command names follow the project's integration: `/speckit-plan` when it invokes Claude skills with `-`, otherwise `/speckit.plan`.
+
+## Local mode
+
+Choose **Open local repository** from the no-configuration start screen, GitHub connect/sign-in
+screen, or signed-in workspace. Select the repository folder in the browser's directory dialog.
+The viewer reads supported Spec Kit files under `specs/NNN-name/` and the optional project
+constitution/configuration files, then shows the actual local Markdown. Choose another folder to
+refresh, or exit local mode to return to the previous workspace choice.
+
+Local files stay in the browser tab: they are not uploaded or saved across reloads. The only file the app writes is `specs/NNN-name/highlights.json` when you save a highlight, after the browser asks for write access to the folder (see Highlights).
+GitHub approvals, PR tracking, and Copilot are unavailable in local mode; connect through GitHub
+mode to use them. Directory selection is supported in current desktop browsers. If the browser
+does not support it, the app explains the limitation and leaves the demo and GitHub options
+available.
 
 How each step's status is derived from the files:
 
@@ -250,6 +271,30 @@ A PR for a spec should name the spec's tracking issue in its description (`specs
 - **Update an installed gate check** (from `specs/004`): download `speckit-gate.mjs` again and run `node .claude/hooks/speckit-gate.mjs install`. It adds the PR hook and keeps the rest. Until then the app says *The gate check here doesn't check PR links yet*.
 - **Sessions that don't load hooks** (Claude Code cloud sessions with several repositories) can't be stopped by the gate check. Copy this rule into the project's `CLAUDE.md` so Claude still adds the line: *When creating a PR for `specs/NNN-…`, put `Closes #<tracking issue>` (or `Part of #<tracking issue>` if more PRs follow) in the PR description. The tracking issue is the one labelled `speckit` and titled `Spec NNN: …`. In a submodule repo use `Part of <owner>/<root>#<issue>`.* This is guidance, not a block.
 
+## Reading mode
+
+Every workspace (demo, GitHub, Pages and local) has the same reading controls in its header:
+
+- **Aa** opens the reading settings: font (Literata, Source Serif 4, Atkinson Hyperlegible, Archivo), size (15–22px), line spacing, column width (600, 700, 820px) and page (White, Sepia, Green, Dark). Only prose in the reading column changes; headings, IDs, paths and buttons keep the interface font. The page theme recolours the whole app, including dialogs.
+- **Sidebar buttons** at both ends of the header hide or show the left (queue and specs) and right (gate and Copilot) columns. Keyboard: `[` and `]`.
+- The choice is kept in the browser, per GitHub login (local and demo: per browser). A copy of the last settings is kept in `localStorage` so the page opens in the right theme before anything is drawn. Nothing is written to GitHub or to the repository.
+- The fonts come from Google Fonts, which the Pages CSP already allows; there is no new network destination.
+
+See `specs/010-reader-highlights/`.
+
+## Highlights
+
+Select text in any step's document to highlight it in one of four colours (Key, Issue, Question, Change) or leave a note for the team. Notes show a pin in the margin, are listed in the **Highlights** tab and appear in **Before you approve** for that step. Highlights never block or approve a gate.
+
+- **Stored with the spec** in `specs/NNN-name/highlights.json`, on the branch you are viewing. Anyone who can read the spec sees its highlights.
+- **GitHub and Pages:** every save is one commit by you, ending in `[skip ci]` so CI does not run. The first save in a repository asks once to confirm (switch it back on under the Highlights tab). It needs Contents: Read and write; without it, or on a pinned commit, highlights are read-only.
+- **Local:** saves write the file in the folder, with no commit and no network; the first save asks for your name.
+- **Demo:** highlights are kept in this browser only.
+- **Only the author** can recolour, edit or remove a highlight; others can copy it or ask Copilot about it.
+- When the text under a highlight changes, it stays in the list marked **Outdated, text changed**.
+
+See `specs/010-spec-annotations/`.
+
 ## Demo mode
 
 - **Phase rail**: the seven `/speckit.*` steps, each marked Approved, In review or Locked.
@@ -296,6 +341,7 @@ src/
   project/              GitHub mode: types, step derivation, gates, views, Copilot context,
                         repo list, overview, sign-in screens, prefs and URL state
   copilot/              Copilot panel, context builder, gate brief, API client, offline responder
+  reader/               reading mode: settings and page themes, Aa popover, sidebar toggles (specs/010)
   styles/               modernist.css (design system), workspace.css (app layout)
 server/
   routes.ts             every /api and /auth route (also mounted by the Vite dev server): modes, per-request access

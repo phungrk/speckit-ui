@@ -8,7 +8,15 @@ import { GATE_NAME, blockingGates } from './gates';
 import { GatePanel, type DecideResult } from './GatePanel';
 import { buildOverview } from './overview';
 import { LIVE_CLASS, LIVE_LABEL, PHASES, blobUrl, phaseStatus, type LiveStatus } from './phases';
-import type { LastViewed } from './prefs';
+import { prefsFor, type LastViewed, type PrefsStorage } from './prefs';
+import { Annotator } from '../annotations/Annotator';
+import { HighlightsPanel } from '../annotations/HighlightsPanel';
+import { gitHubStore } from '../annotations/store';
+import { briefNotes } from '../annotations/brief';
+import { PHASE_DOC } from '../annotations/colors';
+import type { Highlight } from './types';
+import { ReaderMenu, SidebarToggle } from '../reader/ReaderControls';
+import { useReader, useSidebarKeys } from '../reader/useReader';
 import { accessProblem } from './repoLoader';
 import { SessionButtons, type SessionActions } from './SessionNav';
 import { SignInRequired, type GateAction } from './trackingApi';
@@ -39,6 +47,8 @@ interface Props extends SessionActions {
   project: Project;
   backend: Backend;
   user: CurrentUser;
+  /** Where this user's preferences live (Pages without Remember: the tab only). */
+  storage: PrefsStorage;
   refreshing: boolean;
   onRefresh: () => void;
   /** Spec and step to open, restored from the URL or the last visit (FR-005). */
@@ -54,10 +64,21 @@ interface Props extends SessionActions {
   onAuthLost: () => void;
 }
 
-export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, initial, onPosition, threads, onThreads, repos, onSwitch, onAllRepos, onOverview, onAuthLost, ...actions }: Props) {
+export function LiveWorkspace({ project, backend, user, storage, refreshing, onRefresh, initial, onPosition, threads, onThreads, repos, onSwitch, onAllRepos, onOverview, onAuthLost, ...actions }: Props) {
   const [slug, setSlug] = useState(() => initial?.spec ?? '');
   const [sel, setSel] = useState<number | null>(() => initial?.step ?? null);
-  const [rtab, setRtab] = useState<'spec' | 'ai'>('spec');
+  const rd = useReader(user.login, storage);
+  const [aaOpen, setAaOpen] = useState(false);
+  useSidebarKeys(rd.layout, rd.setLayout);
+  const [rtab, setRtab] = useState<'spec' | 'hl' | 'ai'>('spec');
+  const [seed, setSeed] = useState<string | null>(null);
+  // Highlights saved in this tab, by slug@branch, until the next load shows the commit (specs/010-spec-annotations).
+  const [savedHls, setSavedHls] = useState<Record<string, Highlight[]>>({});
+  const [focusId, setFocusId] = useState<string | null>(null);
+  const [outdated, setOutdated] = useState<string[]>([]);
+  const [refused, setRefused] = useState<string | null>(null);
+  const prefs = prefsFor(user.login, storage);
+  const [askConsent, setAskConsent] = useState(() => !prefs.getHighlightConsent(project.repo));
   const [tracking, setTracking] = useState<Tracking | null>(null);
   const [trackingError, setTrackingError] = useState<string | null>(null);
   const [cmd, setCmd] = useState('');
@@ -116,6 +137,11 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
   const pi = sel ?? (f ? current : 0);
   const phase = PHASES[pi];
   const st = status[pi];
+  const hlBranch = f ? f.branch ?? project.ref : null;
+  const hlKey = f ? `${f.slug}@${hlBranch}` : '';
+  const hls = f ? savedHls[hlKey] ?? f.highlights?.items ?? [] : [];
+  const hlReadOnly = !f ? null : project.pinned ? `Highlights are read-only while the app is pinned to ${project.ref}.` : f.highlights?.error ?? refused;
+  const hlStore = gitHubStore(backend, project.repo, hlReadOnly);
   const locks = f ? locksOf(status, f.slug) : status.map(() => null);
   const lockedBy = locks[pi];
   // A locked step's command is never offered; without approvals we can't tell, so none is (specs/004 FR-003, SC-001).
@@ -166,6 +192,7 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
 
   return <div className="sk sk-live">
     <nav className="nav sk-nav">
+      <SidebarToggle side="left" open={rd.layout.left} onToggle={() => rd.setLayout({ ...rd.layout, left: !rd.layout.left })} />
       <div className="nav-brand" title={`Build ${__BUILD__}`}>Speckit</div>
       <div className="sk-proj">
         <select className="sk-repo-switch" aria-label="Repository" value={project.repo} onChange={e => e.target.value === '*' ? onAllRepos() : onSwitch(e.target.value)}>
@@ -184,9 +211,11 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
       </a>
       <button className="btn btn-secondary sk-small" onClick={refreshAll} disabled={refreshing}>{refreshing ? 'Refreshing…' : 'Refresh'}</button>
       <SessionButtons user={user} {...actions} />
+      <ReaderMenu reader={rd.reader} open={aaOpen} setOpen={setAaOpen} onChange={rd.setReader} onReset={rd.reset} />
+      <SidebarToggle side="right" open={rd.layout.right} onToggle={() => rd.setLayout({ ...rd.layout, right: !rd.layout.right })} />
     </nav>
-    <div className="sk-body">
-      <aside className="sk-side">
+    <div className={'sk-body' + (rd.layout.left ? '' : ' no-left') + (rd.layout.right ? '' : ' no-right')}>
+      {rd.layout.left && <aside className="sk-side">
         <div className="sk-pad"><Label>Next up</Label>
           {next.length === 0 ? <p className="text-muted sk-sm">Every spec is done.</p> :
             <ul className="sk-list">{next.map(n => <li key={n.slug}><button className="sk-qitem" onClick={() => { setSlug(n.slug); setSel(n.step); }}><b>{n.label}</b><span>{n.slug}{n.branch ? ` · ${shortBranch(n.branch)}` : ''}</span><Icon n="arrow" s={14} /></button></li>)}</ul>}
@@ -205,7 +234,7 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
             </button></li>;
           })}</ul>
         </div>
-      </aside>
+      </aside>}
       <main className="sk-main">
         <div className="sk-fhead">
           <div className="sk-file"><Icon n="branch" s={14} />{f ? <>{f.branch ? `${f.branch} · ` : ''}{f.slug}</> : project.repo}
@@ -225,7 +254,14 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
             <span className="sk-st">{cls === 'done' ? <Icon n="check" s={12} /> : s === 'pending' ? <Icon n="lock" s={12} /> : <Icon n="dot" s={12} />}{label}</span>
           </button>;
         })}</div>
-        <div className="sk-doc" role="tabpanel">{view}</div>
+        {f ? <Annotator items={hls} target={{ slug: f.slug, branch: hlBranch, phase: phase.k, doc: PHASE_DOC[phase.k] ?? '', docSha: f.blobs?.[PHASE_DOC[phase.k] ?? ''] ?? null }}
+          store={hlStore} author={{ login: user.login }} focusId={focusId} clearFocus={() => setFocusId(null)} onOutdated={setOutdated}
+          consent={{ needed: askConsent, branch: hlBranch ?? project.ref, login: user.login, accept: () => { prefs.setHighlightConsent(project.repo, true); setAskConsent(false); } }}
+          onItems={items => setSavedHls(x => ({ ...x, [hlKey]: items }))}
+          onRefused={reason => setRefused(reason)}
+          onAsk={text => { setRtab('ai'); setSeed(`Explain this passage from ${phase.n} and flag any risk or gap: "${text}"`); }}
+          docProps={{ role: 'tabpanel' }}>{view}</Annotator>
+          : <div className="sk-doc" role="tabpanel"><div className="sk-col">{view}</div></div>}
         <div className="sk-cmd">
           {log.length > 0 && <div className="sk-log" ref={logRef} aria-live="polite">{log.map((l, i) => <div key={i} className={l.startsWith('›') ? 'in' : ''}>{l}</div>)}</div>}
           {f?.unmerged && f.branch && !cmdLocked && <div className="sk-cmdhint">Run on <b>{f.branch}</b>: <code>git switch {f.branch}</code></div>}
@@ -240,15 +276,19 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
           </div>
         </div>
       </main>
-      <aside className={'sk-right' + (rtab === 'ai' ? ' is-ai' : '')}>
-        <div className="sk-rtabs" role="tablist">
+      {rd.layout.right && <aside className={'sk-right' + (rtab === 'ai' ? ' is-ai' : '')}>
+        <div className="sk-rtabs is-3" role="tablist">
           <button role="tab" aria-selected={rtab === 'spec'} onClick={() => setRtab('spec')}>Gate & PRs</button>
+          <button role="tab" aria-selected={rtab === 'hl'} onClick={() => setRtab('hl')} disabled={!f}>Highlights{hls.length > 0 && <span className="sk-rtab-n">{hls.length}</span>}</button>
           <button role="tab" aria-selected={rtab === 'ai'} onClick={() => setRtab('ai')} disabled={!f}><span className="sk-ai-badge">AI</span>Copilot{msgs.length > 0 && <span className="sk-rtab-n">{Math.ceil(msgs.length / 2)}</span>}</button>
         </div>
-        {rtab === 'ai' && f ? <Copilot label={<>Reading <b>{f.id}</b> · {phase.n} · {project.repo}</>} tag={`${f.id} · ${phase.n}`} audience="this spec" suggestions={LIVE_SUGGEST}
-          placeholder={`Ask about ${f.title}…`} refPattern={liveRefPattern(f)} msgs={msgs} setMsgs={setMsgs} ask={ask} seed={null} clearSeed={() => {}}
+        {rtab === 'hl' && f ? <HighlightsPanel items={hls} phases={PHASES.map(p => ({ key: p.k, name: p.n }))} outdated={outdated}
+          onOpen={h => { const i = PHASES.findIndex(p => p.k === h.phase); if (i >= 0) setSel(i); setFocusId(h.id); }}
+          ask={{ on: askConsent, set: on => { prefs.setHighlightConsent(project.repo, !on); setAskConsent(on); } }} readOnly={hlReadOnly} now={now} />
+          : rtab === 'ai' && f ? <Copilot label={<>Reading <b>{f.id}</b> · {phase.n} · {project.repo}</>} tag={`${f.id} · ${phase.n}`} audience="this spec" suggestions={LIVE_SUGGEST}
+          placeholder={`Ask about ${f.title}…`} refPattern={liveRefPattern(f)} msgs={msgs} setMsgs={setMsgs} ask={ask} seed={seed} clearSeed={() => setSeed(null)}
           onRef={r => setSel(liveRefPhase(f, r))} /> : <>
-          {f && <GatePanel project={project} f={f} pi={pi} status={st} tracking={tracking} trackingError={trackingError} onDecide={decide} blockedBy={lockedBy} />}
+          {f && <GatePanel project={project} f={f} pi={pi} status={st} tracking={tracking} trackingError={trackingError} onDecide={decide} blockedBy={lockedBy} notes={briefNotes(hls, phase.k)} onAskBrief={() => { setRtab('ai'); setSeed(`What should I check before approving ${phase.n}?`); }} />}
           <div className={f ? 'sk-pad sk-rule' : 'sk-pad'}>
             {!f && <><Label>Step · {phase.n}</Label><p className="sk-what">{phase.what}</p></>}
             {f && <>
@@ -269,7 +309,7 @@ export function LiveWorkspace({ project, backend, user, refreshing, onRefresh, i
             {project.warnings.map(w => <div key={w} className="sk-warn"><Icon n="alert" s={14} />{w}</div>)}
           </div>}
         </>}
-      </aside>
+      </aside>}
     </div>
   </div>;
 }

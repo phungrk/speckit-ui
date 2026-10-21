@@ -7,6 +7,8 @@ import { handleCopilot } from './copilot.ts';
 import { GitHubError, detectSpeckit, getProject, getSpecVariant, identityFor, json, listRepos, type Source } from './github.ts';
 import { appConfig, destroySession, getSession, handleCallback, handleLogin, handleLogout, sessionToken } from './session.ts';
 import { GateRefused, decideGate, getTracking, type GateAction } from './tracking.ts';
+import { HighlightError, saveHighlight } from './highlights.ts';
+import type { HighlightChange } from '../src/project/types.ts';
 
 type Env = Record<string, string | undefined>;
 
@@ -116,6 +118,7 @@ function sourceFor(access: Access, repo: unknown, ref: unknown, env: Env): Sourc
 function fail(res: ServerResponse, e: unknown, access: Access | null, extra: object = {}) {
   if (e instanceof HttpError) return send(res, e.status, { ...extra, error: e.message });
   if (e instanceof GateRefused) return send(res, 409, { error: e.message });
+  if (e instanceof HighlightError) return send(res, e.status, { error: e.message });
   if (e instanceof GitHubError) {
     // GitHub no longer accepts the signed-in user's token: end the session.
     if (e.status === 401 && access?.sessionId) { destroySession(access.sessionId); return send(res, 401, { ...extra, error: 'Sign in required.' }); }
@@ -170,6 +173,19 @@ async function handleGate(req: IncomingMessage, res: ServerResponse, access: Acc
   return send(res, 200, await decideGate(src, project, f, gate as GateKey, action as GateAction, ((note as string) || '').trim().slice(0, 2000)));
 }
 
+/** Commits one highlight change to the viewed spec's highlights.json (specs/010-spec-annotations). */
+async function handleHighlight(req: IncomingMessage, res: ServerResponse, access: Access, env: Env) {
+  const { repo, slug, branch, change } = await readJson(req);
+  const c = change as HighlightChange | undefined;
+  if (typeof slug !== 'string' || !/^\d{3,}-[^/]+$/.test(slug) || typeof branch !== 'string' || !branch || !c || !['add', 'update', 'remove'].includes(c.type)) {
+    throw new HttpError(400, 'Expected { repo, slug, branch, change: { type: add | update | remove, … } }.');
+  }
+  const src = sourceFor(access, repo, undefined, env);
+  // The author is who the server knows, never what the page sends (FR-011).
+  const user = access.sessionId ? access.identity : (await tokenUser(access.token)).login;
+  return send(res, 200, await saveHighlight(src, { slug, branch, change: c, user }));
+}
+
 /** The version of a spec on `branch`, or the shown one; 400 for a branch outside branchPrefixes (contracts/branches.md). */
 async function specVersion(src: Source, project: Awaited<ReturnType<typeof getProject>>, slug: string, branch?: string | null) {
   if (branch && branch !== project.ref && !project.branchPrefixes.some(p => branch.startsWith(p))) {
@@ -180,9 +196,9 @@ async function specVersion(src: Source, project: Awaited<ReturnType<typeof getPr
   return f;
 }
 
-const POSTS = new Set(['/api/repos/detect', '/api/gates', '/api/copilot', '/auth/logout']);
-const JSON_WRITES = new Set(['/api/repos/detect', '/api/gates']);
-const ROUTES = new Set(['/api/session', '/api/repos', '/api/repos/detect', '/api/project', '/api/spec', '/api/tracking', '/api/gates', '/api/copilot', '/auth/login', '/auth/callback', '/auth/logout']);
+const POSTS = new Set(['/api/repos/detect', '/api/gates', '/api/highlights', '/api/copilot', '/auth/logout']);
+const JSON_WRITES = new Set(['/api/repos/detect', '/api/gates', '/api/highlights']);
+const ROUTES = new Set(['/api/session', '/api/repos', '/api/repos/detect', '/api/project', '/api/spec', '/api/tracking', '/api/gates', '/api/highlights', '/api/copilot', '/auth/login', '/auth/callback', '/auth/logout']);
 
 /** Serves the API. Returns false when the path is not an API route. */
 export function handleApi(req: IncomingMessage, res: ServerResponse, env: Env = process.env): boolean {
@@ -225,6 +241,7 @@ export async function route(req: IncomingMessage, res: ServerResponse, url: URL,
     if (path === '/api/repos') return send(res, 200, await listRepos(access));
     if (path === '/api/repos/detect') return send(res, 200, await detectSpeckit(access, detectTargets(await readJson(req))));
     if (path === '/api/gates') return await handleGate(req, res, access, env);
+    if (path === '/api/highlights') return await handleHighlight(req, res, access, env);
     const src = sourceFor(access, q.get('repo'), q.get('ref'), env);
     const refresh = q.has('refresh');
     const project = await getProject(src, refresh);

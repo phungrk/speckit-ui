@@ -1,5 +1,5 @@
 // Shape of a real Spec Kit project as read from GitHub by server/github.ts.
-import type { Story } from '../types';
+import type { Story } from '../types.ts';
 
 export interface Principle {
   /** Roman numeral as written in the heading, e.g. "IV". */
@@ -72,6 +72,39 @@ export interface ParsedAnalysis { findings: AnalysisFinding[]; raw: string }
 
 export interface ChecklistSummary { name: string; done: number; total: number }
 
+/** Highlight colours (specs/010-spec-annotations): y Key, b Question, p Issue, o Change. */
+export type HighlightColor = 'y' | 'b' | 'p' | 'o';
+
+/** GitHub login (server, Pages), a typed name (local) or a sample person (demo). */
+export type HighlightAuthor = { login: string } | { name: string; local: true } | { name: string; demo: true };
+
+/** One highlight in specs/NNN-slug/highlights.json (data-model.md). */
+export interface Highlight {
+  id: string;
+  phase: string;
+  doc: string;
+  quote: string;
+  prefix: string;
+  suffix: string;
+  startHint: number;
+  docSha: string | null;
+  color: HighlightColor;
+  note: string;
+  author: HighlightAuthor;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type HighlightChange =
+  | { type: 'add'; highlight: Highlight }
+  | { type: 'update'; id: string; color?: HighlightColor; note?: string }
+  | { type: 'remove'; id: string };
+
+export interface HighlightsFile { version: 1; highlights: Highlight[] }
+
+/** The highlights of one spec version, as read with it. `error` blocks writing (FR-014). */
+export interface SpecHighlights { items: Highlight[]; error: string | null }
+
 export interface SpecFeature {
   /** "001" */
   id: string;
@@ -95,6 +128,10 @@ export interface SpecFeature {
   unmerged: boolean;
   /** Every version of this slug; the first is the one shown. */
   variants: SpecVariant[];
+  /** specs/NNN/highlights.json of this version (specs/010-spec-annotations). */
+  highlights?: SpecHighlights;
+  /** Blob sha of each file, for a highlight's docSha (server and Pages only). */
+  blobs?: Record<string, string>;
 }
 
 export interface Project {

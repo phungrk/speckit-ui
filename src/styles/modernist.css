@@ -57,6 +57,7 @@
   --fs-17: 17px;
   --fs-18: 18px;
   --fs-20: 20px;
+  --fs-22: 22px;
   --fs-24: 24px;
   --fs-25: 25px;
   --fs-28: 28px;
@@ -87,7 +88,7 @@
   :root {
     --fs-10: 12px; --fs-11: 12px; --fs-12: 12px; --fs-13: 14px;
     --fs-14: 16px; --fs-15: 16px; --fs-16: 17px; --fs-17: 18px; --fs-18: 18px;
-    --fs-20: 20px; --fs-24: 22px; --fs-25: 22px; --fs-28: 26px; --fs-32: 26px;
+    --fs-20: 20px; --fs-22: 21px; --fs-24: 22px; --fs-25: 22px; --fs-28: 26px; --fs-32: 26px;
     --fs-42: 30px;
   }
   /* iOS zooms into any field below 16px. The only !important for font size: field sizes live in

@@ -1,6 +1,9 @@
-// Per-user display preferences on this device: pinned repos and where the user was in each repo.
+// Per-user display preferences on this device: pinned repos, where the user was in each repo, and the
+// reader settings and sidebar layout (specs/010).
 // Not project state (constitution I). Keys are namespaced by login so people sharing a browser
 // don't see each other's pins. Every access tolerates blocked storage.
+
+import { parseLayout, parseReader, type LayoutPrefs, type ReaderSettings } from '../reader/settings';
 
 export const MAX_PINS = 20;
 
@@ -23,6 +26,17 @@ export interface Prefs {
   setLast(repo: string, v: LastViewed): void;
   getLastRepo(): string | null;
   setLastRepo(repo: string): void;
+  /** null until this user has saved reader settings, so the device copy can be adopted (specs/010 data-model). */
+  getReader(): ReaderSettings | null;
+  setReader(s: ReaderSettings): void;
+  getLayout(): LayoutPrefs;
+  setLayout(l: LayoutPrefs): void;
+  /** The user agreed that highlights are committed in this repo (specs/010-spec-annotations FR-009a). */
+  getHighlightConsent(repo: string): boolean;
+  setHighlightConsent(repo: string, on: boolean): void;
+  /** The author name typed in local mode (FR-017). */
+  getAuthorName(): string | null;
+  setAuthorName(name: string): void;
 }
 
 export function prefsFor(login: string, where: PrefsStorage): Prefs {
@@ -41,6 +55,14 @@ export function prefsFor(login: string, where: PrefsStorage): Prefs {
     getLast: repo => lastAll()[repo] ?? null,
     setLast: (repo, v) => write('last', { ...lastAll(), [repo]: v }),
     getLastRepo: () => { const v = read<unknown>('lastRepo'); return typeof v === 'string' ? v : null; },
-    setLastRepo: repo => write('lastRepo', repo)
+    setLastRepo: repo => write('lastRepo', repo),
+    getReader: () => { const v = read<unknown>('reader'); return v === null ? null : parseReader(v); },
+    setReader: s => write('reader', s),
+    getLayout: () => parseLayout(read<unknown>('layout')),
+    setLayout: l => write('layout', l),
+    getHighlightConsent: repo => { const v = read<Record<string, unknown>>('hlConsent'); return !!v && typeof v === 'object' && v[repo] === true; },
+    setHighlightConsent: (repo, on) => { const v = read<Record<string, boolean>>('hlConsent'); const next = { ...(v && typeof v === 'object' ? v : {}) }; if (on) next[repo] = true; else delete next[repo]; write('hlConsent', next); },
+    getAuthorName: () => { const v = read<unknown>('authorName'); return typeof v === 'string' && v.trim() ? v.trim() : null; },
+    setAuthorName: name => write('authorName', name.trim())
   };
 }

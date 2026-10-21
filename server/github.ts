@@ -2,12 +2,13 @@
 // so nothing here uses Node APIs; the HTTP handlers live in routes.ts.
 import type { AccessibleRepo, BranchInfo, DetectResult, DetectTarget, Project, RepoListing, SpecFeature, SpecVariant } from '../src/project/types.ts';
 import { CLAUDE_SETTINGS, GATE_HOOK_FILE, GATE_HOOK_PATH } from '../src/project/gates.ts';
-import { commandPrefix, parseAnalysis, parseChecklist, parseConstitution, parseGitmodules, parsePlan, parseSpec, parseTasks, parseUiConfig } from './parse.ts';
+import { commandPrefix, parseConstitution, parseGitmodules, parseUiConfig } from './parse.ts';
+import { buildFeature, SPEC_DIR, wantedInSpec } from './project.ts';
+export { buildFeature } from './project.ts';
 
 const API = 'https://api.github.com';
 const RECHECK_MS = 30_000; // how long a loaded commit is served before checking for a newer one
 const CONCURRENCY = 8;
-const DOCS = ['research.md', 'data-model.md', 'quickstart.md'];
 
 export interface Source {
   owner: string;
@@ -35,7 +36,7 @@ export class GitHubError extends Error {
   constructor(message: string, status: number) { super(message); this.status = status; }
 }
 
-export async function gh(src: Source, path: string, raw = false, write?: { method: 'POST' | 'PATCH'; body: unknown }): Promise<Response> {
+export async function gh(src: Source, path: string, raw = false, write?: { method: 'POST' | 'PATCH' | 'PUT'; body: unknown }): Promise<Response> {
   const res = await fetch(API + path, {
     // Reads revalidate with GitHub (ETag): a browser would otherwise serve GitHub's
     // max-age=60 copy, which is how an approval used to "come back" (specs/001 R1).
@@ -54,7 +55,7 @@ export async function gh(src: Source, path: string, raw = false, write?: { metho
   if (res.status === 404) throw new GitHubError(`GitHub returned 404 for ${name}${path.includes('/contents/') ? ' ' + decodeURIComponent(path.split('/contents/')[1].split('?')[0]) : ''}. The repository or branch may not exist, or your token cannot read it.`, 404);
   if (res.status === 401) throw new GitHubError('GitHub rejected the token (401).', 401);
   if (res.status === 429 || (res.status === 403 && res.headers.get('x-ratelimit-remaining') === '0')) throw new GitHubError('GitHub rate limit reached. Try again in a few minutes.', 429);
-  if (res.status === 403) throw new GitHubError(`GitHub refused the request (403). The token may lack access to ${name}${write ? ' (writing to issues needs Issues: Read and write)' : ''}.`, 403);
+  if (res.status === 403) throw new GitHubError(`GitHub refused the request (403). The token may lack access to ${name}${write ? (path.includes('/contents/') ? ' (committing highlights needs Contents: Read and write)' : ' (writing to issues needs Issues: Read and write)') : ''}.`, 403);
   throw new GitHubError(`GitHub API error ${res.status} for ${path}.`, res.status);
 }
 
@@ -72,35 +73,6 @@ export async function pool<T, R>(items: T[], n: number, fn: (x: T) => Promise<R>
 }
 
 interface TreeEntry { path: string; type: string; sha?: string }
-const SPEC_DIR = /^\d{3,}-[^/]+$/;
-const wantedInSpec = (f: string) => ['spec.md', 'plan.md', 'tasks.md', 'analysis.md', ...DOCS].includes(f) || /^checklists\/[^/]+\.md$/.test(f);
-
-/** A spec folder parsed from its files; `read(f)` gives the text of a file in the folder. */
-export function buildFeature(dir: string, files: string[], read: (f: string) => string | null, sha: string): SpecFeature {
-  const spec = read('spec.md');
-  const plan = read('plan.md');
-  const tasks = read('tasks.md');
-  const analysis = read('analysis.md');
-  const parsedSpec = spec ? parseSpec(spec) : null;
-  const sorted = [...files].sort();
-  return {
-    id: dir.match(/^\d+/)![0],
-    slug: dir,
-    title: parsedSpec?.title || dir.replace(/^\d+-/, '').replace(/-/g, ' '),
-    files: sorted,
-    spec: parsedSpec,
-    plan: plan ? parsePlan(plan) : null,
-    tasks: tasks ? parseTasks(tasks) : null,
-    analysis: analysis ? parseAnalysis(analysis) : null,
-    checklists: sorted.filter(f => /^checklists\/[^/]+\.md$/.test(f) && read(f) !== null).map(f => parseChecklist(f.slice('checklists/'.length), read(f)!)),
-    docs: Object.fromEntries(DOCS.flatMap(d => (read(d) !== null ? [[d, read(d)!]] : []))),
-    branch: null,
-    sha,
-    unmerged: false,
-    variants: []
-  };
-}
-
 /** What the default branch's load knows about its spec folders, for comparing branches against it. */
 interface MainTrees { specsTreeSha: string | null; dirShas: Record<string, string>; pointers: Record<string, string> }
 const mainTrees = new WeakMap<Project, MainTrees>();
@@ -154,8 +126,9 @@ async function loadAt(src: Source, ref: string, sha: string, committedAt: string
 
   const read = (p: string) => texts.get(p) ?? null;
   const treeShas = new Map(tree.tree.filter(e => e.type === 'tree').map(e => [e.path, e.sha ?? '']));
+  const blobShas = new Map(tree.tree.filter(e => e.type === 'blob').map(e => [e.path, e.sha ?? '']));
   const specs = [...specFiles.keys()].sort().map(dir => {
-    const f = buildFeature(dir, specFiles.get(dir)!, x => read(`specs/${dir}/${x}`), sha);
+    const f = withBlobs(buildFeature(dir, specFiles.get(dir)!, x => read(`specs/${dir}/${x}`), sha), dir, blobShas);
     const treeSha = treeShas.get(`specs/${dir}`);
     // The same folder on a branch is then served from cache.
     if (treeSha) remember(specDirs, dirKey(src, treeSha), f, MAX_SPEC_DIRS);
@@ -243,6 +216,14 @@ async function treeAt(src: Source, sha: string): Promise<TreeEntry[]> {
 }
 
 /** One spec folder at `commitSha`, cached by the folder's tree SHA. */
+/** Blob sha of each file in a spec folder, for a highlight's docSha (specs/010-spec-annotations). */
+function withBlobs(f: SpecFeature, dir: string, shas: Map<string, string>): SpecFeature {
+  const prefix = dir ? `specs/${dir}/` : '';
+  const blobs: Record<string, string> = {};
+  for (const file of f.files) { const s = shas.get(prefix + file); if (s) blobs[file] = s; }
+  return { ...f, blobs };
+}
+
 export async function loadSpecDir(src: Source, commitSha: string, dir: string, treeSha: string): Promise<SpecFeature> {
   const key = dirKey(src, treeSha);
   const hit = specDirs.get(key);
@@ -254,7 +235,7 @@ export async function loadSpecDir(src: Source, commitSha: string, dir: string, t
   await pool(files.filter(wantedInSpec), CONCURRENCY, async f => {
     texts.set(f, await (await gh(src, `${base}/contents/${enc(`specs/${dir}/${f}`)}?ref=${commitSha}`, true)).text());
   });
-  const feature = buildFeature(dir, files, f => texts.get(f) ?? null, commitSha);
+  const feature = withBlobs(buildFeature(dir, files, f => texts.get(f) ?? null, commitSha), '', new Map(tree.tree.filter(e => e.type === 'blob').map(e => [e.path, e.sha ?? ''])));
   remember(specDirs, key, feature, MAX_SPEC_DIRS);
   return feature;
 }

@@ -5,17 +5,21 @@ what it does and how each mode works.
 
 ## Rules
 
-The development rules live in `.specify/memory/constitution.md` (v1.1.0). Read it before changing
+The development rules live in `.specify/memory/constitution.md` (v1.4.0). Read it before changing
 code. In short:
 
-- Git is the source of truth. The app's only write is to tracking issues labelled `speckit`.
+- Git is the source of truth. The app writes only to tracking issues labelled `speckit` and to the
+  viewed spec's `specs/*/highlights.json` (one `[skip ci]` commit per save, confirmed once per repo).
 - Keys belong to the user (non-negotiable): never in the repo, build, logs or URLs. The static
   build's CSP limits network calls to `api.github.com` and `api.anthropic.com`. On the server,
   tokens stay server-side (env or in-memory sign-in session); the browser only gets an HttpOnly cookie.
 - Every mode uses the current user's own GitHub access: Pages token, server sign-in (GitHub App),
   or a local token in `.env.local` (git-ignored; token mode listens on 127.0.0.1 only).
 - Three modes (demo, server, static) share one behaviour. Say which modes a change touches.
-- Demo mode stays pixel-identical to the design. Use Modernist tokens and classes only.
+- Demo mode stays pixel-identical to the design, except parts a spec marks as belonging to another
+  unfinished spec (list them in the PR). Use Modernist tokens and classes only; the colour
+  exceptions are the reader page-theme table (specs/010) and the `--hl-*` highlight tokens in
+  `src/styles/reader.css`, both applied through tokens.
 - Tests use synthetic fixtures and mocked GitHub/Anthropic. This repo is public: never copy
   content from users' private repos into it.
 

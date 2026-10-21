@@ -4,7 +4,8 @@ import { Connect } from './Connect';
 import { STATIC, browserBackend, clearSettings, loadSettings, normalizeRepo, saveSettings, serverBackend, signOut, type Backend, type Settings } from './backend';
 import type { CopilotMsg } from './copilot/Copilot';
 import { LiveWorkspace } from './project/LiveWorkspace';
-import { Overview } from './project/Overview';
+import { LocalWorkspace } from './project/LocalWorkspace';
+import { Overview } from './project/Overview.tsx';
 import { prefsFor, type LastViewed, type PrefsStorage } from './project/prefs';
 import { STALE, accessProblem, createRepoLoader } from './project/repoLoader';
 import { RepoPicker } from './project/RepoPicker';
@@ -18,6 +19,8 @@ import { Icon } from './ui';
 type Boot =
   | { kind: 'loading' }
   | { kind: 'demo' }
+  | { kind: 'choose' }
+  | { kind: 'local' }
   | { kind: 'connect'; error: string | null; busy: boolean }
   | { kind: 'signin'; error?: string }
   | { kind: 'setup'; error: string }
@@ -25,12 +28,19 @@ type Boot =
   | { kind: 'ready'; backend: Backend; user: CurrentUser; defaultRepo: string | null };
 
 const forceDemo = () => new URLSearchParams(location.search).has('demo');
+const forceLocal = () => new URLSearchParams(location.search).has('local');
+const setLocalModeUrl = (active: boolean) => {
+  const url = new URL(location.href);
+  if (active) url.searchParams.set('local', '');
+  else url.searchParams.delete('local');
+  history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+};
 const message = (e: unknown, d: string) => (e instanceof Error ? e.message : d);
 
 /** Who the user is decides everything they can see (FR-013). */
 async function identify(backend: Backend): Promise<Boot> {
   const s: SessionResponse = await backend.session();
-  if (s.mode === 'demo') return { kind: 'demo' };
+  if (s.mode === 'demo') return { kind: 'choose' };
   if (s.user) return { kind: 'ready', backend, user: { login: s.user.login, avatarUrl: s.user.avatarUrl, mode: s.mode }, defaultRepo: s.defaultRepo ?? null };
   if (s.mode === 'signin') return { kind: 'signin' };
   if (s.mode === 'token') return { kind: 'setup', error: s.error || 'GITHUB_TOKEN is not set.' };
@@ -39,13 +49,18 @@ async function identify(backend: Backend): Promise<Boot> {
 
 /**
  * Server build: the user signs in (sign-in mode) or uses the token in .env.local (token mode);
- * without any GitHub configuration it shows the sample workspace.
+ * without any GitHub configuration it offers local mode and the sample workspace.
  * Static build (GitHub Pages): asks for the viewer's token, then reads GitHub from the browser.
  * `?demo` always opens the sample workspace.
  */
 export function Root() {
   const [settings, setSettings] = useState<Settings | null>(() => (STATIC ? loadSettings() : null));
-  const [boot, setBoot] = useState<Boot>(() => forceDemo() ? { kind: 'demo' } : STATIC && !settings ? { kind: 'connect', error: null, busy: false } : { kind: 'loading' });
+  const [boot, setBoot] = useState<Boot>(() => forceDemo() ? { kind: 'demo' } : forceLocal() ? { kind: 'local' } : STATIC && !settings ? { kind: 'connect', error: null, busy: false } : { kind: 'loading' });
+
+  const openLocal = () => {
+    setLocalModeUrl(true);
+    setBoot({ kind: 'local' });
+  };
 
   const start = () => {
     setBoot({ kind: 'loading' });
@@ -67,13 +82,27 @@ export function Root() {
   const doSignOut = async () => { if (boot.kind === 'ready') { await signOut().catch(() => undefined); leave(boot.backend); } };
 
   if (boot.kind === 'demo') return <App />;
-  if (boot.kind === 'connect') return <Connect initial={settings} error={boot.error} busy={boot.busy} onConnect={s => void connect(s)} />;
-  if (boot.kind === 'signin') return <SignIn error={boot.error} />;
-  if (boot.kind === 'setup') return <TokenSetup error={boot.error} onRetry={start} />;
+  if (boot.kind === 'local') return <LocalWorkspace onExit={() => {
+    setLocalModeUrl(false);
+    if (STATIC && !settings) setBoot({ kind: 'connect', error: null, busy: false });
+    else start();
+  }} />;
+  if (boot.kind === 'choose') return <div className="sk-connect">
+    <div className="nav-brand">Speckit</div>
+    <h2>Choose a workspace</h2>
+    <p className="sk-connect-lead">Open a Spec Kit repository from this computer without connecting GitHub, or explore the sample workspace.</p>
+    <div className="sk-actions">
+      <button className="btn btn-primary" onClick={openLocal}>Open local repository<Icon n="arrow" s={14} /></button>
+      <button className="btn btn-secondary" onClick={() => setBoot({ kind: 'demo' })}>Open the demo</button>
+    </div>
+  </div>;
+  if (boot.kind === 'connect') return <Connect initial={settings} error={boot.error} busy={boot.busy} onConnect={s => void connect(s)} onLocal={openLocal} />;
+  if (boot.kind === 'signin') return <SignIn error={boot.error} onLocal={openLocal} />;
+  if (boot.kind === 'setup') return <TokenSetup error={boot.error} onRetry={start} onLocal={openLocal} />;
   if (boot.kind === 'ready') {
     const actions: SessionActions = boot.backend.kind === 'browser'
-      ? { onDisconnect: disconnect, onSettings: () => setBoot({ kind: 'connect', error: null, busy: false }) }
-      : boot.user.mode === 'signin' ? { onSignOut: () => void doSignOut() } : {};
+      ? { onDisconnect: disconnect, onSettings: () => setBoot({ kind: 'connect', error: null, busy: false }), onLocal: openLocal }
+      : { ...(boot.user.mode === 'signin' ? { onSignOut: () => void doSignOut() } : {}), onLocal: openLocal };
     const storage: PrefsStorage = STATIC && !settings?.remember ? 'session' : 'local';
     return <Session key={boot.user.login} backend={boot.backend} user={boot.user} defaultRepo={boot.defaultRepo} storage={storage} actions={actions}
       onAuthLost={() => { boot.backend.reset(); setBoot({ kind: 'signin', error: 'Your session ended. Sign in again.' }); }} />;
@@ -86,6 +115,7 @@ export function Root() {
         <div className="sk-warn"><Icon n="alert" s={16} /><span>{boot.message}</span></div>
         <div className="sk-actions">
           <button className="btn btn-primary" onClick={start}>Try again<Icon n="arrow" s={14} /></button>
+          <button className="btn btn-secondary" onClick={openLocal}>Open local repository</button>
           <a className="btn btn-secondary" href="?demo">Open the demo</a>
         </div>
       </div>}
@@ -228,7 +258,7 @@ function Session({ backend, user, defaultRepo, storage, actions, onAuthLost }: S
 
   const link = deepLink.current?.repo === repo ? deepLink.current : null;
   const initial: LastViewed | null = link && (link.spec || link.step != null) ? { spec: link.spec, step: link.step, branch: link.branch } : prefs.getLast(repo);
-  return <LiveWorkspace key={repo} project={open.project} backend={backend} user={user} refreshing={refreshing} onRefresh={() => void refresh()}
+  return <LiveWorkspace key={repo} project={open.project} backend={backend} user={user} storage={storage} refreshing={refreshing} onRefresh={() => void refresh()}
     initial={initial}
     onPosition={v => { deepLink.current = null; prefs.setLast(repo, v); writeUrl({ repo, spec: v.spec, branch: v.branch, step: v.step }); }}
     threads={threads[repo] ?? {}} onThreads={t => setThreads(x => ({ ...x, [repo]: t }))}

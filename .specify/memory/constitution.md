@@ -1,14 +1,17 @@
 <!--
 Sync Impact Report
-- Version change: 1.0.0 → 1.1.0 (MINOR: mở rộng nguyên tắc II cho bản server có đăng nhập)
-- Modified principles: II. Khoá thuộc về người dùng. Bản có server được giữ khoá trong biến môi
-  trường hoặc trong phiên đăng nhập ở bộ nhớ của tiến trình server; trình duyệt chỉ giữ mã phiên
-  trong cookie HttpOnly. Không nới lỏng điều nào: khoá vẫn không bao giờ xuống trình duyệt.
+- Version change: 1.3.0 → 1.4.0 (MINOR: mở rộng nguyên tắc I cho một nơi ghi thứ hai)
+- Modified principles: I. Git là nguồn sự thật. Ngoài issue theo dõi, ứng dụng được ghi file
+  `specs/*/highlights.json` của spec đang xem: mỗi lần lưu là một commit chỉ đổi file đó, trên nhánh
+  đang xem, bằng tài khoản người dùng, thông điệp có `[skip ci]`, sau bước xác nhận một lần cho mỗi
+  repo. Vẫn cấm tạo branch, PR hay file nào khác.
 - Added sections: none
 - Removed sections: none
-- Lý do: specs/002-multi-repo-workspace (đăng nhập GitHub App), analysis.md mục C1
-- Templates: không cần sửa; plan-template đọc nguyên tắc lúc chạy ✅
-- Follow-up: CLAUDE.md ghi version 1.1.0; plan.md của 002 dẫn tới bản 1.1.0 ✅
+- Lý do: specs/010-spec-annotations (plan.md, Complexity Tracking), người dùng đồng ý 2026-10-21.
+  Bản trước: 1.3.0 (màu highlight).
+- Templates: không cần sửa ✅
+- Follow-up: CLAUDE.md ghi version 1.4.0 và nơi ghi mới ✅; README cập nhật quyền Contents: Read and
+  write trong PR implement của specs/010-spec-annotations
 -->
 
 # speckit-ui Constitution
@@ -25,8 +28,13 @@ Tài liệu này là luật phát triển cho repo `speckit-ui`.
 
 - Mọi trạng thái của dự án được quản lý (bước nào xong, task nào đã tích, spec nào đang làm)
   PHẢI được suy ra từ file trong repo đó. speckit-ui KHÔNG có database hay kho dữ liệu riêng.
-- Nơi ghi duy nhất là issue theo dõi cổng: có nhãn `speckit` và dấu
-  `<!-- speckit-ui:spec=... -->`. Ứng dụng KHÔNG tạo commit, branch hay file trong repo người dùng.
+- Ứng dụng chỉ ghi ở hai nơi:
+  - issue theo dõi cổng: có nhãn `speckit` và dấu `<!-- speckit-ui:spec=... -->`;
+  - file `specs/*/highlights.json` của chính spec đang xem (specs/010-spec-annotations): mỗi lần lưu
+    là một commit chỉ đổi file đó, trên nhánh đang xem, bằng tài khoản người dùng, thông điệp có
+    `[skip ci]`, sau bước xác nhận một lần cho mỗi repo. Ở chế độ local, ứng dụng ghi thẳng file đó
+    và không commit.
+  Ứng dụng KHÔNG tạo branch, PR hay file nào khác trong repo người dùng.
 - Thêm bất kỳ loại ghi mới nào ra GitHub (hoặc dịch vụ khác) PHẢI đi đủ quy trình Spec Kit và có
   bước xác nhận rõ ràng trong UI trước khi thực hiện.
 - Định dạng file của Spec Kit được đọc nguyên trạng. Parser thích nghi với Spec Kit, không đòi dự
@@ -74,9 +82,17 @@ khó thấy nhất vì người viết thường chỉ thử một chế độ.
 
 - UI dùng design system Modernist: lấy màu, khoảng cách, viền từ token và class trong
   `src/styles/modernist.css`. Không thêm màu mới, không bo góc, không dùng component ngoài hệ thống.
-- Chế độ demo PHẢI giữ giống bản thiết kế `Speckit Workspace.html` từng pixel. PR đụng UI demo
-  hoặc CSS dùng chung PHẢI so ảnh chụp ở 1440×900 và 924×540 (màn hình chính và hộp thoại New
-  spec).
+- Hai ngoại lệ về màu, mỗi bảng khai báo đúng một nơi và chỉ dùng qua token:
+  - bảng nền của chế độ đọc (White, Sepia, Green, Dark; specs/010), trong `src/reader/settings.ts`,
+    áp bằng cách ghi đè token ở `:root`. Thêm nền hoặc màu vào bảng PHẢI qua spec và PHẢI đạt tương
+    phản chữ thường từ 4.5:1 trên nền và bề mặt của nền đó, có test kiểm;
+  - bảng màu highlight (màu tô, màu đặc, thanh công cụ luôn tối; specs/010-spec-annotations), là
+    token `--hl-*` trong một khối `:root` của `src/styles/reader.css`, giữ nguyên ở mọi nền.
+  Component vẫn chỉ đọc token, không viết màu cứng; test chặn màu viết cứng ngoài các bảng này.
+- Chế độ demo PHẢI giữ giống bản thiết kế `Speckit Workspace.html` từng pixel, trừ những phần mà
+  spec đang làm ghi rõ là thuộc một spec khác chưa xong; PR PHẢI liệt kê các phần chênh đó.
+  PR đụng UI demo hoặc CSS dùng chung PHẢI so ảnh chụp ở 1440×900 và 924×540 (màn hình chính và
+  hộp thoại New spec).
 - Mọi phần tử tương tác dùng được bằng bàn phím, có `:focus-visible` theo hệ thống, và có nhãn
   cho trình đọc màn hình khi không có chữ hiển thị.
 - Bố cục PHẢI dùng được ở bề rộng điện thoại.
@@ -157,4 +173,4 @@ thứ phải bảo trì và bảo mật.
 - Gate "Constitution Check" trong `/speckit-plan` PHẢI pass. Vi phạm có chủ đích phải ghi vào
   Complexity Tracking kèm lý do; `/speckit-analyze` coi vi phạm không được biện minh là CRITICAL.
 
-**Version**: 1.1.0 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-10-17
+**Version**: 1.4.0 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-10-21
