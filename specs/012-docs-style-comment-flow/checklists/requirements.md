@@ -37,3 +37,4 @@
 - Known trade-off (Assumptions): read-only reviewers must be granted write access to comment in the app; the original wording "anyone can comment" now means anyone with write access.
 - Open follow-up for `/speckit-clarify`: none that block planning. Spec 011 is unaffected by the removal (only one storage file).
 - The spec names the highlight file and commits only because 010 defines them as product behaviour; no framework or library is named.
+- Analyze (2026-10-21): 19 findings (0 critical, 3 high, 10 medium, 6 low) all addressed in spec, plan, research, data-model, contracts, quickstart and tasks; see `analysis.md`. Spec changes: FR-008, FR-012, FR-014, FR-015, FR-016, SC-006, SC-008, SC-009 and glossary (rail vs sidebar, comment vs highlight).

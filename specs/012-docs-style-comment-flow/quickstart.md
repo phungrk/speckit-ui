@@ -37,16 +37,17 @@ Cả bốn phải qua trước khi merge (constitution V).
 | 8 | Tắt mạng rồi gửi một nhận xét | Thẻ "Failed: …" và nút Retry, nội dung còn; bật mạng, Retry: lưu một lần, không trùng | FR-013 |
 | 9 | Ở máy khác (hoặc tài khoản khác) thêm một nhận xét | Trong vòng 2 phút máy đầu hiện "New comments (1)"; tài liệu, cuộn, thẻ đang soạn không đổi; bấm dấu thì thẻ mới hiện | FR-014, SC-010 |
 | 10 | Chuyển sang tab khác 5 phút | Không có yêu cầu mạng nền (xem tab Network); quay lại thì kiểm tra ngay | contracts/refresh-api.md |
-| 11 | Đăng nhập tài khoản chỉ có quyền đọc | Nút Add comment tắt kèm lý do và cách khắc phục; vẫn xem và chọn mọi nhận xét; 0 yêu cầu ghi | FR-016, SC-009 |
+| 11 | Đăng nhập tài khoản chỉ có quyền đọc | Nút Add comment tắt kèm lý do và cách khắc phục **ngay khi tải spec** (GitHub báo không có quyền ghi); vẫn xem và chọn mọi nhận xét; 0 yêu cầu ghi. Với token fine-grained thiếu Contents: write: nút tắt ngay sau lần lưu đầu tiên bị từ chối và không thử lại | FR-016, SC-009 |
 | 12 | Sửa câu đã có nhận xét trong tài liệu rồi tải lại | Thẻ vào nhóm "Outdated, text changed" với nguyên văn cũ | FR-010 |
 | 13 | Mở "Before you approve" của bước có ghi chú Issue, ghi chú không màu, ghi chú Key | Thứ tự: Issue, Comment, Key | FR-003 |
 | 14 | Thu hẹp cửa sổ tới 390px | Rail ẩn, ghim hiện; chọn nhận xét mở sheet dưới; không cuộn ngang | FR-011, SC-007 |
 | 15 | Chỉ dùng bàn phím: chọn chữ (Shift+mũi tên), Ctrl/Cmd+Alt+M, gõ, Ctrl/Cmd+Enter, ↑/↓ giữa các thẻ | Làm được hết; thẻ chọn được công bố | SC-007 |
-| 16 | Tạo 200 nhận xét mẫu, mở tài liệu và cuộn | Mượt; DOM chỉ có thẻ gần vùng nhìn | SC-006 |
+| 16 | Tạo 200 nhận xét mẫu, mở tài liệu, chuyển bước, đổi cỡ chữ và cuộn | Hiện đủ thẻ dưới 1 giây; thẻ không lệch không đè; DOM chỉ có thẻ gần vùng nhìn | SC-006 |
+| 17 | Một người chưa từng dùng thử chọn chữ, nhận xét, mở thẻ, quay lại tài liệu, không hướng dẫn, bấm giờ | Xong dưới 2 phút ở lần thử đầu | SC-002 |
 
 ## Kiểm tra giao diện (constitution IV)
 
-- Chụp 1440×900 và 924×540 màn hình chính và hộp thoại New spec **khi chưa có nhận xét nào**: phải khớp thiết kế từng pixel (SC-008).
+- Chụp 1440×900 và 924×540 màn hình chính và hộp thoại New spec: demo mở sẵn feature `003` có nhận xét mẫu, nên phải khớp bản `Speckit Workspace.html` **cập nhật có rail** từng pixel; xoá dữ liệu mẫu (xoá `sk.demo.highlights`) thì không có rail và phải khớp thiết kế gốc (SC-008).
 - Demo có highlight mẫu có ghi chú nên rail hiện: so với bản `Speckit Workspace.html` **cập nhật có rail** (người dùng cung cấp, điều kiện merge), phải khớp từng pixel. Chưa có bản đó thì chỉ so được trạng thái chưa có nhận xét nào.
 - Kiểm tra bốn nền của chế độ đọc: màu tô `n`, `sk-sel` và `sk-draft` đọc được.
 

@@ -22,7 +22,7 @@
 
 **Project Type**: Ứng dụng web một repo (`src/` trình duyệt, `server/` API).
 
-**Performance Goals**: 200 nhận xét: mở tài liệu và cuộn mượt, bố trí O(n), chỉ dựng thẻ gần vùng nhìn thấy (SC-006). Kiểm tra nhận xét mới: tối đa 1 yêu cầu mỗi phút mỗi tab, và 304 không tính vào giới hạn tốc độ (SC-010).
+**Performance Goals**: 200 nhận xét: mở tài liệu, chuyển bước và đổi cỡ chữ hiện đủ thẻ trong dưới 1 giây, bố trí O(n), chỉ dựng thẻ gần vùng nhìn thấy (SC-006). Kiểm tra nhận xét mới: tối đa 1 yêu cầu mỗi phút mỗi tab, và 304 không tính vào giới hạn tốc độ (SC-010).
 
 **Constraints**: Không thêm điểm đến mạng (CSP không đổi, nên avatar là chữ cái đầu); chỉ đổi đúng một file mỗi lần ghi như 010; không tự chèn nhận xét của người khác; không làm nhảy thẻ lúc đang soạn.
 
@@ -78,7 +78,7 @@ Trạng thái nền là `main` sau khi 010 merge (PR #30); đường dẫn dư�
 ```text
 server/
 ├── highlightsFile.ts    # sửa: COLORS thêm 'n'; commitMessage cho 'n' ("commented")
-├── github.ts            # sửa: gh() nhận header thêm (If-None-Match) và trả 304 thay vì ném lỗi
+├── github.ts            # sửa: gh() nhận header thêm (If-None-Match) và trả 304; loadMain đọc permissions.push → Project.canWrite (R16)
 ├── highlights.ts        # sửa: readHighlights(src, {slug, branch, etag}) → items | 'unchanged'
 └── routes.ts            # sửa: GET /api/highlights (cùng origin), thêm vào ROUTES
 src/
@@ -99,7 +99,7 @@ src/
 │   └── store.ts         # sửa: HighlightStore.refresh? (github, local)
 ├── backend.ts           # sửa: readHighlights (server: GET route; Pages: gọi server/highlights.ts)
 ├── project/
-│   ├── types.ts         # sửa: HighlightColor thêm 'n'
+│   ├── types.ts         # sửa: HighlightColor thêm 'n'; Project.canWrite: boolean | null (R16)
 │   ├── LiveWorkspace.tsx    # sửa: selectedId, freshness, bố cục rail
 │   └── LocalWorkspace.tsx   # sửa: selectedId, làm mới khi cửa sổ được focus
 ├── App.tsx              # sửa: demo dùng chung selectedId và rail

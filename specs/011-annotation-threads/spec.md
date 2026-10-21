@@ -12,7 +12,7 @@
 
 ### Session 2026-10-21
 
-Bản đầu của spec này (đặt tên `007-document-comments`) có hai câu hỏi mở. Cả hai được chốt bằng cách theo `specs/010-spec-annotations` (nhánh `feat/010-spec-annotations`, chưa merge vào `main`), vì spec 010 đã giải đúng bài toán đó.
+Bản đầu của spec này (đặt tên `007-document-comments`) có hai câu hỏi mở. Cả hai được chốt bằng cách theo `specs/010-spec-annotations` (đã merge vào `main`, PR #30), vì spec 010 đã giải đúng bài toán đó.
 
 - Q: Nhận xét lưu ở đâu, ai thấy? → A: Cùng chỗ với chú thích của 010: file `highlights.json` trong thư mục của spec, mỗi lần lưu là một commit chỉ đổi file đó, trên nhánh đang xem, bằng tài khoản người dùng, kèm `[skip ci]`, sau bước xác nhận một lần cho mỗi repo (010 FR-008…FR-010, FR-009a). Ai đọc được spec thì thấy mọi nhận xét. Local ghi thẳng file, không commit (010 FR-016). Demo lưu trong trình duyệt. Không dùng comment trên issue theo dõi, không dùng review comment của PR.
 - Q: Áp dụng cho tài liệu nào? → A: Mọi tài liệu markdown của spec mà ứng dụng đã hiển thị trong cột đọc (spec, plan, tasks, analysis…), giống 010. Constitution, ảnh, sơ đồ, Copilot và sidebar nằm ngoài phạm vi.
@@ -142,9 +142,9 @@ Dưới mỗi ghi chú hoặc trả lời, người dùng thả một emoji; emo
 
 ## Assumptions
 
-- **Phụ thuộc vào 010:** spec này chỉ implement được sau khi `specs/010-spec-annotations` (chọn chữ, thanh công cụ, file highlight, panel Highlights, ghi qua commit) đã merge vào `main`. Cho tới lúc đó, spec và plan viết được nhưng chưa có gì để mở rộng.
+- **Dựa trên 010 (đã merge vào `main`, PR #30):** chọn chữ, thanh công cụ, file highlight, panel Highlights, ghi qua commit đã có. Spec này còn dựa trên `specs/012-docs-style-comment-flow` cho rail nhận xét và thẻ (khe `.sk-cm-thread`); nên implement sau 012.
 - **Chế độ bị ảnh hưởng** (constitution III): cả bốn như 010. Server và Pages commit; local ghi thẳng file; demo trong trình duyệt.
-- **Không thêm loại ghi mới ngoài 010:** vẫn chỉ ghi file `highlights.json` của spec đang xem, nên không cần sửa constitution thêm. Constitution 1.4.0 (trên nhánh 010) đã cho phép việc ghi này; PR của spec này dựa trên bản đó.
+- **Không thêm loại ghi mới ngoài 010:** vẫn chỉ ghi file `highlights.json` của spec đang xem, nên không cần sửa constitution thêm. Constitution 1.4.0 (đã có trên `main`) cho phép việc ghi này.
 - **Mở rộng định dạng file** của 010 (trường trả lời, emoji, trạng thái) là tuỳ chọn có giá trị mặc định, nên file cũ vẫn đọc được (FR-016). Plan quyết định có nâng `version` của file hay không.
 - **Ai được giải quyết:** bất kỳ ai ghi được chú thích trong spec đó, như Google Docs. Đây là mặc định hợp lý; muốn chặt hơn (chỉ tác giả hoặc người duyệt) thì sửa trong `/speckit-clarify`.
 - **Bộ emoji:** một tập nhỏ cố định (như 👍 ❤️ 😍 🎉 😄 😕). Plan chốt danh sách.

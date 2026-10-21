@@ -175,3 +175,19 @@ Nền là code của 010 trên `main` (`Annotator`, `Toolbar`, `useHighlights`, 
   Pages giữ hai chế độ giống nhau (constitution III) và 304 không tính vào giới hạn tốc độ chính.
 - **Kiểm chứng**: quickstart kịch bản 9 và 10 trên GitHub thật bằng tay; test dùng GitHub giả lập.
 
+## R16. Biết người dùng không có quyền ghi từ đầu (FR-016, SC-009)
+
+- **Decision**: `loadMain` (`server/github.ts`) đã gọi `GET /repos/{o}/{r}` khi chưa ghim nhánh; đọc thêm
+  `permissions.push` của phản hồi và đưa vào `Project.canWrite: boolean | null` (`null` khi không biết:
+  nhánh đã ghim nên không gọi, hoặc phản hồi không có trường quyền). `hlReadOnly` ở shell (hiện chỉ có
+  `pinned`, lỗi file, hoặc `refused` sau một lần ghi bị từ chối) thêm một lý do: `canWrite === false` thì
+  "Your GitHub account has read-only access to {repo}. Ask for write access to comment." Trường hợp `null`
+  hoặc token fine-grained thiếu Contents: write mà vai trò vẫn là ghi: như 010, học sau lần bị từ chối
+  đầu tiên (`refused`) và ghi nhớ trong phiên.
+- **Rationale**: Khớp spec FR-016 (a)/(b): tắt ngay khi GitHub báo, không thăm dò bằng ghi thử. Không thêm
+  lời gọi mạng (dùng lại lời gọi sẵn có) và không thêm quyền token.
+- **Alternatives**: Gọi `GET /repos/{o}/{r}/collaborators/{user}/permission` (thêm một lời gọi, cần quyền
+  rộng hơn); ghi thử rồi hoàn tác (vi phạm "không dò bằng ghi", để lại commit).
+- **Giới hạn**: token fine-grained không có Contents: write dù người dùng có vai trò ghi sẽ chỉ bị tắt nút
+  sau lần bị từ chối đầu; đây là lý do SC-009 có hai vế.
+

@@ -88,6 +88,10 @@ giữ bản cục bộ, và `selectedId`, `Draft` không bị đụng.
 
 ## Quan hệ
 
-- Một highlight (010) tạo đúng một `CommentCard` nếu có `note` hoặc đang chọn; highlight chỉ có màu và
-  không có ghi chú chỉ hiện ghim khi chọn, không có thẻ cố định (giữ 010 FR-005: ghim chỉ cho ghi chú).
+- Một highlight (010) tạo đúng một `CommentCard` nếu có `note`. Highlight chỉ có màu (không ghi chú) không phải nhận xét: không có thẻ,
+  không vào trạng thái chọn của FR-008, bấm vào đoạn chữ vẫn mở thanh công cụ của 010 (spec FR-008).
 - Một bước có tối đa một `Draft` mỗi đoạn chữ; nhiều `Draft` ở các đoạn khác nhau cùng tồn tại.
+- `Project.canWrite: boolean | null` (research R16): `false` khi GitHub báo không có quyền ghi vào repo,
+  `true` khi có, `null` khi không biết (nhánh đã ghim, hoặc phản hồi không có trường quyền). Chỉ ở bộ nhớ,
+  tính khi tải project; quyết định `hlReadOnly` cùng `pinned`, lỗi file và `refused`.
+

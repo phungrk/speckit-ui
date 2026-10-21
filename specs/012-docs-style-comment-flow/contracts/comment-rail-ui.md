@@ -28,8 +28,8 @@ aside.sk-cm-rail[role=complementary][aria-label="Comments"]   (con của .sk-doc
 ```
 
 - Rail chỉ dựng khi `.sk-doc.clientWidth ≥ var(--rd-measure) + 300px + 2 × var(--space-4)` (đo bằng
-  `ResizeObserver`); `.sk-doc` thêm class `has-rail` để chừa chỗ, thay cho 28px lề phải của 010 (ghim
-  chuyển vào trong rail khi rail hiện).
+  `ResizeObserver`); `.sk-doc` thêm class `has-rail` để chừa chỗ, thay cho 28px lề phải của 010. Khi rail hiện,
+  thẻ trong rail thay vai trò của ghim nên **ghim ẩn**; ghim chỉ hiện ở bố cục hẹp (spec FR-012).
 - Không dựng rail khi không có thẻ nào, không có nháp và không có gì để cập nhật (tài liệu trống nhận xét
   trông như bản thiết kế).
 - Bố cục thẻ không đè nhau (SC-003); thẻ đổi chỗ không hoạt ảnh khi `prefers-reduced-motion`.
@@ -76,7 +76,7 @@ article.sk-cm-card.sk-cm-draft
 |---|---|
 | Bấm thẻ | `onSelect(id, { jump: true })`: đoạn chữ sáng, cuộn tới nếu ngoài tầm nhìn |
 | Bấm đoạn chữ đang tô (vùng chọn rỗng) | `onSelect(id)`: thẻ mở rộng, cuộn rail tới nếu cần; bấm lại cùng chỗ thì sang nhận xét chồng kế tiếp |
-| Bấm ghim ở lề (010) | như bấm thẻ |
+| Bấm ghim ở lề (010, chỉ ở bố cục hẹp) | như bấm thẻ |
 | Bấm mục tab Highlights (010) | `onSelect(id, { jump: true })` kèm chuyển bước như 010 FR-021 |
 | ↑ / ↓ khi focus ở thẻ | chọn thẻ trước / sau |
 | Esc, bấm ra ngoài rail và tài liệu | bỏ chọn |
