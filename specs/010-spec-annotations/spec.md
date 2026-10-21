@@ -22,6 +22,7 @@ Các quyết định này được chốt khi làm `specs/010-reader-highlights`
 ### Session 2026-10-21
 
 - Q: Khi người dùng lưu một highlight, nó được chia sẻ ngay cho cả nhóm, hay vẫn là bản nháp riêng cho tới khi bấm publish? → A: Lưu là chia sẻ ngay: mỗi lần lưu commit vào file JSON trong thư mục spec, trên nhánh đang xem. Bỏ bản nháp và bỏ publish thành comment trên issue (thay cho mô hình "bản nháp ở local, publish thành comment" của Session 2026-10-18).
+- Q: Người dùng phải xác nhận việc commit lúc nào? → A: Một lần cho mỗi repo, ở lần lưu đầu tiên ("Highlights are committed to `<branch>` as you"). Trình duyệt nhớ lựa chọn, có thể bật lại trong Settings. Mỗi lần lưu hiện thông báo "Saved · commit abc1234" kèm liên kết.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -119,6 +120,7 @@ Tài liệu của spec đổi sau khi đã có highlight (ví dụ spec được
 - **File highlight quá lớn:** không lưu thêm được, kèm thông báo; highlight cũ không bị mất.
 - **File highlight bị sửa tay làm hỏng:** ứng dụng không ghi đè; panel báo lỗi và chỉ cho đọc highlight cho tới khi file được sửa.
 - **Nhánh đang xem bị bảo vệ, đã bị xoá, hoặc người dùng chỉ có quyền đọc repo:** xem được mọi highlight, không tạo được; thanh công cụ chỉ còn Copy và Ask, kèm lý do.
+- **Người dùng huỷ bước xác nhận lần đầu:** không có commit nào; highlight đang soạn còn nguyên, lần lưu sau hỏi lại.
 - **Lưu thất bại (mất mạng, bị từ chối):** highlight và ghi chú đang soạn vẫn còn để thử lại, không có highlight nửa vời.
 - **Ở local, trình duyệt không cho ghi vào thư mục đã chọn, hoặc người dùng từ chối quyền ghi:** highlight chỉ xem được, kèm lý do.
 - **Người dùng local chưa nhập tên:** ứng dụng hỏi tên ở lần highlight đầu tiên.
@@ -143,6 +145,7 @@ Tài liệu của spec đổi sau khi đã có highlight (ví dụ spec được
 
 - **FR-008**: Lưu (tạo, đổi màu, sửa ghi chú, xoá) MUST là chia sẻ ngay: không có bản nháp và không có bước publish riêng. Highlight của một spec MUST nằm trong **một file JSON riêng trong thư mục của spec**, chứa highlight của mọi bước. Ứng dụng MUST NOT sửa file nào khác của repo khi lưu highlight.
 - **FR-009**: Ở server và Pages, mỗi lần lưu MUST là một commit vào đúng nhánh mà người dùng đang xem spec: nhánh `feat/` khi spec chưa merge (spec 003), `main` khi đã merge, bằng chính tài khoản GitHub của người đó. Nếu không commit được (nhánh bị bảo vệ, đã xoá, hoặc không có quyền ghi nội dung repo), highlight MUST vẫn xem được và ứng dụng MUST báo rõ lý do không lưu được.
+- **FR-009a**: Ở server và Pages, lần lưu đầu tiên trong mỗi repo MUST hiện bước xác nhận nêu rõ highlight sẽ được commit vào nhánh nào, bằng tài khoản nào ("Highlights are committed to `<branch>` as you"). Huỷ thì không ghi gì và highlight đang soạn còn nguyên. Sau khi đồng ý, trình duyệt nhớ lựa chọn cho repo đó; người dùng bật lại được bước xác nhận trong Settings. Mỗi lần lưu thành công MUST hiện thông báo ngắn "Saved · commit {mã ngắn}" kèm liên kết tới commit. Local và demo không có bước này (không commit).
 - **FR-010**: Thông điệp commit MUST mô tả việc vừa làm, ví dụ "{tên} noted on {Phase}: "{60 ký tự đầu}"", để lịch sử git của file là dấu vết hoạt động.
 - **FR-011**: Ai đọc được spec MUST xem được mọi highlight của spec. Như ghi chú của Google Docs, chỉ người tạo đổi màu, sửa ghi chú hoặc xoá được highlight của mình; người khác chỉ xem, Copy và Ask. Ứng dụng là nơi thực thi quy tắc này; người có quyền push vẫn sửa tay được file, và lịch sử git là nơi đối chiếu.
 - **FR-012**: Mỗi lần lưu MUST đọc lại bản mới nhất của file, gộp thay đổi theo mã highlight, rồi mới ghi, và chỉ ghi khi file chưa bị đổi kể từ lúc đọc. Hai người lưu gần như cùng lúc thì không highlight nào bị mất. Nếu vẫn xung đột, ứng dụng thử lại, rồi báo lỗi; không âm thầm ghi đè.
@@ -194,7 +197,7 @@ Tài liệu của spec đổi sau khi đã có highlight (ví dụ spec được
 ## Assumptions
 
 - **Chế độ bị ảnh hưởng** (constitution III): cả bốn. Server và Pages commit qua GitHub; local ghi thẳng file; demo lưu trong trình duyệt.
-- **Loại ghi mới:** commit file highlight vào repo là một loại ghi mới. Constitution 1.3.0, nguyên tắc I, chỉ cho ứng dụng ghi vào issue theo dõi và cấm tạo commit hay file trong repo, nên constitution MUST được sửa trước khi implement để cho phép ghi đúng file highlight trong thư mục spec, có bước xác nhận rõ ràng trong giao diện ở lần lưu đầu tiên. Plan ghi việc này vào Constitution Check.
+- **Loại ghi mới:** commit file highlight vào repo là một loại ghi mới. Constitution 1.3.0, nguyên tắc I, chỉ cho ứng dụng ghi vào issue theo dõi và cấm tạo commit hay file trong repo, nên constitution MUST được sửa trước khi implement để cho phép ghi đúng file highlight trong thư mục spec, có bước xác nhận rõ ràng trong giao diện (FR-009a: một lần cho mỗi repo). Plan ghi việc này vào Constitution Check.
 - **Quyền token:** commit cần quyền ghi nội dung repo (Contents: write), rộng hơn quyền Issues mà duyệt cổng đang dùng. Spec MUST nêu quyền này (constitution II) và README cập nhật mục quyền token. Người không có quyền này vẫn xem được highlight (FR-009).
 - **Tài liệu hỗ trợ:** mọi tài liệu markdown của spec mà speckit-ui đã hiển thị trong cột đọc. Ảnh, sơ đồ, Copilot và sidebar nằm ngoài phạm vi.
 - **Vai trò:** ứng dụng thật không có vai trò Director, Designer, Engineer, QA như bản demo. "Người duyệt" là bất kỳ ai có quyền duyệt cổng (spec 001, 004).
