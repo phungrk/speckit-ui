@@ -33,6 +33,7 @@
 
 - The gap table (G1–G12) compares the 4 reference screenshots with `specs/010-spec-annotations` (spec.md, contracts/annotations-ui.md, research.md). G6 and G7 are owned by `011-annotation-threads`; G11 is a deliberate non-goal; G12 is already better than Google Docs.
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.
-- Q1 (anyone who can read the spec may comment; read-only users fall back to a comment on the tracking issue) and Q2 (A: fifth "no colour" value) answered 2026-10-21 and recorded under Clarifications.
-- Open follow-ups for `/speckit-clarify` (defaults documented in Assumptions): create the tracking issue from a comment when none exists (FR-020); 011 must be updated to cover replies/resolve on issue-stored comments; plan must record the new kind of write in the Constitution Check.
+- Q1 answered **C** (2026-10-21): only people with write access to repo contents can comment; read-only users can view but the Add-comment button is disabled with a reason. The earlier issue-comment fallback (former US4, FR-017 to FR-020) was removed, so there is no second storage path. Q2 answered A: fifth "no colour" value.
+- Known trade-off (Assumptions): read-only reviewers must be granted write access to comment in the app; the original wording "anyone can comment" now means anyone with write access.
+- Open follow-up for `/speckit-clarify`: none that block planning. Spec 011 is unaffected by the removal (only one storage file).
 - The spec names the highlight file and commits only because 010 defines them as product behaviour; no framework or library is named.
