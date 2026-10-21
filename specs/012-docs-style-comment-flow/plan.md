@@ -78,6 +78,7 @@ Trạng thái nền là `main` sau khi 010 merge (PR #30); đường dẫn dư�
 ```text
 server/
 ├── highlightsFile.ts    # sửa: COLORS thêm 'n'; commitMessage cho 'n' ("commented")
+├── github.ts            # sửa: gh() nhận header thêm (If-None-Match) và trả 304 thay vì ném lỗi
 ├── highlights.ts        # sửa: readHighlights(src, {slug, branch, etag}) → items | 'unchanged'
 └── routes.ts            # sửa: GET /api/highlights (cùng origin), thêm vào ROUTES
 src/
@@ -86,7 +87,9 @@ src/
 │   ├── comments.ts      # mới, thuần: view model thẻ, nhóm Outdated, reducer đang gửi, so nhận xét mới
 │   ├── Composer.tsx     # mới: hộp soạn (avatar, tên, ô nhập, Cancel/Comment)
 │   ├── CommentRail.tsx  # mới: rail, thẻ, ngăn kéo/sheet ở màn hình hẹp, dấu "New comments"
-│   ├── useFreshness.ts  # mới: kiểm tra định kỳ, ETag, backoff, dừng khi tab ẩn, áp khi bấm
+│   ├── freshness.ts     # mới, thuần: controller kiểm tra định kỳ (đồng hồ và đọc được tiêm vào), ETag, backoff
+│   ├── useFreshness.ts  # mới: nối controller vào React, dừng khi tab ẩn, áp khi bấm
+│   ├── Avatar.tsx       # mới: avatar chữ cái đầu, `src?` tuỳ chọn cho sau này
 │   ├── Annotator.tsx    # sửa: selectedId có kiểm soát, nháp, lưu lạc quan, chủ rail, Ctrl/Cmd+Alt+M
 │   ├── Toolbar.tsx      # sửa: Comment là nút chính; màu thành tuỳ chọn; bỏ trình sửa ghi chú nổi
 │   ├── useHighlights.ts # sửa: đăng ký sk-sel, sk-draft; xuất top của neo cho rail

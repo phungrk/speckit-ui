@@ -160,3 +160,18 @@ Nền là code của 010 trên `main` (`Annotator`, `Toolbar`, `useHighlights`, 
   từ `main`. Thẻ có một khe `thread` (children) để 011 gắn trả lời, emoji và nút giải quyết mà
   không đổi bố cục; spec 012 quyết bố cục thẻ, 011 quyết nội dung. Cho tới khi 011 implement, thẻ chỉ có nhận xét gốc.
 - **Rationale**: Hai spec cùng sửa `Annotator`; chia rõ ranh giới giảm xung đột khi merge.
+
+## R15. Yêu cầu có điều kiện qua `gh()`
+
+- **Decision**: `server/github.ts` `gh()` hiện coi mọi mã không phải 2xx là lỗi, nên 304 sẽ thành
+  `GitHubError`, và nó chưa cho gửi header thêm. Thêm tham số tuỳ chọn `extra?: { headers?: Record<string,
+  string>; allow304?: boolean }`: có `allow304` thì 304 được trả về như một `Response` thường. Các lời gọi
+  hiện có không đổi hành vi. `readHighlights` gửi `If-None-Match` với `etag` lần trước.
+- **Trình duyệt (Pages)**: `gh()` dùng `cache: 'no-cache'`, nên trình duyệt tự gửi `If-None-Match` từ bản
+  trong cache HTTP và trả 200 cho trang; nhưng khi mã đặt tay `If-None-Match` thì trình duyệt chuyển thẳng 304
+  cho mã. GitHub cho phép header này trong CORS preflight và lộ `ETag` ở phản hồi; nếu một ngày preflight từ
+  chối, phương án dự phòng là bỏ header, dựa vào `no-cache` và so `sha` của blob trong thân.
+- **Rationale**: Server mode (Node `fetch`, không có cache HTTP) cần header tường minh; dùng cùng mã cho
+  Pages giữ hai chế độ giống nhau (constitution III) và 304 không tính vào giới hạn tốc độ chính.
+- **Kiểm chứng**: quickstart kịch bản 9 và 10 trên GitHub thật bằng tay; test dùng GitHub giả lập.
+
