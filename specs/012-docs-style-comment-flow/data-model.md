@@ -1,7 +1,7 @@
 # Data model: Luồng nhận xét kiểu Google Docs (012-docs-style-comment-flow)
 
 Spec này **không đổi file** `highlights.json` ngoài một giá trị màu mới. Mọi thứ khác là trạng thái
-giao diện trong bộ nhớ của trang, không ghi ra ngoài. Nền: `specs/010-spec-annotations/data-model.md` (nhánh `feat/010-spec-annotations`).
+giao diện trong bộ nhớ của trang, không ghi ra ngoài. Nền: `specs/010-spec-annotations/data-model.md`.
 
 ## Thay đổi ở file highlight
 

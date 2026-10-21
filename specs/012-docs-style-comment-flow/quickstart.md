@@ -6,7 +6,7 @@ Hướng dẫn chạy và kiểm tra, không phải mã triển khai. Chi tiết
 
 ## Điều kiện
 
-- `specs/010-spec-annotations` đã merge vào `main` (012 mở rộng code của nó). Tách `feat/012-docs-style-comment-flow` từ `main` sau đó.
+- `specs/010-spec-annotations` đã merge vào `main` (PR #30); 012 mở rộng code của nó. Làm việc trên `feat/012-docs-style-comment-flow` tách từ `main`.
 - Node ≥ 22.18, `npm install`.
 - Tài khoản thử có **quyền ghi nội dung** repo và một tài khoản **chỉ có quyền đọc** (hoặc dùng GitHub giả lập của test).
 - Một spec có tài liệu dài vài trang, đã có 2–3 highlight mẫu.

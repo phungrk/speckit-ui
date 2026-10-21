@@ -73,7 +73,7 @@ specs/012-docs-style-comment-flow/
 
 ### Source Code (repository root)
 
-Trạng thái nền là nhánh `feat/010-spec-annotations` (chưa merge vào `main`); đường dẫn dưới đây là của nhánh đó.
+Trạng thái nền là `main` sau khi 010 merge (PR #30); đường dẫn dưới đây đã có trong cây làm việc.
 
 ```text
 server/

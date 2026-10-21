@@ -1,6 +1,6 @@
 # Research: Luồng nhận xét kiểu Google Docs (012-docs-style-comment-flow)
 
-Nền là code của `feat/010-spec-annotations` (`Annotator`, `Toolbar`, `useHighlights`, `HighlightsPanel`,
+Nền là code của 010 trên `main` (`Annotator`, `Toolbar`, `useHighlights`, `HighlightsPanel`,
 `store`, `brief`, `server/highlights*.ts`). Các quyết định dưới đây chỉ nói phần 012 thay đổi.
 
 ## R1. Rail nằm ở đâu
@@ -156,7 +156,7 @@ Nền là code của `feat/010-spec-annotations` (`Annotator`, `Toolbar`, `useHi
 
 ## R14. Quan hệ với 010 và 011
 
-- **Decision**: 012 thực thi sau khi 010 merge vào `main`; nhánh `feat/012-docs-style-comment-flow` tách
-  từ `main` sau đó. Thẻ có một khe `thread` (children) để 011 gắn trả lời, emoji và nút giải quyết mà
-  không đổi bố cục; spec 012 quyết bố cục thẻ, 011 quyết nội dung. Cho tới lúc đó thẻ chỉ có nhận xét gốc.
+- **Decision**: 010 đã merge vào `main`, nên 012 implement được ngay trên nhánh `feat/012-docs-style-comment-flow` tách
+  từ `main`. Thẻ có một khe `thread` (children) để 011 gắn trả lời, emoji và nút giải quyết mà
+  không đổi bố cục; spec 012 quyết bố cục thẻ, 011 quyết nội dung. Cho tới khi 011 implement, thẻ chỉ có nhận xét gốc.
 - **Rationale**: Hai spec cùng sửa `Annotator`; chia rõ ranh giới giảm xung đột khi merge.

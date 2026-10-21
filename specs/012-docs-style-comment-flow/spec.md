@@ -14,6 +14,7 @@
 
 - Q: Spec này khác gì `specs/011-annotation-threads`? → A: 011 lo **mô hình dữ liệu của cuộc thảo luận**: trả lời, emoji, giải quyết/mở lại. Spec này lo **luồng thao tác và cách hiển thị** để trải nghiệm giống Google Docs: nhận xét trước, màu sau; thẻ ở thanh bên thẳng hàng với đoạn chữ; trạng thái đang chọn; phản hồi khi lưu. Hai spec cùng dựa trên 010 và không lặp lại nhau.
 - Q: Có sửa lại phần đã chốt của 010 không? → A: Không đổi cơ chế lưu của 010 (file `highlights.json`, commit vào nhánh đang xem, `[skip ci]`). Spec này chỉ thay lớp giao diện và thao tác phía trên, cộng thêm hai quyết định còn mở bên dưới.
+- Q: 010 đã merge chưa? → A: Đã merge vào `main` (PR #30, constitution 1.4.0). Nhánh này đã merge `origin/main`; `src/annotations/` và `server/highlights*.ts` có trong cây làm việc. Plan lấy đường dẫn từ `main`, không còn nói tới nhánh `feat/010-spec-annotations`.
 - Q: Số spec? → A: 012, vì 011 đã dùng cho `011-annotation-threads` trên cùng nhánh này.
 - Q1: Người duyệt chỉ có quyền đọc repo thì có nhận xét được không? → A: Không. Chỉ người có quyền ghi nội dung repo mới nhận xét được, và nhận xét lưu vào file `highlights.json` như 010. Người chỉ có quyền đọc xem được mọi nhận xét nhưng không thêm được; nút Thêm nhận xét bị tắt kèm lý do (FR-016). Không có đường lưu thứ hai: không dùng comment trên issue theo dõi, không dùng review comment của PR. (Chọn phương án C ngày 2026-10-21. Câu trả lời đầu "bất kỳ ai cũng comment được" từng dẫn tới dự kiến dự phòng bằng comment trên issue; phương án đó đã bị bỏ, và "bất kỳ ai" nay nghĩa là bất kỳ ai có quyền ghi nội dung repo.)
 - Q2: Nhận xét không chọn màu thì được coi là gì? → A: Thêm giá trị thứ năm "không màu": nhận xét thường, tô trung tính, không mặc định Key. Vẫn vào "Before you approve", xếp sau Issue (FR-003).
@@ -176,7 +177,7 @@ Spec này thêm vào file highlight của 010 đúng một giá trị màu mới
 
 ## Assumptions
 
-- **Phụ thuộc vào 010 và 011:** thao tác và hiển thị ở đây chỉ build được trên chú thích của 010 (chọn chữ, neo, file highlight, ghi qua commit); trả lời, emoji, giải quyết đến từ 011. Cho tới khi 010 merge vào `main`, spec này viết và lập plan được nhưng chưa implement được.
+- **Dựa trên 010 (đã merge vào `main`, PR #30) và 011:** thao tác và hiển thị ở đây mở rộng chú thích của 010 (chọn chữ, neo, file highlight, ghi qua commit, constitution 1.4.0); trả lời, emoji, giải quyết đến từ 011 (chưa implement). Không còn gì chặn việc implement 012 ngoài việc xác nhận lệch thiết kế ở plan (Complexity Tracking).
 - **Chế độ bị ảnh hưởng** (constitution III): cả bốn như 010. Đây chủ yếu là thay đổi giao diện và thao tác dùng chung, nên áp đồng nhất.
 - **Không thêm loại ghi mới:** vẫn chỉ ghi `highlights.json` của spec đang xem theo 010 và constitution 1.4.0, nên không thêm quyền token nào ngoài Contents: write mà 010 đã yêu cầu.
 - **"Bất kỳ ai" nghĩa là bất kỳ ai có quyền ghi nội dung repo:** không có nhận xét ẩn danh và không có nhận xét của người chỉ có quyền đọc. Đây là đánh đổi đã chọn (Q1 = C): đơn giản và nhất quán với 010, nhưng người duyệt chỉ có quyền đọc phải được cấp quyền ghi nếu muốn nhận xét trong ứng dụng.

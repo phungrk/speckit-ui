@@ -1,6 +1,6 @@
 # Contract: rail nhận xét (012-docs-style-comment-flow)
 
-Nền: `specs/010-spec-annotations/contracts/annotations-ui.md` (nhánh `feat/010-spec-annotations`) (class `.sk-tb`,
+Nền: `specs/010-spec-annotations/contracts/annotations-ui.md` (class `.sk-tb`,
 `.sk-hl-pin`, `.sk-hlp`, `::highlight(sk-*)`, `--hl-*` trong `src/styles/reader.css`). Dưới đây chỉ nêu
 phần thêm hoặc đổi. Nhãn bằng tiếng Anh (research R11). Class mới có tiền tố `sk-cm-`.
 
