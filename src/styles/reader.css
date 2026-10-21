@@ -104,16 +104,17 @@
 .hl-y { background: var(--hl-y); } .hl-b { background: var(--hl-b); } .hl-p { background: var(--hl-p); } .hl-o { background: var(--hl-o); }
 .hl-y-solid { background: var(--hl-y-solid); } .hl-b-solid { background: var(--hl-b-solid); } .hl-p-solid { background: var(--hl-p-solid); } .hl-o-solid { background: var(--hl-o-solid); }
 
-/* Selection toolbar: always dark, on every theme. */
+/* Selection toolbar: always dark, on every theme. The swatch and button rules are scoped under .sk-tb so
+   they beat the reset on `.sk-tb button:not(.btn)` (in the design they lose to it and the swatches collapse). */
 .sk-tb { position: fixed; z-index: 30; background: var(--hl-ink); color: var(--hl-paper); font-family: "Archivo", system-ui, sans-serif; }
 .sk-tb-row { display: flex; align-items: center; gap: 6px; padding: 8px; }
 .sk-tb button:not(.btn) { all: unset; cursor: pointer; box-sizing: border-box; }
 .sk-tb button:focus-visible { outline: 2px solid var(--hl-paper); outline-offset: 1px; }
-.sk-tb-c { width: 26px; height: 26px; flex: none; }
-.sk-tb-c.on { outline: 2px solid var(--hl-paper); outline-offset: 2px; }
+.sk-tb button.sk-tb-c { width: 26px; height: 26px; flex: none; }
+.sk-tb button.sk-tb-c.on { outline: 2px solid var(--hl-paper); outline-offset: 2px; }
 .sk-tb-sep { width: 1px; height: 22px; background: var(--hl-paper-25); margin: 0 2px; }
-.sk-tb-b { display: flex; align-items: center; gap: 4px; font-size: var(--fs-13); font-weight: 600; padding: 4px 6px; }
-.sk-tb-b:hover { background: var(--hl-paper-12); }
+.sk-tb button.sk-tb-b { display: flex; align-items: center; gap: 4px; font-size: var(--fs-13); font-weight: 600; padding: 4px 6px; }
+.sk-tb button.sk-tb-b:hover { background: var(--hl-paper-12); }
 .sk-tb-note { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
 .sk-tb-quote { font-family: "Literata", serif; font-size: var(--fs-13); font-style: italic; color: var(--hl-paper-75); border-left: 3px solid var(--hl-y-solid); padding-left: 8px; }
 .sk-tb-note textarea { font: inherit; font-size: var(--fs-14); background: var(--hl-paper); color: var(--hl-ink); border: 0; padding: 8px; resize: none; }
