@@ -1,4 +1,4 @@
-# Specification Quality Checklist: Nhận xét trên tài liệu spec
+# Specification Quality Checklist: Thảo luận trên chú thích (trả lời, emoji, giải quyết)
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-10-21
@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain (2 remain: Q1 storage/visibility in FR-015, Q2 document scope in FR-016)
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,6 +31,7 @@
 
 ## Notes
 
-- Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.
-- Q1 and Q2 are waiting on the user. Once answered, replace the markers in FR-015, FR-016 and the Clarifications section, then tick the first item under Requirement Completeness.
-- The spec names GitHub-visible terms only where they are the product's domain; no framework or library is named.
+- Q1 (storage) and Q2 (document scope) answered 2026-10-21 by following `specs/010-spec-annotations`; recorded under Clarifications in spec.md.
+- Renumbered 007 → 011 because branches `feat/007-*` to `feat/010-*` already use 007–010.
+- The spec names the highlight file and GitHub terms (commit, branch) only because spec 010 defines them as the product's behaviour; no framework or library is named.
+- Dependency: implementation waits for 010 to merge into `main`. Open choice left for `/speckit-clarify`: who may resolve a thread (default: anyone who can save annotations).
