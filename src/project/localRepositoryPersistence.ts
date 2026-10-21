@@ -3,14 +3,28 @@ export type LocalPermissionState = 'granted' | 'denied' | 'prompt';
 export interface LocalFileHandle {
   readonly kind: 'file';
   getFile(): Promise<File>;
+  /** Present on real File System Access handles; used only to write highlights.json (specs/010-spec-annotations). */
+  createWritable?(): Promise<{ write(data: string): Promise<void>; close(): Promise<void> }>;
 }
 
 export interface LocalDirectoryHandle {
   readonly kind: 'directory';
   readonly name: string;
   entries(): AsyncIterable<[string, LocalFileHandle | LocalDirectoryHandle]>;
-  queryPermission(options: { mode: 'read' }): Promise<LocalPermissionState>;
-  requestPermission(options: { mode: 'read' }): Promise<LocalPermissionState>;
+  queryPermission(options: { mode: 'read' | 'readwrite' }): Promise<LocalPermissionState>;
+  requestPermission(options: { mode: 'read' | 'readwrite' }): Promise<LocalPermissionState>;
+  getDirectoryHandle?(name: string, options?: { create?: boolean }): Promise<LocalDirectoryHandle>;
+  getFileHandle?(name: string, options?: { create?: boolean }): Promise<LocalFileHandle>;
+}
+
+/** Asks for write access only when a highlight is first saved (research R12); true when granted. */
+export async function requestWrite(handle: LocalDirectoryHandle): Promise<boolean> {
+  try {
+    if (await handle.queryPermission({ mode: 'readwrite' }) === 'granted') return true;
+    return await handle.requestPermission({ mode: 'readwrite' }) === 'granted';
+  } catch {
+    return false;
+  }
 }
 
 export interface LocalRepositoryView {

@@ -13,7 +13,7 @@
 @media (max-width: 760px) { .sk-main .sk-doc { padding-inline: var(--space-4); } }
 .sk-col, .sk-doc > .sk-col { max-width: var(--rd-measure); margin: 0 auto; }
 .sk-col p, .sk-col li, .sk-col blockquote, .sk-col q { font-family: var(--rd-font); font-size: var(--rd-size); line-height: var(--rd-lh); }
-.sk-col td, .sk-col .sk-ac, .sk-col .sk-cl li { font-family: var(--rd-font); font-size: var(--rd-size-sm); line-height: var(--rd-lh); }
+.sk-col td, .sk-col .sk-ac, .sk-col .sk-ac li, .sk-col .sk-cl li { font-family: var(--rd-font); font-size: var(--rd-size-sm); line-height: var(--rd-lh); }
 .sk-col .sk-opt, .sk-col .sk-kv b { font-family: var(--rd-font); font-size: var(--rd-size-xs); line-height: var(--rd-lh); }
 .sk-col :is(h1, h2, h3, h4, h5, h6, .sk-id, .sk-path, .sk-owner, .sk-meta, .sk-file, .tag, button, .btn, .sk-pass, .sk-nc, code, pre, th) { font-family: var(--font-body); }
 .sk-col .sk-id { font-size: var(--fs-12); }
@@ -104,16 +104,17 @@
 .hl-y { background: var(--hl-y); } .hl-b { background: var(--hl-b); } .hl-p { background: var(--hl-p); } .hl-o { background: var(--hl-o); }
 .hl-y-solid { background: var(--hl-y-solid); } .hl-b-solid { background: var(--hl-b-solid); } .hl-p-solid { background: var(--hl-p-solid); } .hl-o-solid { background: var(--hl-o-solid); }
 
-/* Selection toolbar: always dark, on every theme. */
+/* Selection toolbar: always dark, on every theme. The swatch and button rules are scoped under .sk-tb so
+   they beat the reset on `.sk-tb button:not(.btn)` (in the design they lose to it and the swatches collapse). */
 .sk-tb { position: fixed; z-index: 30; background: var(--hl-ink); color: var(--hl-paper); font-family: "Archivo", system-ui, sans-serif; }
 .sk-tb-row { display: flex; align-items: center; gap: 6px; padding: 8px; }
 .sk-tb button:not(.btn) { all: unset; cursor: pointer; box-sizing: border-box; }
 .sk-tb button:focus-visible { outline: 2px solid var(--hl-paper); outline-offset: 1px; }
-.sk-tb-c { width: 26px; height: 26px; flex: none; }
-.sk-tb-c.on { outline: 2px solid var(--hl-paper); outline-offset: 2px; }
+.sk-tb button.sk-tb-c { width: 26px; height: 26px; flex: none; }
+.sk-tb button.sk-tb-c.on { outline: 2px solid var(--hl-paper); outline-offset: 2px; }
 .sk-tb-sep { width: 1px; height: 22px; background: var(--hl-paper-25); margin: 0 2px; }
-.sk-tb-b { display: flex; align-items: center; gap: 4px; font-size: var(--fs-13); font-weight: 600; padding: 4px 6px; }
-.sk-tb-b:hover { background: var(--hl-paper-12); }
+.sk-tb button.sk-tb-b { display: flex; align-items: center; gap: 4px; font-size: var(--fs-13); font-weight: 600; padding: 4px 6px; }
+.sk-tb button.sk-tb-b:hover { background: var(--hl-paper-12); }
 .sk-tb-note { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
 .sk-tb-quote { font-family: "Literata", serif; font-size: var(--fs-13); font-style: italic; color: var(--hl-paper-75); border-left: 3px solid var(--hl-y-solid); padding-left: 8px; }
 .sk-tb-note textarea { font: inherit; font-size: var(--fs-14); background: var(--hl-paper); color: var(--hl-ink); border: 0; padding: 8px; resize: none; }
@@ -121,6 +122,12 @@
 .sk-tb-acts span { margin-right: auto; font-size: var(--fs-11); color: var(--hl-paper-60); }
 .sk-tb-acts .btn { padding: 6px 10px; font-size: var(--fs-12); }
 .sk-tb-acts .btn-secondary { color: var(--hl-paper); border-color: var(--hl-paper-50); }
+.sk-tb-msg { padding: 0 8px 8px; font-size: var(--fs-12); color: var(--hl-paper-75); }
+.sk-tb button:disabled { opacity: .5; cursor: default; }
+.sk-hlp-foot { padding: var(--space-4); font-size: var(--fs-12); display: flex; gap: 6px; align-items: center; color: color-mix(in srgb, var(--color-text) 62%, transparent); }
+.sk-hl-toast { position: fixed; left: 50%; bottom: var(--space-6); transform: translateX(-50%); z-index: 40; background: var(--hl-ink); color: var(--hl-paper); padding: 8px 12px; font-size: var(--fs-13); font-weight: 600; }
+.sk-hl-toast a { color: inherit; }
+.sk-hlp-out { font-size: var(--fs-11); font-weight: 600; color: var(--color-accent-700); }
 
 /* Note pin in the right margin of the reading column. The design calls it .sk-pin; renamed because
    .sk-pin already is the pin-repo button (specs/003). */

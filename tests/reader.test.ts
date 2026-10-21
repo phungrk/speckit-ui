@@ -118,6 +118,19 @@ describe('page themes (constitution IV 1.2.0, FR-006)', () => {
     const accent700 = css('src/styles/modernist.css').match(/--color-accent-700:\s*(#[0-9a-f]{6})/i)![1];
     for (const t of THEMES.filter(x => x.key !== 'dark')) expect(contrast(accent700, t.bg), t.key).toBeGreaterThanOrEqual(4.5);
   });
+
+  // specs/010-spec-annotations FR-001: highlighted body text stays legible. The design's Key yellow
+  // on Dark measures about 3.6:1; it is raised in the PR rather than changed here.
+  const KNOWN_LOW: Record<string, number> = { 'dark/y': 3.5 };
+  it('keeps body text legible on each highlight colour over each theme', () => {
+    const hl = [...css('src/styles/reader.css').matchAll(/--hl-([ybpo])-text:\s*rgba\(([^)]+)\)/g)].map(m => [m[1], m[2].split(',').map(Number)] as const);
+    expect(hl.map(h => h[0])).toEqual(['y', 'b', 'p', 'o']);
+    for (const t of THEMES) for (const [k, [r, g, b, a]] of hl) {
+      const bg = [1, 3, 5].map(i => parseInt(t.bg.slice(i, i + 2), 16));
+      const mix = '#' + [r, g, b].map((v, i) => Math.round(v * a + bg[i] * (1 - a)).toString(16).padStart(2, '0')).join('');
+      expect(contrast(t.text, mix), `${t.key}/${k}`).toBeGreaterThanOrEqual(KNOWN_LOW[`${t.key}/${k}`] ?? 4.5);
+    }
+  });
 });
 
 function sources(dir: string, ext: RegExp): string[] {

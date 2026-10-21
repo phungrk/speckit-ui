@@ -13,6 +13,12 @@ import { AnalyzeView, ClarifyView, ConstitutionView, ImplementView, PlanView, Su
 import { ReaderMenu, SidebarToggle } from './reader/ReaderControls';
 import { DEMO_OWNER, useReader, useSidebarKeys } from './reader/useReader';
 import type { LayoutPrefs } from './reader/settings';
+import { Annotator } from './annotations/Annotator';
+import { HighlightsPanel } from './annotations/HighlightsPanel';
+import { briefNotes } from './annotations/brief';
+import { demoStore } from './annotations/store';
+import { DEMO_SEED } from './annotations/demoSeed';
+import type { Highlight, HighlightAuthor } from './project/types';
 
 const STATUS_LABEL = { done: 'Approved', review: 'In review', locked: 'Locked' };
 
@@ -39,7 +45,11 @@ export function App({ initialLayout }: { initialLayout?: LayoutPrefs } = {}) {
   const [log, setLog] = useState<string[]>([]);
   const [running, setRunning] = useState(false);
   const [nsOpen, setNsOpen] = useState(false);
-  const [rtab, setRtab] = useState<'gate' | 'ai'>('gate');
+  const [rtab, setRtab] = useState<'gate' | 'hl' | 'ai'>('gate');
+  const hlStore = useRef(demoStore(DEMO_SEED)).current;
+  const [hls, setHls] = useState<Record<string, Highlight[]>>(() => Object.fromEntries(Object.keys(DEMO_SEED).map(k => [k, hlStore.list(k)])));
+  const [focusId, setFocusId] = useState<string | null>(null);
+  const [outdated, setOutdated] = useState<string[]>([]);
   const [threads, setThreads] = useState<Record<string, CopilotMsg[]>>({});
   const [seed, setSeed] = useState<string | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
@@ -129,6 +139,12 @@ export function App({ initialLayout }: { initialLayout?: LayoutPrefs } = {}) {
     setMsgs(msgs.map(m => (m.t === text ? { ...m, shared: true } : m)));
   };
   const brief = status === 'review' ? gateBrief(state) : null;
+  // Highlights (specs/010-spec-annotations): the demo keeps them in this browser, seeded from the design.
+  const fHls = hls[f.id] ?? [];
+  const personOf = (a: HighlightAuthor) => { const p = SK.people['name' in a ? a.name as Role : role]; return p ? { name: p.name, ini: p.ini } : { name: 'name' in a ? a.name : a.login, ini: '?' }; };
+  const notes = briefNotes(fHls, phase.k, a => personOf(a).name);
+  const briefItems = status === 'review' && (brief || notes.length) ? [...(brief || []), ...notes] : null;
+  const openHl = (h: Highlight) => { const i = SK.phases.findIndex(p => p.k === h.phase); if (i >= 0) setSel(i); setFocusId(h.id); };
 
   let view: ReactNode;
   if (pi === 0) view = <ConstitutionView />;
@@ -187,7 +203,15 @@ export function App({ initialLayout }: { initialLayout?: LayoutPrefs } = {}) {
             <span className="sk-st">{s === 'done' ? <Icon n="check" s={12} /> : s === 'locked' ? <Icon n="lock" s={12} /> : <Icon n="dot" s={12} />}{p.k === 'implement' && s === 'review' ? 'Building' : STATUS_LABEL[s]}</span>
           </button>;
         })}</div>
-        <div className="sk-doc" role="tabpanel"><div className="sk-col">{view}</div></div>
+        <Annotator items={fHls} target={{ slug: f.id, branch: null, phase: phase.k, doc: '', docSha: null }} store={hlStore}
+          author={{ name: role, demo: true }} focusId={focusId} clearFocus={() => setFocusId(null)} onOutdated={setOutdated}
+          onItems={(items, change) => {
+            setHls(x => ({ ...x, [f.id]: items }));
+            const note = change.type === 'add' ? change.highlight.note : change.type === 'update' ? change.note : undefined;
+            if (note) push(role, `noted on ${phase.n}: “${note.slice(0, 60)}”`);
+          }}
+          onAsk={text => { setRtab('ai'); setSeed(`Explain this passage from ${phase.n} and flag any risk or gap: "${text}"`); }}
+          docProps={{ role: 'tabpanel' }}>{view}</Annotator>
         <div className="sk-cmd">
           {log.length > 0 && <div className="sk-log" ref={logRef} aria-live="polite">{log.map((l, i) => <div key={i} className={l.startsWith('›') ? 'in' : ''}>{l}</div>)}</div>}
           <div className="sk-cmdrow">
@@ -198,11 +222,12 @@ export function App({ initialLayout }: { initialLayout?: LayoutPrefs } = {}) {
         </div>
       </main>
       {rd.layout.right && <aside className={'sk-right' + (rtab === 'ai' ? ' is-ai' : '')}>
-        <div className="sk-rtabs" role="tablist">
-          <button role="tab" aria-selected={rtab === 'gate'} onClick={() => setRtab('gate')}>Gate & activity</button>
+        <div className="sk-rtabs is-3" role="tablist">
+          <button role="tab" aria-selected={rtab === 'gate'} onClick={() => setRtab('gate')}>Gate</button>
+          <button role="tab" aria-selected={rtab === 'hl'} onClick={() => setRtab('hl')}>Highlights{fHls.length > 0 && <span className="sk-rtab-n">{fHls.length}</span>}</button>
           <button role="tab" aria-selected={rtab === 'ai'} onClick={() => setRtab('ai')}><span className="sk-ai-badge">AI</span>Copilot{msgs.length > 0 && <span className="sk-rtab-n">{Math.ceil(msgs.length / 2)}</span>}</button>
         </div>
-        {rtab === 'ai' ? <Copilot label={<>Reading <b>{f.id}</b> · {phase.n} · as {role}</>} tag={`${f.id} · ${phase.n} · ${role}`} audience={role} suggestions={CP_SUGGEST[role]} placeholder={`Ask about ${f.title.toLowerCase()}…`} refPattern={CP_REF} msgs={msgs} setMsgs={setMsgs} ask={ask} seed={seed} clearSeed={() => setSeed(null)} onRef={onRef} onShare={onShare} /> : <>
+        {rtab === 'hl' ? <HighlightsPanel items={fHls} phases={SK.phases.map(p => ({ key: p.k, name: p.n }))} outdated={outdated} onOpen={openHl} person={personOf} /> : rtab === 'ai' ? <Copilot label={<>Reading <b>{f.id}</b> · {phase.n} · as {role}</>} tag={`${f.id} · ${phase.n} · ${role}`} audience={role} suggestions={CP_SUGGEST[role]} placeholder={`Ask about ${f.title.toLowerCase()}…`} refPattern={CP_REF} msgs={msgs} setMsgs={setMsgs} ask={ask} seed={seed} clearSeed={() => setSeed(null)} onRef={onRef} onShare={onShare} /> : <>
           <div className="sk-pad">
             <Label>Gate · {phase.n}</Label>
             <p className="sk-what">{phase.what}</p>
@@ -214,7 +239,7 @@ export function App({ initialLayout }: { initialLayout?: LayoutPrefs } = {}) {
                 <span className="sk-apst">{ok ? <><Icon n="check" s={14} />Approved</> : status === 'locked' ? '—' : 'Pending'}</span>
               </li>;
             })}</ul>
-            {mine && !approvals[role] && <GateBrief items={brief} onAsk={() => { setRtab('ai'); setSeed(`What should I check before approving ${phase.n}?`); }} />}
+            {mine && !approvals[role] && <GateBrief items={briefItems} onAsk={() => { setRtab('ai'); setSeed(`What should I check before approving ${phase.n}?`); }} />}
             {status === 'review' && <div className="sk-gateact">
               {blocking && <div className="sk-warn"><Icon n="alert" s={14} />Resolve HIGH findings before approving.</div>}
               {implBlock && <div className="sk-warn"><Icon n="alert" s={14} />All tasks done and every acceptance scenario passed before ship.</div>}

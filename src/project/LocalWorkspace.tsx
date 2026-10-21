@@ -1,8 +1,15 @@
-import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type HTMLAttributes, type ReactNode } from 'react';
 import { Icon, Label } from '../ui';
 import { Markdown } from './Markdown';
 import { ReaderMenu, SidebarToggle } from '../reader/ReaderControls';
 import { LOCAL_OWNER, useReader, useSidebarKeys } from '../reader/useReader';
+import { Annotator } from '../annotations/Annotator';
+import { HighlightsPanel } from '../annotations/HighlightsPanel';
+import { localFileStore } from '../annotations/store';
+import { PHASE_DOC } from '../annotations/colors';
+import { contentHash } from '../annotations/anchor';
+import { prefsFor } from './prefs';
+import type { Highlight, HighlightAuthor } from './types';
 import { buildLocalProject, firstLocalDocumentPath, readLocalDirectory, readLocalDirectoryHandle, type LocalFileSnapshot } from './localProject';
 import { LIVE_CLASS, PHASES, phaseStatus } from './phases';
 import {
@@ -59,6 +66,20 @@ const initialView = (): LocalRepositoryView => ({
 export function LocalWorkspace({ onExit }: Props) {
   const rd = useReader(LOCAL_OWNER, 'local');
   const [aaOpen, setAaOpen] = useState(false);
+  // Highlights (specs/010-spec-annotations FR-016, FR-017): written to specs/NNN/highlights.json in the folder, never committed.
+  const [rtab, setRtab] = useState<'local' | 'hl'>('local');
+  const [savedHls, setSavedHls] = useState<Record<string, Highlight[]>>({});
+  const [focusId, setFocusId] = useState<string | null>(null);
+  const [outdated, setOutdated] = useState<string[]>([]);
+  const localPrefs = prefsFor(LOCAL_OWNER, 'local');
+  const [authorName, setAuthorName] = useState(() => localPrefs.getAuthorName());
+  const askAuthor = (): HighlightAuthor | null => {
+    const name = window.prompt('Your name for highlights in this folder')?.trim();
+    if (!name) return null;
+    localPrefs.setAuthorName(name);
+    setAuthorName(name);
+    return { name, local: true };
+  };
   useSidebarKeys(rd.layout, rd.setLayout);
   const input = useRef<HTMLInputElement>(null);
   const request = useRef(0);
@@ -342,7 +363,7 @@ export function LocalWorkspace({ onExit }: Props) {
                   <span className="sk-id">{feature.id}</span><b>{feature.title}</b>
                   <span className="sk-featst">{feature.slug}</span>
                 </button>
-                {selectedSpec === feature && <ul className="sk-files">{feature.files.map(file => <li key={file}>
+                {selectedSpec === feature && <ul className="sk-files">{feature.files.filter(file => file !== 'highlights.json').map(file => <li key={file}>
                   <button className="sk-qitem" aria-current={ready.file === filePath(feature, file) ? 'page' : undefined}
                     onClick={() => selectFile(filePath(feature, file))}><b>{file}</b></button>
                 </li>)}</ul>}
@@ -358,14 +379,34 @@ export function LocalWorkspace({ onExit }: Props) {
               selected={selectedStep} onSelect={selectStep} />
             {selectedDocument
               ? <div className="sk-doc" role="tabpanel" aria-label={selectedDocument}><div className="sk-col"><Markdown>{ready.files.get(selectedDocument) ?? ''}</Markdown></div></div>
-              : <LocalStageContent feature={activeFeature} files={ready.files} selected={selectedStep} />}
+              : <LocalStageContent feature={activeFeature} files={ready.files} selected={selectedStep}
+                annotate={(body, docProps) => {
+                  const k = PHASES[selectedStep]?.k ?? 'specify';
+                  const doc = PHASE_DOC[k] ?? '';
+                  const text = ready.files.get(`specs/${activeFeature.slug}/${doc}`);
+                  return <Annotator items={savedHls[activeFeature.slug] ?? activeFeature.highlights?.items ?? []}
+                    target={{ slug: activeFeature.slug, branch: null, phase: k, doc, docSha: text ? contentHash(text) : null }}
+                    store={localFileStore(ready.handle ?? null)} author={authorName ? { name: authorName, local: true } : null} askAuthor={askAuthor}
+                    focusId={focusId} clearFocus={() => setFocusId(null)} onOutdated={setOutdated}
+                    onItems={items => setSavedHls(x => ({ ...x, [activeFeature.slug]: items }))}
+                    onAsk={text => { void navigator.clipboard?.writeText(text); }}
+                    docProps={docProps}>{body}</Annotator>;
+                }} />}
           </main>
           {rd.layout.right && <aside className="sk-right">
+            <div className="sk-rtabs" role="tablist">
+              <button role="tab" aria-selected={rtab === 'local'} onClick={() => setRtab('local')}>Local mode</button>
+              <button role="tab" aria-selected={rtab === 'hl'} onClick={() => setRtab('hl')}>Highlights{(() => { const n = (savedHls[activeFeature.slug] ?? activeFeature.highlights?.items ?? []).length; return n > 0 && <span className="sk-rtab-n">{n}</span>; })()}</button>
+            </div>
+            {rtab === 'hl' ? <HighlightsPanel items={savedHls[activeFeature.slug] ?? activeFeature.highlights?.items ?? []} phases={PHASES.map(p => ({ key: p.k, name: p.n }))} outdated={outdated}
+              onOpen={h => { const i = PHASES.findIndex(p => p.k === h.phase); if (i >= 0) selectStep(i); setFocusId(h.id); }}
+              readOnly={activeFeature.highlights?.error ?? localFileStore(ready.handle ?? null).readOnly} /> : <>
             <div className="sk-pad"><Label>Local mode</Label>
-              <div className="sk-warn" role="status"><Icon n="lock" s={14} /><span>Read-only</span></div>
-              <p className="text-muted sk-sm">Approval gates, pull requests, and Copilot require GitHub mode.</p>
+              <div className="sk-warn" role="status"><Icon n="lock" s={14} /><span>Read-only, except highlights.json</span></div>
+              <p className="text-muted sk-sm">Approval gates, pull requests, and Copilot require GitHub mode. Highlights are written to specs/{activeFeature.slug}/highlights.json in this folder; commit it with git yourself.</p>
             </div>
             {ready.project.warnings.map(warning => <div className="sk-pad sk-rule" key={warning}><div className="sk-warn"><Icon n="alert" s={14} /><span>{warning}</span></div></div>)}
+            </>}
           </aside>}
         </div>
       </>}
@@ -444,10 +485,12 @@ export function LocalFlow({ project, feature, selected, onSelect }: {
   </div>;
 }
 
-export function LocalStageContent({ feature, files, selected }: {
+export function LocalStageContent({ feature, files, selected, annotate }: {
   feature: SpecFeature;
   files: ReadonlyMap<string, string>;
   selected: number;
+  /** Wraps the stage in the highlight layer (specs/010-spec-annotations); without it the plain column is rendered. */
+  annotate?: (body: ReactNode, docProps: HTMLAttributes<HTMLDivElement>) => ReactNode;
 }) {
   const phase = PHASES[selected] ?? PHASES[1];
   const sourcePath = stageFile(phase.k, feature.slug);
@@ -457,7 +500,8 @@ export function LocalStageContent({ feature, files, selected }: {
     ? 'No clarification answers are recorded in this local spec.'
     : `No local ${phase.n.toLowerCase()} content is available for this spec.`;
 
-  return <div className="sk-doc" id="local-flow-panel" role="tabpanel" aria-labelledby={`local-flow-tab-${selected}`}><div className="sk-col">
+  const docProps: HTMLAttributes<HTMLDivElement> = { id: 'local-flow-panel', role: 'tabpanel', 'aria-labelledby': `local-flow-tab-${selected}` };
+  const body = <>
     {phase.k === 'clarify'
       ? clarifications.length
         ? <div className="sk-qs">{clarifications.map((item, index) => <div className="sk-q" key={`${item.session}-${index}`}>
@@ -469,7 +513,9 @@ export function LocalStageContent({ feature, files, selected }: {
       : source
         ? <Markdown>{source}</Markdown>
         : <LocalStageEmpty title={`${phase.n} unavailable`} message={absentMessage} />}
-  </div></div>;
+  </>;
+  if (annotate) return annotate(body, docProps);
+  return <div className="sk-doc" {...docProps}><div className="sk-col">{body}</div></div>;
 }
 
 function LocalStageEmpty({ title, message }: { title: string; message: string }) {

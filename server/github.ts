@@ -36,7 +36,7 @@ export class GitHubError extends Error {
   constructor(message: string, status: number) { super(message); this.status = status; }
 }
 
-export async function gh(src: Source, path: string, raw = false, write?: { method: 'POST' | 'PATCH'; body: unknown }): Promise<Response> {
+export async function gh(src: Source, path: string, raw = false, write?: { method: 'POST' | 'PATCH' | 'PUT'; body: unknown }): Promise<Response> {
   const res = await fetch(API + path, {
     // Reads revalidate with GitHub (ETag): a browser would otherwise serve GitHub's
     // max-age=60 copy, which is how an approval used to "come back" (specs/001 R1).
@@ -55,7 +55,7 @@ export async function gh(src: Source, path: string, raw = false, write?: { metho
   if (res.status === 404) throw new GitHubError(`GitHub returned 404 for ${name}${path.includes('/contents/') ? ' ' + decodeURIComponent(path.split('/contents/')[1].split('?')[0]) : ''}. The repository or branch may not exist, or your token cannot read it.`, 404);
   if (res.status === 401) throw new GitHubError('GitHub rejected the token (401).', 401);
   if (res.status === 429 || (res.status === 403 && res.headers.get('x-ratelimit-remaining') === '0')) throw new GitHubError('GitHub rate limit reached. Try again in a few minutes.', 429);
-  if (res.status === 403) throw new GitHubError(`GitHub refused the request (403). The token may lack access to ${name}${write ? ' (writing to issues needs Issues: Read and write)' : ''}.`, 403);
+  if (res.status === 403) throw new GitHubError(`GitHub refused the request (403). The token may lack access to ${name}${write ? (path.includes('/contents/') ? ' (committing highlights needs Contents: Read and write)' : ' (writing to issues needs Issues: Read and write)') : ''}.`, 403);
   throw new GitHubError(`GitHub API error ${res.status} for ${path}.`, res.status);
 }
 
@@ -117,8 +117,9 @@ async function loadAt(src: Source, ref: string, sha: string, committedAt: string
 
   const read = (p: string) => texts.get(p) ?? null;
   const treeShas = new Map(tree.tree.filter(e => e.type === 'tree').map(e => [e.path, e.sha ?? '']));
+  const blobShas = new Map(tree.tree.filter(e => e.type === 'blob').map(e => [e.path, e.sha ?? '']));
   const specs = [...specFiles.keys()].sort().map(dir => {
-    const f = buildFeature(dir, specFiles.get(dir)!, x => read(`specs/${dir}/${x}`), sha);
+    const f = withBlobs(buildFeature(dir, specFiles.get(dir)!, x => read(`specs/${dir}/${x}`), sha), dir, blobShas);
     const treeSha = treeShas.get(`specs/${dir}`);
     // The same folder on a branch is then served from cache.
     if (treeSha) remember(specDirs, dirKey(src, treeSha), f, MAX_SPEC_DIRS);
@@ -206,6 +207,14 @@ async function treeAt(src: Source, sha: string): Promise<TreeEntry[]> {
 }
 
 /** One spec folder at `commitSha`, cached by the folder's tree SHA. */
+/** Blob sha of each file in a spec folder, for a highlight's docSha (specs/010-spec-annotations). */
+function withBlobs(f: SpecFeature, dir: string, shas: Map<string, string>): SpecFeature {
+  const prefix = dir ? `specs/${dir}/` : '';
+  const blobs: Record<string, string> = {};
+  for (const file of f.files) { const s = shas.get(prefix + file); if (s) blobs[file] = s; }
+  return { ...f, blobs };
+}
+
 export async function loadSpecDir(src: Source, commitSha: string, dir: string, treeSha: string): Promise<SpecFeature> {
   const key = dirKey(src, treeSha);
   const hit = specDirs.get(key);
@@ -217,7 +226,7 @@ export async function loadSpecDir(src: Source, commitSha: string, dir: string, t
   await pool(files.filter(wantedInSpec), CONCURRENCY, async f => {
     texts.set(f, await (await gh(src, `${base}/contents/${enc(`specs/${dir}/${f}`)}?ref=${commitSha}`, true)).text());
   });
-  const feature = buildFeature(dir, files, f => texts.get(f) ?? null, commitSha);
+  const feature = withBlobs(buildFeature(dir, files, f => texts.get(f) ?? null, commitSha), '', new Map(tree.tree.filter(e => e.type === 'blob').map(e => [e.path, e.sha ?? ''])));
   remember(specDirs, key, feature, MAX_SPEC_DIRS);
   return feature;
 }

@@ -82,7 +82,9 @@ navigating work while GitHub-only approval actions are clearly unavailable.
 - **FR-005**: The application MUST keep existing demo and GitHub repository workflows available
   alongside local mode.
 - **FR-006**: Local mode MUST be read-only: it MUST NOT modify, create, or delete files in the
-  selected repository.
+  selected repository. Single exception (specs/010-spec-annotations FR-016): saving a highlight may
+  create or update `specs/*/highlights.json` in the selected folder, after the browser grants write
+  access; nothing else is written, nothing is committed and nothing goes over the network.
 - **FR-007**: Local mode MUST NOT send selected file contents or paths to a server, GitHub,
   Anthropic, or another network destination.
 - **FR-008**: Local mode MUST clearly identify approval and other GitHub-only actions that are
