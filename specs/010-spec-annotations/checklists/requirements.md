@@ -31,5 +31,6 @@
 
 ## Notes
 
-- Câu hỏi về nơi lưu (FR-004) đã được giải quyết ngày 2026-10-18: bản nháp ở local (file cục bộ git bỏ qua ở bản server, `localStorage` ở bản Pages), publish thành comment trên issue theo dõi.
-- Publish là một loại ghi mới nên cần đủ quy trình Spec Kit và bước xác nhận (constitution nguyên tắc I).
+- 2026-10-21: mô hình lưu đổi thành "lưu là chia sẻ ngay": file JSON trong thư mục spec, commit vào nhánh đang xem (thay cho bản nháp + publish thành comment của 2026-10-18). Phạm vi gộp thêm mục D–E chuyển từ `specs/010-reader-highlights`.
+- Commit vào repo là loại ghi mới: cần sửa constitution nguyên tắc I trước khi implement, và cần quyền token Contents: write (nguyên tắc II). Plan xử lý trong Constitution Check.
+- Assumptions có nhắc tên class CSS đã có sẵn để plan dùng lại; đó là tham chiếu, không phải yêu cầu.
