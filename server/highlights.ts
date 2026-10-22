@@ -19,6 +19,28 @@ const enc = (p: string) => p.split('/').map(encodeURIComponent).join('/');
 
 export interface SaveResult { items: Highlight[]; commit: { sha: string; url: string } }
 
+/** What a read of the file says: its items and etag, or that it is unchanged since `etag` (specs/012 FR-014). */
+export type ReadResult = { status: 'ok'; items: Highlight[]; error: string | null; etag: string | null } | { status: 'unchanged' };
+
+/**
+ * Reads highlights.json on `branch`. With the `etag` of an earlier read it asks GitHub conditionally: an unchanged file
+ * is a 304, which does not count against the rate limit, so the page can look every minute. A spec with no file reads
+ * as no highlights. Other failures (401, 403, 429) are thrown as GitHub's, for the caller to back off.
+ */
+export async function readHighlights(src: Source, { slug, branch, etag }: { slug: string; branch: string; etag?: string | null }): Promise<ReadResult> {
+  const path = `specs/${slug}/${HIGHLIGHTS_FILE}`;
+  try {
+    const res = await gh(src, `/repos/${src.owner}/${src.repo}/contents/${enc(path)}?ref=${encodeURIComponent(branch)}`, false, undefined, { headers: etag ? { 'If-None-Match': etag } : undefined, allow304: true });
+    if (res.status === 304) return { status: 'unchanged' };
+    const got = await res.json() as { content: string };
+    const parsed = parseHighlights(fromBase64(got.content));
+    return { status: 'ok', items: parsed.items, error: parsed.error, etag: res.headers.get('ETag') };
+  } catch (e) {
+    if (e instanceof GitHubError && e.status === 404) return { status: 'ok', items: [], error: null, etag: null };
+    throw e;
+  }
+}
+
 /**
  * Reads the file on `branch`, applies `change` for `user`, and commits it with the read sha.
  * A concurrent commit (409, or 422 about the sha) is retried on the new version, up to 3 times.

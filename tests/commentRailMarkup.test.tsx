@@ -4,6 +4,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { CommentRail, CommentSheet } from '../src/annotations/CommentRail';
 import { Composer } from '../src/annotations/Composer';
+import { FreshBar } from '../src/annotations/FreshBar';
+import { HighlightsPanel } from '../src/annotations/HighlightsPanel';
 import { HlToolbar, type ToolbarState } from '../src/annotations/Toolbar';
 import { toCards } from '../src/annotations/comments';
 import type { Highlight } from '../src/project/types';
@@ -224,3 +226,62 @@ describe('selected card, announcement and sheet (FR-008, FR-009, FR-011, FR-012)
   });
 });
 
+describe('new comments by other people: badge and refresh (FR-014, FR-015)', () => {
+  const NOW_MS = Date.parse('2026-10-21T09:00:00.000Z');
+  const bar = (over: Partial<Parameters<typeof FreshBar>[0]> = {}) => renderToStaticMarkup(<FreshBar newCount={0} checkedAt={NOW_MS - 120_000} now={NOW_MS} onApply={noop} onRefresh={noop} {...over} />);
+
+  it('says when it last looked and offers a refresh button, with no badge when nothing is new', () => {
+    const html = bar();
+    expect(html).toContain('Updated 2 min ago');
+    expect(html).toMatch(/<button[^>]*aria-label="Refresh comments"[^>]*>↻ Refresh</);
+    expect(html).not.toContain('New comments');
+  });
+
+  it('shows the badge with the number, as a button, when there is something new', () => {
+    const html = bar({ newCount: 3 });
+    expect(html).toMatch(/<button[^>]*class="sk-cm-new"[^>]*>New comments \(3\)</);
+  });
+
+  it('says it has not looked yet before the first check', () => {
+    expect(bar({ checkedAt: null })).toContain('Not checked yet');
+  });
+
+  it('sits in the head of the rail and at the top of the Highlights tab', () => {
+    const fresh = { newCount: 2, checkedAt: NOW_MS, now: NOW_MS, onApply: noop, onRefresh: noop };
+    const railHtml = rail([H('h1')], { h1: 100 }, { fresh });
+    expect(railHtml).toContain('New comments (2)');
+    expect(railHtml).toContain('Updated just now');
+    const panel = renderToStaticMarkup(<HighlightsPanel items={[H('h1')]} phases={[{ key: 'specify', name: 'Specify' }]} outdated={[]} onOpen={noop} fresh={fresh} />);
+    expect(panel).toContain('New comments (2)');
+    expect(panel).toContain('Refresh comments');
+  });
+
+  it('builds the rail for a badge alone, so the news can be seen even where nobody has commented yet', () => {
+    const html = rail([], {}, { fresh: { newCount: 1, checkedAt: NOW_MS, now: NOW_MS, onApply: noop, onRefresh: noop } });
+    expect(html).toContain('sk-cm-rail');
+    expect(html).toContain('New comments (1)');
+  });
+});
+
+describe('save states on the card (FR-013)', () => {
+  const state = (s: Parameters<typeof toCards>[2][string]) => renderToStaticMarkup(<CommentRail cards={toCards([H('h1')], { h1: 100 }, { h1: s }, { login: 'mai' })} selectedId={null} onSelect={noop} branch={null} onRetry={noop} now={NOW} />);
+
+  it('says Sending while the save runs', () => {
+    expect(state({ state: 'sending' })).toMatch(/data-state="sending" role="status">Sending…</);
+  });
+
+  it('links the commit once saved on GitHub, and says where otherwise', () => {
+    expect(state({ state: 'saved', commit: { sha: 'abc1234def', url: 'https://github.com/o/r/commit/abc1234def' } })).toMatch(/Saved · <a href="https:\/\/github.com\/o\/r\/commit\/abc1234def"[^>]*>commit abc1234</);
+    expect(state({ state: 'saved', where: 'folder' })).toContain('Saved to folder');
+    expect(state({ state: 'saved', where: 'browser' })).toContain('Saved in this browser');
+  });
+
+  it('gives the reason and a Retry button when it failed, as an alert', () => {
+    const html = state({ state: 'failed', error: 'Your token cannot commit to main.' });
+    expect(html).toMatch(/data-state="failed" role="alert">Failed: Your token cannot commit to main\.<button[^>]*>Retry</);
+  });
+
+  it('says nothing for a comment that has not been touched', () => {
+    expect(state({ state: 'idle' })).not.toContain('sk-cm-state');
+  });
+});

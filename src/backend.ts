@@ -3,12 +3,12 @@
 // Every call names its repository; the user's own access decides what they can open.
 import { GitHubError, clearProjectCache, detectSpeckit, getProject, getSpecVariant, identityFor, json, listRepos, type Source } from '../server/github';
 import { clearTrackingCache, decideGate, getTracking } from '../server/tracking';
-import { saveHighlight, type SaveResult } from '../server/highlights';
+import { readHighlights, saveHighlight, type ReadResult, type SaveResult } from '../server/highlights';
 import type { CopilotMsg } from './copilot/Copilot';
 import { OfflineError, requestCopilot, toTurns } from './copilot/api';
 import type { Decided, GateAction } from './project/trackingApi';
-import { api, fetchTracking, postGate } from './project/trackingApi';
-import type { DetectResult, DetectTarget, GateKey, HighlightChange, Project, ProjectResponse, RepoListing, SessionResponse, SpecFeature, Tracking } from './project/types';
+import { HttpError, SignInRequired, api, fetchTracking, postGate } from './project/trackingApi';
+import type { DetectResult, DetectTarget, GateKey, Highlight, HighlightChange, Project, ProjectResponse, RepoListing, SessionResponse, SpecFeature, Tracking } from './project/types';
 
 /** Built for GitHub Pages: no server, keys come from the viewer. */
 export const STATIC = import.meta.env.VITE_STATIC === '1';
@@ -28,6 +28,8 @@ export interface Backend {
   decide(repo: string, slug: string, gate: GateKey, action: GateAction, note: string, branch?: string | null): Promise<Decided>;
   /** Commits one highlight change to the spec's highlights.json on `branch` (specs/010-spec-annotations). */
   saveHighlight(repo: string, slug: string, branch: string, change: HighlightChange): Promise<SaveResult>;
+  /** Reads the spec's highlights.json on `branch`, or says it is unchanged since `etag` (specs/012 FR-014). Writes nothing. */
+  readHighlights(repo: string, slug: string, branch: string, etag: string | null): Promise<ReadResult>;
   /** Throws OfflineError when no Claude credentials are available. */
   copilot(context: string, hist: CopilotMsg[]): Promise<string>;
   /** Forget everything loaded in this tab (Disconnect, Sign out). */
@@ -35,6 +37,18 @@ export interface Backend {
 }
 
 const resetCaches = () => { clearProjectCache(); clearTrackingCache(); };
+
+/** GET /api/highlights with If-None-Match: a 304 is an answer, so this does not go through `api`, which treats it as an error. */
+async function readHighlightsFromServer(repo: string, slug: string, branch: string, etag: string | null): Promise<ReadResult> {
+  let res: Response;
+  const url = `/api/highlights?repo=${encodeURIComponent(repo)}&slug=${encodeURIComponent(slug)}&branch=${encodeURIComponent(branch)}`;
+  try { res = await fetch(url, { cache: 'no-store', headers: etag ? { 'If-None-Match': etag } : undefined }); } catch { throw new Error('Could not reach the speckit-ui server.'); }
+  if (res.status === 304) return { status: 'unchanged' };
+  const data = await res.json().catch(() => ({})) as { items?: Highlight[]; error?: string | null; etag?: string | null };
+  if (res.status === 401) throw new SignInRequired();
+  if (!res.ok) throw new HttpError(data.error || `Request failed (${res.status}).`, res.status);
+  return { status: 'ok', items: data.items ?? [], error: data.error ?? null, etag: data.etag ?? null };
+}
 
 export const serverBackend: Backend = {
   kind: 'server',
@@ -54,6 +68,7 @@ export const serverBackend: Backend = {
   tracking: fetchTracking,
   decide: postGate,
   saveHighlight: (repo, slug, branch, change) => api<SaveResult>('/api/highlights', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ repo, slug, branch, change }) }),
+  readHighlights: readHighlightsFromServer,
   copilot: requestCopilot,
   reset: resetCaches
 };
@@ -147,6 +162,7 @@ export function browserBackend(settings: Settings): Backend {
       const me = await json<{ login: string }>({ owner: '', repo: '', token }, '/user');
       return saveHighlight(src, { slug, branch, change, user: me.login });
     },
+    async readHighlights(repo, slug, branch, etag) { return readHighlights(await source(repo), { slug, branch, etag }); },
     copilot: (context, hist) => browserCopilot(settings.anthropicKey, context, hist),
     reset: resetCaches
   };

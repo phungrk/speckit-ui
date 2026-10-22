@@ -2,7 +2,7 @@
 import { vi } from 'vitest';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-export interface Call { method: string; path: string; auth: string | null; body?: Record<string, unknown>; cache?: RequestCache }
+export interface Call { method: string; path: string; auth: string | null; body?: Record<string, unknown>; cache?: RequestCache; ifNoneMatch?: string | null }
 export interface FakeIssue { number: number; body: string; state: string; html_url: string; updated_at?: string }
 export interface FakeRepo {
   /** spec slug → spec.md text */
@@ -47,7 +47,7 @@ export function fakeGitHub(repos: Record<string, FakeRepo>, extra?: (u: URL, met
     const method = init?.method ?? 'GET';
     const body = init?.body ? JSON.parse(String(init.body)) : undefined;
     const headers = (init?.headers ?? {}) as Record<string, string>;
-    calls.push({ method, path: u.pathname, auth: headers.Authorization ?? null, body, cache: init?.cache });
+    calls.push({ method, path: u.pathname, auth: headers.Authorization ?? null, body, cache: init?.cache, ifNoneMatch: headers['If-None-Match'] ?? null });
     const x = await extra?.(u, method, body);
     if (x) return x;
     if (u.pathname === '/user') return ok(user(headers.Authorization ?? null));
@@ -73,7 +73,10 @@ export function fakeGitHub(repos: Record<string, FakeRepo>, extra?: (u: URL, met
         const text = files[u.searchParams.get('ref') ?? 'main']?.[path];
         if (text === undefined) return new Response('{}', { status: 404 });
         if ((headers.Accept ?? '').includes('raw')) return new Response(text, { status: 200 });
-        return ok({ sha: blobSha(text), content: Buffer.from(text).toString('base64'), encoding: 'base64' });
+        // GitHub answers a matching If-None-Match with 304 and no body (specs/012 contracts/refresh-api.md).
+        const etag = `"${blobSha(text)}"`;
+        if (headers['If-None-Match'] === etag) return new Response(null, { status: 304, headers: { ETag: etag } });
+        return ok({ sha: blobSha(text), content: Buffer.from(text).toString('base64'), encoding: 'base64' }, { ETag: etag });
       }
       if (method === 'PUT') {
         r.beforePut?.(files);

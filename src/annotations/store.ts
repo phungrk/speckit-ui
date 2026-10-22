@@ -2,6 +2,7 @@
 // HighlightStore, so the four modes behave the same: a commit (server, Pages), the selected folder
 // (local) or this browser (demo).
 import type { Backend } from '../backend';
+import type { ReadResult } from './freshness';
 import { applyChange, parseHighlights, serializeHighlights } from '../../server/highlightsFile';
 import { requestWrite, type LocalDirectoryHandle } from '../project/localRepositoryPersistence';
 import type { Highlight, HighlightAuthor, HighlightChange } from '../project/types';
@@ -11,16 +12,26 @@ export interface Saved { items: Highlight[]; commit?: { sha: string; url: string
 
 export interface HighlightStore {
   kind: 'github' | 'local' | 'demo';
+  /**
+   * Reads the file again, or says it is unchanged since `etag` (specs/012 FR-014). Absent where there is nothing to look
+   * at: the demo's data is in this tab only.
+   */
+  refresh?(target: { slug: string; branch: string | null }, etag: string | null): Promise<ReadResult>;
   /** Why saving is not possible here, or null. */
   readOnly: string | null;
   save(target: SaveTarget, change: HighlightChange, author: HighlightAuthor): Promise<Saved>;
 }
 
 /** Server and Pages: one commit per save on the viewed branch. */
-export function gitHubStore(backend: Pick<Backend, 'saveHighlight'>, repo: string, readOnly: string | null = null): HighlightStore {
+export function gitHubStore(backend: Pick<Backend, 'saveHighlight' | 'readHighlights'>, repo: string, readOnly: string | null = null): HighlightStore {
   return {
     kind: 'github',
     readOnly,
+    async refresh({ slug, branch }, etag) {
+      if (!branch) throw new Error('No branch to read.');
+      const r = await backend.readHighlights(repo, slug, branch, etag);
+      return r.status === 'unchanged' ? 'unchanged' : { items: r.items, error: r.error, etag: r.etag };
+    },
     async save({ slug, branch }, change) {
       if (!branch) throw new Error('No branch to commit to.');
       return backend.saveHighlight(repo, slug, branch, change);
@@ -34,6 +45,22 @@ export function localFileStore(root: LocalDirectoryHandle | null): HighlightStor
   return {
     kind: 'local',
     readOnly,
+    // The folder is changed outside the app (git pull), so it is read again on focus and on the button. The file's
+    // modification time is its etag.
+    async refresh({ slug }, etag) {
+      if (!root?.getDirectoryHandle) throw new Error('This folder cannot be read again.');
+      try {
+        const dir = await (await root.getDirectoryHandle('specs')).getDirectoryHandle!(slug);
+        const file = await (await dir.getFileHandle!('highlights.json')).getFile();
+        const tag = String((file as { lastModified?: number }).lastModified ?? '');
+        if (etag !== null && tag === etag) return 'unchanged';
+        const parsed = parseHighlights(await file.text());
+        return { items: parsed.items, error: parsed.error, etag: tag };
+      } catch (e) {
+        if ((e as { name?: string }).name === 'NotFoundError') return { items: [], error: null, etag: null };
+        throw e;
+      }
+    },
     async save({ slug }, change, author) {
       if (!root?.getDirectoryHandle || !(await requestWrite(root))) throw new Error('This folder was opened read-only. Choose it again with write access to save highlights.');
       const specs = await root.getDirectoryHandle('specs');

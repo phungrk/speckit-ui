@@ -6,13 +6,15 @@ import { authorLabel, relTime } from './brief';
 import { HL_COLORS, HL_NONE, meaningOf } from './colors';
 import { CLOSED_CARD_HEIGHT, nextSelection, type CommentCard, type Cards } from './comments';
 import { Composer } from './Composer';
+import { FreshBar, type FreshProps } from './FreshBar';
 import { layoutCards, railPlacement } from './layout';
 
 // The comment rail (specs/012-docs-style-comment-flow, contracts/comment-rail-ui.md): cards beside the text
 // they comment on, inside the document's own scroll container so they scroll with it.
 
-/** Height of the rail's header, the least `top` a card may have (plus the gap). */
+/** Height of the rail's header, the least `top` a card may have (plus the gap); taller with the line about new comments. */
 export const RAIL_HEAD = 40;
+export const RAIL_HEAD_FRESH = 76;
 const GAP = 8;
 const quote40 = (q: string) => (q.length > 40 ? q.slice(0, 40) + '…' : q);
 
@@ -95,7 +97,7 @@ export interface CardProps {
 function SaveLine({ card, onRetry }: { card: CommentCard; onRetry?: (id: string) => void }) {
   const s = card.save;
   if (s.state === 'idle') return null;
-  return <div className="sk-cm-state" data-state={s.state} role={s.state === 'failed' ? 'alert' : undefined}>
+  return <div className="sk-cm-state" data-state={s.state} role={s.state === 'failed' ? 'alert' : 'status'}>
     {s.state === 'sending' && 'Sending…'}
     {s.state === 'saved' && (s.commit ? <>Saved · <a href={s.commit.url} target="_blank" rel="noreferrer">commit {s.commit.sha.slice(0, 7)}</a></> : s.where === 'folder' ? 'Saved to folder' : s.where === 'browser' ? 'Saved in this browser' : 'Saved')}
     {s.state === 'failed' && <>Failed: {s.error}{onRetry && <button type="button" onClick={e => { e.stopPropagation(); onRetry(card.id); }}>Retry</button>}</>}
@@ -184,9 +186,12 @@ export interface CommentRailProps {
   activeDraftId?: string | null;
   /** Unsent drafts that belong to other documents, so the reader is told they are kept. */
   draftsElsewhere?: number;
+  /** When comments were last looked for and the badge for new ones (FR-014). */
+  fresh?: FreshProps;
 }
 
-export function CommentRail({ cards, selectedId, onSelect, branch, left, viewport, docRef, person, now, onRetry, actions, editing, drafts = [], activeDraftId = null, draftsElsewhere = 0 }: CommentRailProps) {
+export function CommentRail({ cards, selectedId, onSelect, branch, left, viewport, docRef, person, now, onRetry, actions, editing, drafts = [], activeDraftId = null, draftsElsewhere = 0, fresh }: CommentRailProps) {
+  const head = fresh ? RAIL_HEAD_FRESH : RAIL_HEAD;
   const asideRef = useRef<HTMLElement>(null);
   const byKey = useRef(false);
   const [heights, setHeights] = useState<Record<string, number>>({});
@@ -198,7 +203,7 @@ export function CommentRail({ cards, selectedId, onSelect, branch, left, viewpor
   const tops = layoutCards([
     ...cards.cards.map(c => ({ id: c.id, anchorTop: c.anchorTop ?? 0, height: heightOf(c), createdAt: c.highlight.createdAt })),
     ...drafts.map(d => ({ id: draftId(d), anchorTop: d.anchorTop, height: COMPOSER_HEIGHT, createdAt: '9999' }))
-  ], activeDraftId ? 'draft:' + activeDraftId : selectedId, GAP, RAIL_HEAD + GAP);
+  ], activeDraftId ? 'draft:' + activeDraftId : selectedId, GAP, head + GAP);
 
   // The selected card is kept on screen: a click on the text may leave its card pushed below the fold.
   const selTop = selectedId ? tops[selectedId] : undefined;
@@ -206,18 +211,18 @@ export function CommentRail({ cards, selectedId, onSelect, branch, left, viewpor
     const doc = docRef?.current;
     if (doc && selTop !== undefined) {
       const h = heights[selectedId!] ?? CLOSED_CARD_HEIGHT;
-      if (selTop < doc.scrollTop + RAIL_HEAD || selTop + h > doc.scrollTop + doc.clientHeight) doc.scrollTop = Math.max(0, selTop - 80);
+      if (selTop < doc.scrollTop + head || selTop + h > doc.scrollTop + doc.clientHeight) doc.scrollTop = Math.max(0, selTop - 80);
     }
     if (byKey.current) { asideRef.current?.querySelector<HTMLElement>('[aria-current="true"]')?.focus(); byKey.current = false; }
   }, [selectedId, selTop]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (total === 0 && drafts.length === 0) return null;
+  if (total === 0 && drafts.length === 0 && !(fresh && fresh.newCount > 0)) return null;
   const near = (c: CommentCard) => {
     if (!viewport || c.id === selectedId || c.id === editing?.id) return true;
     const t = tops[c.id];
     return t + c.height >= viewport.top - viewport.height && t <= viewport.top + 2 * viewport.height;
   };
-  const lastBottom = Math.max(cards.cards.reduce((m, c) => Math.max(m, tops[c.id] + heightOf(c)), RAIL_HEAD), ...drafts.map(d => tops[draftId(d)] + COMPOSER_HEIGHT));
+  const lastBottom = Math.max(cards.cards.reduce((m, c) => Math.max(m, tops[c.id] + heightOf(c)), head), ...drafts.map(d => tops[draftId(d)] + COMPOSER_HEIGHT));
   // The rail is as tall as its cards, so the document scrolls far enough to reach them even though the cards far
   // from the screen are not built (a dense document pushes later cards below its own text).
   const outdatedHeight = cards.outdated.length ? 40 + cards.outdated.length * (CLOSED_CARD_HEIGHT + 8) : 0;
@@ -230,8 +235,9 @@ export function CommentRail({ cards, selectedId, onSelect, branch, left, viewpor
       if ((e.target as HTMLElement).closest('textarea, input')) return;
       if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'Escape') { e.preventDefault(); byKey.current = true; onSelect(nextSelection(ids, selectedId, e.key)); }
     }}>
-    <header className="sk-cm-head"><b>Comments · {total}</b>{branch && <span className="sk-cm-branch">{branch}</span>}
-      {draftsElsewhere > 0 && <span className="sk-cm-draftnote" role="status">{draftsElsewhere} unsent in another document</span>}</header>
+    <header className="sk-cm-head" style={{ height: head }}><b>Comments · {total}</b>{branch && <span className="sk-cm-branch">{branch}</span>}
+      {draftsElsewhere > 0 && <span className="sk-cm-draftnote" role="status">{draftsElsewhere} unsent in another document</span>}
+      {fresh && <FreshBar {...fresh} />}</header>
     <div className="sk-cm-live" role="status" aria-live="polite">{at >= 0 ? `Comment ${at + 1} of ${ids.length} selected` : ''}</div>
     {drafts.map(d => <Fragment key={d.id}>{d.render(tops[draftId(d)])}</Fragment>)}
     {cards.cards.filter(near).map(c => <Card key={c.id} card={c} top={tops[c.id]} selected={c.id === selectedId} onSelect={pick} {...shared} />)}

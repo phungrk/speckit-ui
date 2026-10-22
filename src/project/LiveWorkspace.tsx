@@ -12,6 +12,8 @@ import { prefsFor, type LastViewed, type PrefsStorage } from './prefs';
 import { Annotator } from '../annotations/Annotator';
 import { HighlightsPanel } from '../annotations/HighlightsPanel';
 import { gitHubStore } from '../annotations/store';
+import type { FreshProps } from '../annotations/FreshBar';
+import { useFreshness } from '../annotations/useFreshness';
 import { briefNotes, readOnlyReason } from '../annotations/brief';
 import { PHASE_DOC } from '../annotations/colors';
 import type { Highlight } from './types';
@@ -146,6 +148,16 @@ export function LiveWorkspace({ project, backend, user, storage, refreshing, onR
   // Why saving is off: pinned, a broken file, an account GitHub says is read-only, or a save that was refused (specs/012 FR-016).
   const hlReadOnly = !f ? null : readOnlyReason(project, f.highlights?.error, refused);
   const hlStore = gitHubStore(backend, project.repo, hlReadOnly);
+  // Other people's new comments: looked for every minute while the tab is open, shown only when asked (specs/012 FR-014).
+  const freshCtl = useFreshness({
+    enabled: !!f && !!hlBranch && !!hlStore.refresh,
+    poll: true,
+    read: etag => hlStore.refresh!({ slug: f!.slug, branch: hlBranch }, etag),
+    current: () => hls,
+    resetKey: hlKey
+  });
+  const showFresh = (items: Highlight[] | null) => { if (items) setSavedHls(x => ({ ...x, [hlKey]: items })); };
+  const fresh: FreshProps | undefined = f ? { newCount: freshCtl.newCount, checkedAt: freshCtl.checkedAt, now, onApply: () => showFresh(freshCtl.apply()), onRefresh: () => { void freshCtl.refresh().then(showFresh); } } : undefined;
   const locks = f ? locksOf(status, f.slug) : status.map(() => null);
   const lockedBy = locks[pi];
   // A locked step's command is never offered; without approvals we can't tell, so none is (specs/004 FR-003, SC-001).
@@ -259,7 +271,7 @@ export function LiveWorkspace({ project, backend, user, storage, refreshing, onR
           </button>;
         })}</div>
         {f ? <Annotator items={hls} target={{ slug: f.slug, branch: hlBranch, phase: phase.k, doc: PHASE_DOC[phase.k] ?? '', docSha: f.blobs?.[PHASE_DOC[phase.k] ?? ''] ?? null }}
-          store={hlStore} author={{ login: user.login }} focusId={focusId} clearFocus={() => setFocusId(null)} selectedId={selectedId} onSelect={selectHl} onOutdated={setOutdated}
+          store={hlStore} author={{ login: user.login }} focusId={focusId} clearFocus={() => setFocusId(null)} selectedId={selectedId} onSelect={selectHl} fresh={fresh} onOutdated={setOutdated}
           consent={{ needed: askConsent, branch: hlBranch ?? project.ref, login: user.login, accept: () => { prefs.setHighlightConsent(project.repo, true); setAskConsent(false); } }}
           onItems={items => setSavedHls(x => ({ ...x, [hlKey]: items }))}
           onRefused={reason => setRefused(reason)}
@@ -283,11 +295,11 @@ export function LiveWorkspace({ project, backend, user, storage, refreshing, onR
       {rd.layout.right && <aside className={'sk-right' + (rtab === 'ai' ? ' is-ai' : '')}>
         <div className="sk-rtabs is-3" role="tablist">
           <button role="tab" aria-selected={rtab === 'spec'} onClick={() => setRtab('spec')}>Gate & PRs</button>
-          <button role="tab" aria-selected={rtab === 'hl'} onClick={() => setRtab('hl')} disabled={!f}>Highlights{hls.length > 0 && <span className="sk-rtab-n">{hls.length}</span>}</button>
+          <button role="tab" aria-selected={rtab === 'hl'} onClick={() => setRtab('hl')} disabled={!f}>Highlights{hls.length > 0 && <span className="sk-rtab-n">{hls.length}</span>}{freshCtl.newCount > 0 && <span className="sk-rtab-new" aria-label={`${freshCtl.newCount} new comments`}>+{freshCtl.newCount}</span>}</button>
           <button role="tab" aria-selected={rtab === 'ai'} onClick={() => setRtab('ai')} disabled={!f}><span className="sk-ai-badge">AI</span>Copilot{msgs.length > 0 && <span className="sk-rtab-n">{Math.ceil(msgs.length / 2)}</span>}</button>
         </div>
         {rtab === 'hl' && f ? <HighlightsPanel items={hls} phases={PHASES.map(p => ({ key: p.k, name: p.n }))} outdated={outdated}
-          selectedId={selectedId} onOpen={h => { const i = PHASES.findIndex(p => p.k === h.phase); if (i >= 0) setSel(i); selectHl(h.id, { jump: true }); }}
+          selectedId={selectedId} fresh={fresh} onOpen={h => { const i = PHASES.findIndex(p => p.k === h.phase); if (i >= 0) setSel(i); selectHl(h.id, { jump: true }); }}
           ask={{ on: askConsent, set: on => { prefs.setHighlightConsent(project.repo, !on); setAskConsent(on); } }} readOnly={hlReadOnly} now={now} />
           : rtab === 'ai' && f ? <Copilot label={<>Reading <b>{f.id}</b> · {phase.n} · {project.repo}</>} tag={`${f.id} · ${phase.n}`} audience="this spec" suggestions={LIVE_SUGGEST}
           placeholder={`Ask about ${f.title}…`} refPattern={liveRefPattern(f)} msgs={msgs} setMsgs={setMsgs} ask={ask} seed={seed} clearSeed={() => setSeed(null)}

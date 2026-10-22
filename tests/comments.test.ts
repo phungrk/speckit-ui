@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { HL_COLORS, HL_NONE, meaningOf } from '../src/annotations/colors';
 import { briefNotes, readOnlyReason } from '../src/annotations/brief';
-import { toCards, CLOSED_CARD_HEIGHT, draftKey, draftsElsewhere, draftsHere, nextSelection, pickOverlap, type CommentDraft } from '../src/annotations/comments';
+import { toCards, CLOSED_CARD_HEIGHT, diffIncoming, draftKey, draftsElsewhere, draftsHere, nextPollDelay, nextSelection, pickOverlap, reducePending, type CommentDraft, type SaveState } from '../src/annotations/comments';
 import type { Highlight } from '../src/project/types';
 
 export const H = (id: string, over: Partial<Highlight> = {}): Highlight => ({
@@ -189,6 +189,86 @@ describe('nextSelection (spec 012 FR-008, keyboard)', () => {
 describe('closed card height', () => {
   it('is a number the CSS and the layout share (a closed card has exactly this height)', () => {
     expect(CLOSED_CARD_HEIGHT).toBeGreaterThanOrEqual(120);
+  });
+});
+
+describe('reducePending (spec 012 FR-013, data-model SaveState)', () => {
+  const sending: Record<string, SaveState> = { a: { state: 'sending' } };
+
+  it('goes from sending to saved with the commit, or to failed with the reason', () => {
+    let p = reducePending({}, { type: 'start', id: 'a' });
+    expect(p).toEqual(sending);
+    p = reducePending(p, { type: 'ok', id: 'a', commit: { sha: 'abc1234def', url: 'https://x/c/abc' } });
+    expect(p.a).toEqual({ state: 'saved', commit: { sha: 'abc1234def', url: 'https://x/c/abc' } });
+    const f = reducePending(sending, { type: 'fail', id: 'a', error: 'Your token cannot commit to main.' });
+    expect(f.a).toEqual({ state: 'failed', error: 'Your token cannot commit to main.' });
+  });
+
+  it('says where a comment was saved when there is no commit (local folder, this browser)', () => {
+    expect(reducePending(sending, { type: 'ok', id: 'a', where: 'folder' }).a).toEqual({ state: 'saved', where: 'folder' });
+    expect(reducePending(sending, { type: 'ok', id: 'a', where: 'browser' }).a).toEqual({ state: 'saved', where: 'browser' });
+  });
+
+  it('never has two changes sending for one id: a second start changes nothing', () => {
+    expect(reducePending(sending, { type: 'start', id: 'a' })).toBe(sending);
+  });
+
+  it('retries only what failed, on the same id', () => {
+    const failed = reducePending(sending, { type: 'fail', id: 'a', error: 'x' });
+    expect(reducePending(failed, { type: 'retry', id: 'a' }).a).toEqual({ state: 'sending' });
+    expect(reducePending(sending, { type: 'retry', id: 'a' })).toBe(sending);
+    expect(reducePending({}, { type: 'retry', id: 'zz' })).toEqual({});
+  });
+
+  it('keeps other ids as they are and forgets one on clear', () => {
+    const two = reducePending(sending, { type: 'start', id: 'b' });
+    expect(Object.keys(two)).toEqual(['a', 'b']);
+    expect(Object.keys(reducePending(two, { type: 'clear', id: 'a' }))).toEqual(['b']);
+  });
+
+  it('does not change the object it was given', () => {
+    const before = { a: { state: 'sending' } as SaveState };
+    reducePending(before, { type: 'ok', id: 'a' });
+    expect(before.a).toEqual({ state: 'sending' });
+  });
+});
+
+describe('diffIncoming (spec 012 FR-014)', () => {
+  const cur = [H('h1', { note: 'mine', updatedAt: '2026-10-21T08:00:01.000Z' }), H('h2', { note: 'theirs', updatedAt: '2026-10-21T08:00:02.000Z' })];
+
+  it('counts nothing when nothing differs', () => {
+    expect(diffIncoming(cur, cur.map(h => ({ ...h })))).toEqual({ added: [], changed: [], removed: [], newCount: 0 });
+  });
+
+  it('counts a new comment and a changed one, not a colour-only highlight or a removal', () => {
+    const incoming = [
+      cur[0],
+      H('h2', { note: 'theirs, edited', updatedAt: '2026-10-21T09:00:00.000Z' }),
+      H('h3', { note: 'brand new', updatedAt: '2026-10-21T09:05:00.000Z' }),
+      H('h4', { note: '', color: 'y', updatedAt: '2026-10-21T09:06:00.000Z' })
+    ];
+    const d = diffIncoming(cur, incoming);
+    expect(d.added.map(h => h.id)).toEqual(['h3', 'h4']);
+    expect(d.changed.map(h => h.id)).toEqual(['h2']);
+    expect(d.newCount).toBe(2);
+    expect(diffIncoming(cur, [cur[0]]).removed).toEqual(['h2']);
+    expect(diffIncoming(cur, [cur[0]]).newCount).toBe(0);
+  });
+
+  it('does not count what this user just saved, which the screen already has', () => {
+    const mine = H('h9', { note: 'just saved', updatedAt: '2026-10-21T10:00:00.000Z' });
+    expect(diffIncoming([...cur, mine], [...cur, { ...mine }]).newCount).toBe(0);
+  });
+});
+
+describe('nextPollDelay (spec 012 FR-014, contracts/refresh-api.md)', () => {
+  it('is 60 s when all is well, and nothing when the tab is hidden', () => {
+    expect(nextPollDelay(0, true)).toBe(60_000);
+    expect(nextPollDelay(0, false)).toBeNull();
+    expect(nextPollDelay(5, false)).toBeNull();
+  });
+  it('doubles after each failure up to ten minutes', () => {
+    expect([1, 2, 3, 4, 5, 9].map(n => nextPollDelay(n, true))).toEqual([120_000, 240_000, 480_000, 600_000, 600_000, 600_000]);
   });
 });
 

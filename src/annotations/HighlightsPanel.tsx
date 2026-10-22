@@ -3,6 +3,7 @@ import { Label } from '../ui';
 import type { Highlight, HighlightAuthor, HighlightColor } from '../project/types';
 import { authorLabel, relTime } from './brief';
 import { initials } from './Avatar';
+import { FreshBar, type FreshProps } from './FreshBar';
 import { HL_COLORS, HL_NONE, meaningOf } from './colors';
 
 // The Highlights tab of the right sidebar (contracts/annotations-ui.md), from the design prototype.
@@ -17,6 +18,8 @@ export interface HighlightsPanelProps {
   outdated: string[];
   /** The selected comment, shared with the reading column and its rail (specs/012 FR-012). */
   selectedId?: string | null;
+  /** When comments were last looked for and the badge for new ones (specs/012 FR-014). */
+  fresh?: FreshProps;
   onOpen: (h: Highlight) => void;
   /** Avatar initials and display name of an author. */
   person?: (a: HighlightAuthor) => { name: string; ini: string };
@@ -29,12 +32,13 @@ export interface HighlightsPanelProps {
 
 const defaultPerson = (a: HighlightAuthor) => { const name = authorLabel(a); return { name, ini: initials(name) }; };
 
-export function HighlightsPanel({ items, phases, outdated, selectedId = null, onOpen, person = defaultPerson, ask, readOnly, now }: HighlightsPanelProps) {
+export function HighlightsPanel({ items, phases, outdated, selectedId = null, fresh, onOpen, person = defaultPerson, ask, readOnly, now }: HighlightsPanelProps) {
   const [flt, setFlt] = useState<'all' | HighlightColor>('all');
   const shown = items.filter(h => flt === 'all' || h.color === flt);
   const order = phases.map(p => p.key);
   const groups = order.map((k, i) => ({ k, i, list: shown.filter(h => h.phase === k) })).filter(g => g.list.length);
   return <div className="sk-hlp">
+    {fresh && <FreshBar {...fresh} />}
     <div className="sk-hlp-flt" role="group" aria-label="Filter highlights">
       <button type="button" className={flt === 'all' ? 'on' : ''} aria-pressed={flt === 'all'} onClick={() => setFlt('all')}>All <b>{items.length}</b></button>
       {[...HL_COLORS, HL_NONE].map(c => <button type="button" key={c.key} className={flt === c.key ? 'on' : ''} aria-pressed={flt === c.key} onClick={() => setFlt(c.key)}>

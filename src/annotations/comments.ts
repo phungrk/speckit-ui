@@ -104,3 +104,54 @@ export function nextSelection(ids: string[], current: string | null, key: 'Arrow
   return at < 0 ? ids[ids.length - 1] : ids[Math.max(at - 1, 0)];
 }
 
+// ---- Save states (spec FR-013) ----
+
+export type PendingEvent =
+  | { type: 'start' | 'retry' | 'clear'; id: string }
+  | { type: 'ok'; id: string; commit?: { sha: string; url: string }; where?: 'folder' | 'browser' }
+  | { type: 'fail'; id: string; error: string };
+
+/**
+ * The save state of each comment that is being saved or was just saved. A comment has at most one change in flight:
+ * a second `start` changes nothing, and `retry` only restarts what failed, on the same id (so it is the same comment).
+ */
+export function reducePending(p: Record<string, SaveState>, e: PendingEvent): Record<string, SaveState> {
+  const cur = p[e.id];
+  switch (e.type) {
+    case 'start': return cur?.state === 'sending' ? p : { ...p, [e.id]: { state: 'sending' } };
+    case 'retry': return cur?.state === 'failed' ? { ...p, [e.id]: { state: 'sending' } } : p;
+    case 'ok': return { ...p, [e.id]: { state: 'saved', ...(e.commit ? { commit: e.commit } : {}), ...(e.where ? { where: e.where } : {}) } };
+    case 'fail': return { ...p, [e.id]: { state: 'failed', error: e.error } };
+    case 'clear': { const next = { ...p }; delete next[e.id]; return next; }
+  }
+}
+
+// ---- Other people's comments (spec FR-014) ----
+
+export interface Incoming { added: Highlight[]; changed: Highlight[]; removed: string[]; newCount: number }
+
+/**
+ * What a newly read list has that the screen does not: new and changed highlights, and removed ones. `newCount` is
+ * what the "New comments" badge shows: new or changed highlights that have a note (a colour is not a comment).
+ */
+export function diffIncoming(current: Highlight[], incoming: Highlight[]): Incoming {
+  const have = new Map(current.map(h => [h.id, h]));
+  const added = incoming.filter(h => !have.has(h.id));
+  const changed = incoming.filter(h => have.has(h.id) && have.get(h.id)!.updatedAt !== h.updatedAt);
+  const ids = new Set(incoming.map(h => h.id));
+  return {
+    added, changed,
+    removed: current.filter(h => !ids.has(h.id)).map(h => h.id),
+    newCount: [...added, ...changed].filter(h => h.note.trim()).length
+  };
+}
+
+const POLL_MS = 60_000;
+const POLL_MAX_MS = 600_000;
+
+/** When to look again: a minute when all is well, twice as long after each failure up to ten minutes, never while hidden. */
+export function nextPollDelay(failures: number, visible: boolean): number | null {
+  if (!visible) return null;
+  return Math.min(POLL_MS * 2 ** failures, POLL_MAX_MS);
+}
+

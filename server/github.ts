@@ -36,7 +36,10 @@ export class GitHubError extends Error {
   constructor(message: string, status: number) { super(message); this.status = status; }
 }
 
-export async function gh(src: Source, path: string, raw = false, write?: { method: 'POST' | 'PATCH' | 'PUT'; body: unknown }): Promise<Response> {
+/** Extra for a read: more request headers (If-None-Match), and whether a 304 is an answer, not an error (specs/012 research R15). */
+export interface GhExtra { headers?: Record<string, string>; allow304?: boolean }
+
+export async function gh(src: Source, path: string, raw = false, write?: { method: 'POST' | 'PATCH' | 'PUT'; body: unknown }, extra?: GhExtra): Promise<Response> {
   const res = await fetch(API + path, {
     // Reads revalidate with GitHub (ETag): a browser would otherwise serve GitHub's
     // max-age=60 copy, which is how an approval used to "come back" (specs/001 R1).
@@ -47,10 +50,11 @@ export async function gh(src: Source, path: string, raw = false, write?: { metho
       // Browsers set their own User-Agent; sending one from a page breaks GitHub's CORS preflight.
       ...(typeof window === 'undefined' ? { 'User-Agent': 'speckit-ui' } : {}),
       ...(write ? { 'Content-Type': 'application/json' } : {}),
-      ...(src.token ? { Authorization: `Bearer ${src.token}` } : {})
+      ...(src.token ? { Authorization: `Bearer ${src.token}` } : {}),
+      ...extra?.headers
     }
   });
-  if (res.ok) return res;
+  if (res.ok || (extra?.allow304 && res.status === 304)) return res;
   const name = path.match(/^\/repos\/([^/]+\/[^/?]+)/)?.[1] ?? `${src.owner}/${src.repo}`;
   if (res.status === 404) throw new GitHubError(`GitHub returned 404 for ${name}${path.includes('/contents/') ? ' ' + decodeURIComponent(path.split('/contents/')[1].split('?')[0]) : ''}. The repository or branch may not exist, or your token cannot read it.`, 404);
   if (res.status === 401) throw new GitHubError('GitHub rejected the token (401).', 401);

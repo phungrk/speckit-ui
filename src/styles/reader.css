@@ -233,3 +233,13 @@
 .sk-cm-own { justify-content: flex-start; }
 .sk-cm-acts > span { margin-right: auto; align-self: center; font-size: var(--fs-12); }
 
+/* The line about new comments (specs/012 FR-014): in the rail's head and at the top of the Highlights tab. */
+.sk-cm-head { box-sizing: border-box; overflow: hidden; align-content: flex-start; }
+.sk-cm-fresh { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; flex-basis: 100%; font-size: var(--fs-11); }
+.sk-cm-upd { color: color-mix(in srgb, var(--color-text) 65%, transparent); margin-right: auto; }
+.sk-cm-fresh button { all: unset; cursor: pointer; box-sizing: border-box; font-size: var(--fs-11); font-weight: 600; padding: 2px 6px; border: 1px solid var(--color-text); }
+.sk-cm-fresh button.sk-cm-new { background: var(--color-text); color: var(--color-bg); }
+.sk-cm-fresh button:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+.sk-hlp > .sk-cm-fresh { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-divider); }
+.sk-rtab-new { margin-left: 4px; font-size: var(--fs-11); font-weight: 700; color: var(--color-accent-700); }
+
