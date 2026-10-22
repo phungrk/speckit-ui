@@ -31,7 +31,7 @@ Khi rê chuột lên phần nội dung của nhận xét hoặc của một tr�
 
 **Acceptance Scenarios**:
 
-1. **Given** thẻ đang mở có một nhận xét và các trả lời, **When** rê chuột lên nội dung một mục, **Then** nền của dòng nội dung mục đó đậm hơn nền thẻ, và các mục khác không đổi.
+1. **Given** thẻ đang mở có một nhận xét và các trả lời, **When** rê chuột lên một mục (tiêu đề hoặc nội dung), **Then** nền của dòng nội dung mục đó đậm hơn nền thẻ, và các mục khác không đổi.
 2. **Given** chuột đang ở một mục, **When** chuyển sang mục kế, **Then** nền đậm chuyển theo, tại mọi thời điểm không quá một mục đậm.
 3. **Given** chuột rời khỏi thẻ, **When** nhìn thẻ, **Then** không còn dòng nào đậm.
 4. **Given** thẻ đang đóng, **When** rê chuột qua, **Then** không có hiệu ứng nội dung đậm (thẻ đóng không có dòng nội dung riêng).
@@ -90,9 +90,9 @@ Khi hover vào một mục của chính mình, nút ba chấm dọc (menu Edit/D
 
 ### Functional Requirements
 
-- **FR-001**: Trên thẻ đang mở, khi trỏ chuột lên nội dung của nhận xét hoặc của một trả lời, dòng nội dung đó MUST có nền đậm hơn nền thẻ; tại mọi thời điểm MUST không quá một mục ở trạng thái này; rời đi thì MUST trở lại như cũ.
+- **FR-001**: Trên thẻ đang mở, khi trỏ chuột lên một mục (tiêu đề hoặc nội dung của nhận xét hoặc của một trả lời), dòng nội dung của mục đó MUST có nền đậm hơn nền thẻ; tại mọi thời điểm MUST không quá một mục ở trạng thái này; rời đi thì MUST trở lại như cũ.
 - **FR-002**: Trạng thái hover MUST cũng xảy ra khi tiêu điểm bàn phím ở trong mục (ba chấm hoặc nút emoji), để người dùng bàn phím có cùng điều khiển.
-- **FR-003**: Ở mép phải dòng đang hover MUST nổi một nút emoji: nền trắng, bóng, biểu tượng mặt cười kèm dấu cộng, nhãn truy cập "Add a reaction"; nút MUST chỉ hiện khi hover hoặc có tiêu điểm (hoặc bộ emoji đang mở) và MUST thay cho nút "+" luôn hiện của 011.
+- **FR-003**: Ở mép phải dòng đang hover MUST nổi một nút emoji: nền sáng theo giao diện trang (trắng ở giao diện White), bóng, biểu tượng mặt cười kèm dấu cộng, nhãn truy cập "Add a reaction"; nút MUST chỉ hiện khi hover hoặc có tiêu điểm (hoặc bộ emoji đang mở) và MUST thay cho nút "+" luôn hiện của 011.
 - **FR-004**: Nút emoji MUST NOT che chữ của nội dung và MUST NOT làm đổi chiều cao thẻ hay vị trí các thẻ khác.
 - **FR-005**: Bấm nút emoji MUST mở bộ 6 emoji của 011 cạnh nút; chọn một emoji MUST thả hoặc gỡ emoji đó theo quy tắc, lưu và hiển thị của 011; Escape hoặc bấm ra ngoài MUST đóng bộ và trả tiêu điểm về nút.
 - **FR-006**: Khi không lưu được (chỉ đọc, nhánh bảo vệ, ghim commit), nút emoji MUST tắt kèm lý do (cùng lý do của 012); các viên emoji đã thả MUST vẫn hiển thị dưới nội dung.
