@@ -204,7 +204,7 @@ export function App({ initialLayout }: { initialLayout?: LayoutPrefs } = {}) {
           </button>;
         })}</div>
         <Annotator items={fHls} target={{ slug: f.id, branch: null, phase: phase.k, doc: '', docSha: null }} store={hlStore}
-          author={{ name: role, demo: true }} focusId={focusId} clearFocus={() => setFocusId(null)} onOutdated={setOutdated}
+          author={{ name: role, demo: true }} person={personOf} focusId={focusId} clearFocus={() => setFocusId(null)} onOutdated={setOutdated}
           onItems={(items, change) => {
             setHls(x => ({ ...x, [f.id]: items }));
             const note = change.type === 'add' ? change.highlight.note : change.type === 'update' ? change.note : undefined;

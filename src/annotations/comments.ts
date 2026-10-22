@@ -55,11 +55,15 @@ export function toCards(items: Highlight[], anchored: Record<string, number>, pe
 /** A comment being written and not sent yet. It lives in the page only (spec FR-005, research R5). */
 export interface CommentDraft {
   key: string;
+  /** The id the highlight gets when it is sent, kept across retries so a retry never makes a second comment. */
+  id?: string;
   slug: string;
   branch: string | null;
   phase: string;
   doc: string;
   anchor: Anchor;
+  /** The version of the document the text was selected in (010 docSha). */
+  docSha?: string | null;
   text: string;
 }
 

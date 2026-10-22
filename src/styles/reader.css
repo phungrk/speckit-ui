@@ -177,6 +177,7 @@
 .sk-cm-rail { position: absolute; top: 0; width: var(--sk-cm-w); font-family: var(--font-body); }
 .sk-cm-head { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 10px; background: var(--color-bg); border-bottom: 1px solid var(--color-divider); font-size: var(--fs-12); }
 .sk-cm-head b { font-weight: 700; }
+.sk-cm-draftnote { flex-basis: 100%; font-size: var(--fs-11); color: color-mix(in srgb, var(--color-text) 70%, transparent); }
 .sk-cm-head .sk-cm-branch { margin-left: auto; color: color-mix(in srgb, var(--color-text) 60%, transparent); }
 .sk-cm-head button, .sk-cm-new { all: unset; cursor: pointer; box-sizing: border-box; font-size: var(--fs-12); font-weight: 600; padding: 3px 7px; border: 1px solid var(--color-text); }
 .sk-cm-new { background: var(--color-text); color: var(--color-bg); }

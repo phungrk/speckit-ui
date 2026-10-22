@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode, type RefObject } from 'react';
+import { Fragment, useEffect, useState, type ReactNode, type RefObject } from 'react';
 import type { HighlightAuthor } from '../project/types';
 import { Avatar } from './Avatar';
 import { authorLabel, relTime } from './brief';
@@ -94,6 +94,16 @@ export function Card({ card, top, selected, person, now, onSelect, onRetry, thre
   </article>;
 }
 
+/** Room the composer needs in the rail: the layout keeps cards clear of it (a closed card is CLOSED_CARD_HEIGHT). */
+export const COMPOSER_HEIGHT = 224;
+
+export interface RailDraft {
+  id: string;
+  /** Top of the text being commented on. */
+  anchorTop: number;
+  render: (top: number) => ReactNode;
+}
+
 export interface CommentRailProps {
   cards: Cards;
   selectedId: string | null;
@@ -107,20 +117,31 @@ export interface CommentRailProps {
   person?: (a: HighlightAuthor) => { name: string };
   now?: number;
   onRetry?: (id: string) => void;
+  /** Comments being written, each beside its text; the one being written keeps its place and the cards make way. */
+  drafts?: RailDraft[];
+  activeDraftId?: string | null;
+  /** Unsent drafts that belong to other documents, so the reader is told they are kept. */
+  draftsElsewhere?: number;
 }
 
-export function CommentRail({ cards, selectedId, onSelect, branch, left, viewport, person, now, onRetry }: CommentRailProps) {
+export function CommentRail({ cards, selectedId, onSelect, branch, left, viewport, person, now, onRetry, drafts = [], activeDraftId = null, draftsElsewhere = 0 }: CommentRailProps) {
   const total = cards.cards.length + cards.outdated.length;
-  if (total === 0) return null;
-  const tops = layoutCards(cards.cards.map(c => ({ id: c.id, anchorTop: c.anchorTop ?? 0, height: c.height ?? CLOSED_CARD_HEIGHT, createdAt: c.highlight.createdAt })), selectedId, GAP, RAIL_HEAD + GAP);
+  if (total === 0 && drafts.length === 0) return null;
+  const draftId = (d: RailDraft) => 'draft:' + d.id;
+  const tops = layoutCards([
+    ...cards.cards.map(c => ({ id: c.id, anchorTop: c.anchorTop ?? 0, height: c.height ?? CLOSED_CARD_HEIGHT, createdAt: c.highlight.createdAt })),
+    ...drafts.map(d => ({ id: draftId(d), anchorTop: d.anchorTop, height: COMPOSER_HEIGHT, createdAt: '9999' }))
+  ], activeDraftId ? 'draft:' + activeDraftId : selectedId, GAP, RAIL_HEAD + GAP);
   const near = (c: CommentCard) => {
     if (!viewport || c.id === selectedId) return true;
     const t = tops[c.id];
     return t + c.height >= viewport.top - viewport.height && t <= viewport.top + 2 * viewport.height;
   };
-  const lastBottom = cards.cards.reduce((m, c) => Math.max(m, tops[c.id] + c.height), RAIL_HEAD);
+  const lastBottom = Math.max(cards.cards.reduce((m, c) => Math.max(m, tops[c.id] + c.height), RAIL_HEAD), ...drafts.map(d => tops[draftId(d)] + COMPOSER_HEIGHT));
   return <aside className="sk-cm-rail" role="complementary" aria-label="Comments" style={left === undefined ? undefined : { left }}>
-    <header className="sk-cm-head"><b>Comments · {total}</b>{branch && <span className="sk-cm-branch">{branch}</span>}</header>
+    <header className="sk-cm-head"><b>Comments · {total}</b>{branch && <span className="sk-cm-branch">{branch}</span>}
+      {draftsElsewhere > 0 && <span className="sk-cm-draftnote" role="status">{draftsElsewhere} unsent in another document</span>}</header>
+    {drafts.map(d => <Fragment key={d.id}>{d.render(tops[draftId(d)])}</Fragment>)}
     {cards.cards.filter(near).map(c => <Card key={c.id} card={c} top={tops[c.id]} selected={c.id === selectedId} person={person} now={now} onSelect={id => onSelect(id, { jump: true })} onRetry={onRetry} />)}
     {cards.outdated.length > 0 && <section className="sk-cm-out" style={{ top: lastBottom + GAP * 2 }}>
       <h3>Outdated, text changed</h3>

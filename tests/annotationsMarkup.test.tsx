@@ -15,7 +15,7 @@ import type { Highlight } from '../src/project/types';
 const noop = () => {};
 const tb = (over: Partial<ToolbarState> = {}): ToolbarState => ({ mode: 'new', text: 'the cap applies daily', x: 500, top: 300, bottom: 320, ...over });
 const bar = (props: Partial<Parameters<typeof HlToolbar>[0]> = {}) => renderToStaticMarkup(<HlToolbar tb={tb()} canEdit readOnly={null} viewport={{ width: 1440, height: 900 }}
-  onColor={noop} onNote={noop} onCopy={noop} onAsk={noop} onDelete={noop} onClose={noop} {...props} />);
+  onColor={noop} onNote={noop} onComment={noop} onCopy={noop} onAsk={noop} onDelete={noop} onClose={noop} {...props} />);
 const H = (id: string, over: Partial<Highlight> = {}): Highlight => ({
   id, phase: 'specify', doc: 'spec.md', quote: 'quoted text', prefix: '', suffix: '', startHint: 0, docSha: null, color: 'y', note: '',
   author: { login: 'mai' }, createdAt: '2026-10-21T08:00:00.000Z', updatedAt: '2026-10-21T08:00:00.000Z', ...over
@@ -23,11 +23,12 @@ const H = (id: string, over: Partial<Highlight> = {}): Highlight => ({
 const PHASES = [{ key: 'constitution', name: 'Constitution' }, { key: 'specify', name: 'Specify' }, { key: 'plan', name: 'Plan' }];
 
 describe('selection toolbar (FR-003, FR-004)', () => {
-  it('offers four colours in order, Note, Copy and Ask, and no Remove when creating', () => {
+  it('offers Add comment, four colours in order, Copy and Ask, and no Note or Remove when creating', () => {
     const html = bar();
     expect(html).toMatch(/role="dialog" aria-label="Highlight"/);
     expect([...html.matchAll(/aria-label="Highlight (\w+)"/g)].map(m => m[1])).toEqual(['Key', 'Issue', 'Question', 'Change']);
-    for (const t of ['>Note<', '>Copy<', 'Ask']) expect(html).toContain(t);
+    for (const t of ['Add comment', '>Copy<', 'Ask']) expect(html).toContain(t);
+    expect(html).not.toContain('>Note<');
     expect(html).not.toContain('Remove highlight');
   });
 
@@ -84,6 +85,16 @@ describe('Highlights panel (FR-019 – FR-021)', () => {
     expect(html).not.toContain('<script>');
   });
 
+  it('has a Comment filter for plain comments after the four colours, with its count and name (spec 012)', () => {
+    const plain = [...items, H('h4', { color: 'n', note: 'Why daily?' }), H('h5', { color: 'n', note: '' })];
+    const html = renderToStaticMarkup(<HighlightsPanel items={plain} phases={PHASES} outdated={[]} onOpen={noop} now={Date.parse('2026-10-21T11:00:00Z')} />);
+    expect(html).toContain('All <b>5</b>');
+    expect(html).toMatch(/hl-n"><\/i>Comment <b>2<\/b>/);
+    expect(html.indexOf('Change <b>')).toBeLessThan(html.indexOf('Comment <b>'));
+    expect(html).toContain('mai · Comment · 3h ago');
+    expect(html).toContain('sk-hlp-bar hl-n-solid');
+  });
+
   it('says how to start when empty, and shows the consent switch only when given', () => {
     const empty = renderToStaticMarkup(<HighlightsPanel items={[]} phases={PHASES} outdated={[]} onOpen={noop} />);
     expect(empty).toContain('Select text in any artifact to highlight it or leave a note for the team.');
@@ -98,6 +109,17 @@ describe('"Before you approve" notes (FR-022)', () => {
     expect(briefNotes(items, 'specify')).toEqual(['mai: issue note', 'mai: key note']);
     const html = renderToStaticMarkup(<GateBrief items={briefNotes([H('e', { note: '<b>x</b>' })], 'specify')} onAsk={noop} />);
     expect(html).toContain('mai: &lt;b&gt;x&lt;/b&gt;');
+  });
+
+  it('puts plain comments after Issue notes and before the other colours (spec 012 FR-003)', () => {
+    const items = [
+      H('a', { color: 'y', note: 'key note', createdAt: '2026-10-21T08:00:00.000Z' }),
+      H('b', { color: 'n', note: 'plain note', createdAt: '2026-10-21T08:30:00.000Z' }),
+      H('c', { color: 'p', note: 'issue note', createdAt: '2026-10-21T09:00:00.000Z' })
+    ];
+    const html = renderToStaticMarkup(<GateBrief items={briefNotes(items, 'specify')} onAsk={noop} />);
+    expect(html.indexOf('issue note')).toBeLessThan(html.indexOf('plain note'));
+    expect(html.indexOf('plain note')).toBeLessThan(html.indexOf('key note'));
   });
 
   it('does not block or approve gates: highlight code never touches the gate API', () => {

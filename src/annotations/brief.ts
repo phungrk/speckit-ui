@@ -39,7 +39,7 @@ export function pendingTarget(draft: { slug: string; branch: string | null; phas
  * Why saving is off, or null (spec 012 FR-016). In this order: the app is pinned to a branch, the file cannot be
  * read, GitHub says the account has no write access (before any write is tried), a save was refused.
  */
-export function readOnlyReason(p: { pinned: boolean; ref: string; repo: string; canWrite: boolean | null | undefined }, fileError: string | null | undefined, refused: string | null): string | null {
+export function readOnlyReason(p: { pinned: boolean; ref: string; repo: string; canWrite?: boolean | null }, fileError: string | null | undefined, refused: string | null): string | null {
   if (p.pinned) return `Highlights are read-only while the app is pinned to ${p.ref}.`;
   if (fileError) return fileError;
   if (p.canWrite === false) return `Your GitHub account has read-only access to ${p.repo}. Ask for write access to comment.`;

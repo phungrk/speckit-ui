@@ -12,8 +12,8 @@ export interface Marker { id: string; color: Highlight['color']; top: number; le
 export interface Extra {
   /** The selected comment: drawn stronger, as `sk-sel-{colour}` (FR-008). */
   selectedId?: string | null;
-  /** Offsets in the column's text of the text a comment is being written on, drawn as `sk-draft` (FR-002). */
-  draft?: { start: number; end: number } | null;
+  /** Where each comment being written sits in the column's text: drawn as `sk-draft` (FR-002), and its top is returned. */
+  drafts?: { key: string; start: number; end: number }[];
 }
 
 type HighlightRegistry = { set(name: string, h: unknown): void; delete(name: string): void };
@@ -37,6 +37,7 @@ export function useHighlights(colRef: RefObject<HTMLElement | null>, docRef: Ref
   // Top of every found highlight in the scroll container, for the cards of the rail (specs/012 FR-007).
   // `null` until the first measurement, so nothing is called Outdated before it has been looked for.
   const [tops, setTops] = useState<Record<string, number> | null>(null);
+  const [draftTops, setDraftTops] = useState<Record<string, number>>({});
   const [, setTick] = useState(0);
   // Known only in the browser, so server rendering and the first paint match.
   const [unsupported, setUnsupported] = useState(false);
@@ -67,8 +68,7 @@ export function useHighlights(colRef: RefObject<HTMLElement | null>, docRef: Ref
       // One selected comment at a time, in its own colour (specs/012 FR-008); the other names are cleared.
       const sel = extra.selectedId ? out.find(a => a.h.id === extra.selectedId) : undefined;
       for (const c of ALL_COLORS) reg.set('sk-sel-' + c.key, makeHighlight(sel && sel.h.color === c.key ? [sel.range] : []));
-      const draftRange = extra.draft ? rangeFor(root, extra.draft.start, extra.draft.end) : null;
-      reg.set('sk-draft', makeHighlight(draftRange ? [draftRange] : []));
+      reg.set('sk-draft', makeHighlight((extra.drafts ?? []).flatMap(d => rangeFor(root, d.start, d.end) ?? [])));
       const fa = out.find(a => a.h.id === focusId);
       reg.set('sk-focus', fa && !reduceMotion() ? makeHighlight([fa.range]) : makeHighlight([]));
     }
@@ -86,6 +86,14 @@ export function useHighlights(colRef: RefObject<HTMLElement | null>, docRef: Ref
       nextTops[a.h.id] = Math.round(rr.top - scR.top + sc.scrollTop);
     }
     if (tops === null || JSON.stringify(nextTops) !== JSON.stringify(tops)) setTops(nextTops);
+    const nextDrafts: Record<string, number> = {};
+    for (const d of extra.drafts ?? []) {
+      const range = rangeFor(root, d.start, d.end);
+      if (!range) continue;
+      const rr = range.getClientRects()[0] ?? range.getBoundingClientRect();
+      nextDrafts[d.key] = Math.round(rr.top - scR.top + sc.scrollTop);
+    }
+    if (JSON.stringify(nextDrafts) !== JSON.stringify(draftTops)) setDraftTops(nextDrafts);
     if (JSON.stringify(lost) !== JSON.stringify(outdated)) setOutdated(lost);
     if (focusId) {
       const fa = out.find(a => a.h.id === focusId);
@@ -99,5 +107,5 @@ export function useHighlights(colRef: RefObject<HTMLElement | null>, docRef: Ref
     scrolled.current = null;
   });
 
-  return { anchors, markers, outdated, tops, unsupported };
+  return { anchors, markers, outdated, tops, draftTops, unsupported };
 }

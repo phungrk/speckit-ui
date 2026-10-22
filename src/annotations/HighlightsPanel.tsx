@@ -3,7 +3,7 @@ import { Label } from '../ui';
 import type { Highlight, HighlightAuthor, HighlightColor } from '../project/types';
 import { authorLabel, relTime } from './brief';
 import { initials } from './Avatar';
-import { HL_COLORS, meaningOf } from './colors';
+import { HL_COLORS, HL_NONE, meaningOf } from './colors';
 
 // The Highlights tab of the right sidebar (contracts/annotations-ui.md), from the design prototype.
 
@@ -35,7 +35,7 @@ export function HighlightsPanel({ items, phases, outdated, onOpen, person = defa
   return <div className="sk-hlp">
     <div className="sk-hlp-flt" role="group" aria-label="Filter highlights">
       <button type="button" className={flt === 'all' ? 'on' : ''} aria-pressed={flt === 'all'} onClick={() => setFlt('all')}>All <b>{items.length}</b></button>
-      {HL_COLORS.map(c => <button type="button" key={c.key} className={flt === c.key ? 'on' : ''} aria-pressed={flt === c.key} onClick={() => setFlt(c.key)}>
+      {[...HL_COLORS, HL_NONE].map(c => <button type="button" key={c.key} className={flt === c.key ? 'on' : ''} aria-pressed={flt === c.key} onClick={() => setFlt(c.key)}>
         <i className={'hl-' + c.key}></i>{c.meaning} <b>{items.filter(h => h.color === c.key).length}</b>
       </button>)}
     </div>
