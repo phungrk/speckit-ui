@@ -33,4 +33,5 @@
 - Không ghi trường rỗng (`replies: []`, `reactions: []` bị bỏ).
 - `version` theo bảng trong data-model.md.
 - Kích thước ≤ 512 KB, ngược lại 413 "too many highlights".
+- Đổi bộ emoji (thêm, bớt, đổi) hay thêm trường mới PHẢI đi kèm tăng `version`, vì build cũ bỏ qua điều nó không biết và sẽ làm mất nó ở lần ghi kế tiếp.
 - File 010/012 thuần (không có trường mới) đọc và ghi lại giống hệt (từng byte) khi không có thay đổi liên quan.

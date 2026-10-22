@@ -7,13 +7,13 @@ Cùng một đường lưu với 010/012: `POST /api/highlights` (server), Conte
 `{ repo, slug, branch, change }`, `change` thêm bốn dạng:
 
 ```text
-{ type: 'reply', id, reply: { id, text, createdAt } }
+{ type: 'reply', id, reply: { id, text } }   // author và createdAt do nơi lưu đặt
 { type: 'reply-edit', id, replyId, text }
 { type: 'reply-remove', id, replyId }
 { type: 'react', id, replyId?, emoji, on }
 ```
 
-`routes.ts` kiểm hình dạng (kiểu và độ dài chuỗi); lỗi → 400 "Expected { repo, slug, branch, change: { type: add | update | remove | reply | reply-edit | reply-remove | react, … } }.". Quyền và nội dung kiểm trong `applyChange`.
+`routes.ts` kiểm hình dạng (kiểu và độ dài chuỗi); lỗi → 400 "Expected { repo, slug, branch, change: { type: add | update | remove | reply | reply-edit | reply-remove | react, … } }.". Quyền và nội dung kiểm trong `applyChange`. `add` bỏ `replies` và `reactions` do client gửi kèm (không giả được tác giả hay emoji).
 
 ## Phản hồi và lỗi
 

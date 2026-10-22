@@ -52,7 +52,7 @@ Kiểm lại sau Phase 1: không đổi kết quả. Cần **quy trình đủ** 
 specs/011-replies-reactions/
 ├── spec.md
 ├── plan.md
-├── research.md                     # R1–R10
+├── research.md                     # R1–R13
 ├── data-model.md                   # Reply, Reaction, file version, thay đổi mới
 ├── quickstart.md                   # kịch bản kiểm
 ├── contracts/
@@ -87,6 +87,8 @@ README.md                 # mục Highlights
 tests/highlights.test.ts, tests/fakeGitHub.ts, tests/reactions.test.ts, tests/threadMarkup.test.tsx, tests/comments.test.ts
 ```
 
+**Thuật ngữ**: một "cuộc thảo luận" là một nhận xét cộng các trả lời của nó; trong code là `comment` và `reply`.
+
 **Structure Decision**: Giữ cấu trúc 010/012/013; hai file mới trong `src/annotations/`, không thêm thư mục.
 
 ## Complexity Tracking
@@ -94,4 +96,5 @@ tests/highlights.test.ts, tests/fakeGitHub.ts, tests/reactions.test.ts, tests/th
 | Việc | Vì sao cần | Cách đơn giản hơn đã bỏ |
 |---|---|---|
 | File ghi `version: 2` khi có trả lời/emoji (R1) | Bản app cũ chỉ ghi lại các trường nó biết; không có guard thì một lần lưu từ bản cũ xoá hết trả lời. `version` lạ làm bản cũ từ chối ghi (010 FR-014) | Giữ `version: 1` mãi: mất dữ liệu âm thầm khi hai bản app cùng làm việc (Pages cũ cache, máy local chưa cập nhật) |
+| Máy chủ tự đặt `author`, `createdAt` của trả lời và bỏ `replies` do `add` gửi kèm (R12) | Không giả được người viết hay thứ tự | Tin client như `add` của 010 chỉ đúng khi highlight không mang dữ liệu của người khác |
 | Bốn loại thay đổi thay vì sửa cả highlight | Gộp theo mã khi hai người lưu cùng lúc, và quyền khác nhau (ai cũng trả lời, chỉ tác giả sửa nhận xét gốc) | Ghi đè cả mảng `replies`: mất trả lời khi đồng thời |

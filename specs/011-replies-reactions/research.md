@@ -35,7 +35,19 @@
 
 ## R8. Trạng thái đang gửi
 - **Decision**: Mỗi trả lời mới có mã riêng và dùng làm khoá trong `reducePending` (Sending / Saved / Failed + Retry), hiện ngay dưới trả lời đó; chỉnh `changeId` để `reply`/`reply-edit`/`reply-remove` dùng `replyId`. Emoji lạc quan: đổi ngay, hoàn lại và báo lỗi nếu lưu thất bại.
+- **Cơ chế hiển thị**: danh sách đang hiển thị là `applyChange(items, thayĐổiĐangChờ, tôi)` tính ở trình duyệt trên các highlight đã xác nhận (hàm thuần, dùng chung với đường ghi). Khi `ok`, danh sách đã lưu thay thế; khi `fail`, thay đổi đang chờ của reaction bị bỏ (hoàn lại, kèm thông báo), còn trả lời giữ ở trạng thái Failed với Retry (cùng `replyId`).
 - **Rationale**: Một commit mỗi lần bấm sẽ chậm; trả lời cần Retry không tạo bản sao (khoá bằng mã cố định như 012 R5).
+
+## R11. Bản app cũ đọc file `version: 2`
+- **Decision**: Chấp nhận. Bản cũ báo "unknown format" và không hiện nhận xét của spec đó cho tới khi tải lại bản mới. Ghi rõ trong README và mô tả PR; không có cách nào ghi `version: 1` mà vẫn mang trả lời an toàn.
+- **Rationale**: Mất tạm thời khả năng xem ở bản cũ tốt hơn mất dữ liệu. Đổi bộ emoji sau này cũng phải tăng `version` (contract).
+
+## R12. Máy chủ đặt `author` và `createdAt`
+- **Decision**: `reply` lấy `author = by` và `createdAt = now` ở `applyChange`; `add` bỏ `replies`, `reactions` do client gửi. Ở Pages và local, `by` vẫn do client cung cấp như 010 (không mới).
+- **Rationale**: Không giả được người viết hay thứ tự bằng cách gửi tay.
+
+## R13. Demo không gieo trả lời
+- **Decision**: Dữ liệu mẫu của demo không có trả lời hay emoji; thử bằng cách tạo trong demo. Giữ màn hình demo giống thiết kế (constitution IV).
 
 ## R9. Chỗ hiển thị
 - **Decision**: Thẻ đóng chỉ thêm một dòng đếm nhỏ ("3 replies") khi có trả lời, trong chiều cao đóng sẵn có (`CLOSED_CARD_HEIGHT`); thẻ mở có danh sách, ô trả lời và dải emoji. Sheet ở bố cục hẹp dùng cùng `Thread`. `CommentRail` nhận `threadFor(card)`.

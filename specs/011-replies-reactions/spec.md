@@ -67,10 +67,11 @@ Dưới nhận xét và dưới mỗi trả lời, người dùng thả một em
 - **Lưu thất bại (mất mạng, bị từ chối):** nội dung trả lời đang soạn còn nguyên để thử lại ("Retry" như 012); không có trả lời nửa vời.
 - **File highlight hỏng hoặc quá lớn:** không ghi đè; khi vượt ngưỡng kích thước (010) thì từ chối lưu thêm và báo rõ. Trả lời và emoji cũng tính vào kích thước.
 - **Nội dung có HTML, markdown, mã:** hiển thị là chữ thuần, không thực thi (constitution II).
+- **Nhận xét bị xoá ở máy khác khi đang soạn trả lời:** khi người dùng áp "New comments" và nhận xét không còn, bản nháp trả lời được báo là mất chỗ gắn, không bị bỏ im lặng.
 - **Nhiều trả lời dài:** thẻ mở rộng theo nội dung, rail vẫn mượt khi có 200 thảo luận (SC-004).
 - **Chỉ dùng bàn phím và trình đọc màn hình:** mọi thao tác làm được, mọi nút có nhãn, thay đổi được thông báo.
 - **File cũ (chưa có trả lời, emoji):** đọc được bình thường; mỗi nhận xét coi như chưa có trả lời và emoji.
-- **Local:** tên người trả lời là tên đã nhập (010); quy tắc "chỉ người viết sửa trả lời của mình" áp theo tên đó. Demo: đủ chức năng trên dữ liệu mẫu, lưu trong trình duyệt.
+- **Local:** tên người trả lời là tên đã nhập (010); quy tắc "chỉ người viết sửa trả lời của mình" áp theo tên đó. Demo: đủ chức năng, lưu trong trình duyệt; dữ liệu mẫu không có sẵn trả lời hay emoji (tạo ngay trong demo), nên màn hình demo không đổi.
 
 ## Requirements *(mandatory)*
 

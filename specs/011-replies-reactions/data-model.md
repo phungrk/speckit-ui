@@ -15,7 +15,7 @@ Mở rộng `Highlight` của 010/012 (`src/project/types.ts`). Mọi trường 
 |---|---|---|
 | `id` | chuỗi | `r_` + 12 ký tự ngẫu nhiên, tạo ở trình duyệt khi mở ô trả lời, giữ qua Retry |
 | `author` | `HighlightAuthor` | do người đang lưu quyết định, không tin giá trị client gửi |
-| `createdAt` | ISO | |
+| `createdAt` | ISO | do nơi lưu đặt (giờ lưu), không lấy từ client, để thứ tự không bị giả hay lệch đồng hồ |
 | `editedAt` | ISO, tuỳ chọn | có khi đã sửa; UI ghi "edited" |
 | `text` | chuỗi | 1–2.000 ký tự sau khi cắt khoảng trắng đầu cuối; chữ thuần |
 | `reactions` | `Reaction[]`, tuỳ chọn | |
@@ -42,7 +42,8 @@ Mở rộng `Highlight` của 010/012 (`src/project/types.ts`). Mọi trường 
 
 | `type` | Trường | Ai | Hiệu ứng |
 |---|---|---|---|
-| `reply` | `id`, `reply` | người lưu được | thêm trả lời; cùng `reply.id` đã có thì bỏ qua |
+| `reply` | `id`, `reply: { id, text }` | người lưu được | thêm trả lời với `author` = người lưu và `createdAt` = giờ lưu; cùng `reply.id` đã có thì bỏ qua |
+| `add` (010, nhắc lại) | `highlight` | người lưu được | `replies` và `reactions` do client gửi kèm bị **bỏ**: một highlight mới luôn bắt đầu không có trả lời và emoji |
 | `reply-edit` | `id`, `replyId`, `text` | chính tác giả trả lời | đổi `text`, đặt `editedAt` |
 | `reply-remove` | `id`, `replyId` | chính tác giả trả lời | xoá trả lời |
 | `react` | `id`, `replyId?`, `emoji`, `on` | người lưu được | `on: true` thêm (emoji, `by`) nếu chưa có; `false` gỡ |
