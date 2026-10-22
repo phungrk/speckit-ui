@@ -1,7 +1,7 @@
 // Pure logic of the comment rail (specs/012-docs-style-comment-flow): colours, brief order, cards,
 // drafts, selection, save states and the freshness helpers. Synthetic data only.
 import { describe, expect, it } from 'vitest';
-import { HL_COLORS, HL_NONE, meaningOf } from '../src/annotations/colors';
+import { HL_KEYS } from '../src/annotations/colors';
 import { briefNotes, readOnlyReason } from '../src/annotations/brief';
 import { toCards, CLOSED_CARD_HEIGHT, diffIncoming, draftKey, draftsElsewhere, draftsHere, nextPollDelay, nextSelection, pickOverlap, reducePending, type CommentDraft, type SaveState } from '../src/annotations/comments';
 import type { Highlight } from '../src/project/types';
@@ -12,16 +12,13 @@ export const H = (id: string, over: Partial<Highlight> = {}): Highlight => ({
 });
 
 describe('colours (spec 012 FR-003)', () => {
-  it('keeps four toolbar colours and adds a plain comment named Comment', () => {
-    expect(HL_COLORS.map(c => c.key)).toEqual(['y', 'p', 'b', 'o']);
-    expect(HL_NONE).toEqual({ key: 'n', meaning: 'Comment' });
-    expect(meaningOf('n')).toBe('Comment');
-    expect(meaningOf('p')).toBe('Issue');
+  it('keeps every colour a file may hold, for painting; none of them is chosen in the interface (specs/014)', () => {
+    expect(HL_KEYS).toEqual(['y', 'p', 'b', 'o', 'n']);
   });
 });
 
-describe('briefNotes order (spec 012 FR-003, extends 010 FR-022)', () => {
-  it('puts Issue first, then plain comments, then the other colours, each by creation time', () => {
+describe('briefNotes order (specs/014: by time, no longer by colour)', () => {
+  it('lists the notes of a step in the order they were written, whatever their colour', () => {
     const items = [
       H('h1', { color: 'y', note: 'key one' }),
       H('h2', { color: 'n', note: 'plain one' }),
@@ -33,8 +30,13 @@ describe('briefNotes order (spec 012 FR-003, extends 010 FR-022)', () => {
       H('h8', { color: 'b', note: 'other step', phase: 'plan' })
     ];
     expect(briefNotes(items, 'specify')).toEqual([
-      'mai: issue one', 'mai: issue two', 'mai: plain one', 'mai: plain two', 'mai: key one', 'mai: change one'
+      'mai: key one', 'mai: plain one', 'mai: issue one', 'mai: change one', 'mai: plain two', 'mai: issue two'
     ]);
+  });
+
+  it('breaks a tie in time by id, so the order is the same every time', () => {
+    const at = '2026-10-21T08:00:00.000Z';
+    expect(briefNotes([H('b', { note: 'second', createdAt: at }), H('a', { note: 'first', createdAt: at })], 'specify')).toEqual(['mai: first', 'mai: second']);
   });
 });
 

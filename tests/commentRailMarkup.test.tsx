@@ -16,7 +16,7 @@ const H = (id: string, over: Partial<Highlight> = {}): Highlight => ({
   author: { login: 'mai' }, createdAt: '2026-10-21T08:30:00.000Z', updatedAt: '2026-10-21T08:30:00.000Z', ...over
 });
 const noop = () => {};
-const acts = (over: Partial<HighlightActions> = {}): HighlightActions => ({ onCopy: noop, onAsk: noop, onColor: noop, onEdit: noop, onDelete: noop, mine: h => 'login' in h.author && h.author.login === 'mai', readOnly: null, ...over });
+const acts = (over: Partial<HighlightActions> = {}): HighlightActions => ({ onEdit: noop, onDelete: noop, mine: h => 'login' in h.author && h.author.login === 'mai', readOnly: null, ...over });
 const rail = (items: Highlight[], anchored: Record<string, number>, props: Partial<Parameters<typeof CommentRail>[0]> = {}) =>
   renderToStaticMarkup(<CommentRail cards={toCards(items, anchored, {}, { login: 'mai' })} selectedId={null} onSelect={noop} branch="feat/003-x" now={NOW} {...props} />);
 
@@ -134,44 +134,46 @@ describe('selected card, announcement and sheet (FR-008, FR-009, FR-011, FR-012)
     expect(sel(null)).not.toContain('aria-current');
   });
 
-  it('shows which colour the selected comment has', () => {
-    expect(sel('h1')).toContain('class="sk-cm-meta"');
-    expect(sel('h1')).toContain('Comment</div>');
-    expect(sel(null)).not.toContain('sk-cm-meta');
+  it('shows no colour label and no colour to choose (specs/014 FR-001), and keeps the colour on the card edge for old comments', () => {
+    const html = sel('h1', { actions: acts() });
+    for (const gone of ['sk-cm-meta', 'sk-cm-colors', 'sk-cm-sw', 'aria-label="Colour"', 'Mark as']) expect(html).not.toContain(gone);
+    expect(html).toContain('data-color="n"');
+    const old = rail([H('h1', { color: 'p' })], { h1: 100 }, { selectedId: 'h1', actions: acts() });
+    expect(old).toContain('data-color="p"');
   });
 
-  it('gives the author of the selected comment colours, Edit and Delete, and nobody else', () => {
+  it('gives the author of the selected comment a three-dot menu for Edit and Delete, and nobody else (specs/014)', () => {
     const mine = sel('h1', { actions: acts() });
-    expect(mine).toContain('aria-label="Colour"');
-    expect([...mine.matchAll(/aria-label="Mark as (\w+)"/g)].map(m => m[1])).toEqual(['Comment', 'Key', 'Issue', 'Question', 'Change']);
-    expect(mine).toContain('aria-pressed="true"');
-    expect(mine).toMatch(/>Edit</);
-    expect(mine).toMatch(/>Delete</);
+    expect(mine).toMatch(/<button[^>]*class="sk-cm-more"[^>]*aria-label="More actions"/);
+    // Edit and Delete are in the menu, which is closed here, and no longer a row of buttons on the card.
+    expect(mine).not.toMatch(/>Edit</);
+    expect(mine).not.toMatch(/>Delete</);
+    expect(mine).not.toContain('sk-cm-own');
     const theirs = sel('h2', { actions: acts() });
-    expect(theirs).not.toContain('aria-label="Colour"');
-    expect(theirs).not.toMatch(/>Edit</);
-    expect(theirs).not.toMatch(/>Delete</);
-    expect(sel('h1')).not.toMatch(/>Edit</);
+    expect(theirs).not.toContain('sk-cm-more');
+    expect(sel('h1')).not.toContain('sk-cm-more');
   });
 
-  it('gives everyone Copy and Ask on the selected card, including a reader of somebody else\'s comment (specs/013 FR-008)', () => {
+  it('puts the three-dot button on the open card only, in its header', () => {
+    const html = sel('h1', { actions: acts() });
+    expect([...html.matchAll(/class="sk-cm-more"/g)]).toHaveLength(1);
+    expect(html.indexOf('sk-cm-more')).toBeLessThan(html.indexOf('class="sk-cm-quote"'));
+    expect(sel(null, { actions: acts() })).not.toContain('sk-cm-more');
+  });
+
+  it('has no Copy and no Ask on the card, for anyone (specs/014 FR-009)', () => {
     for (const id of ['h1', 'h2']) {
       const html = sel(id, { actions: acts() });
-      expect(html).toMatch(/class="sk-cm-acts sk-cm-share"/);
-      expect(html).toMatch(/>Copy</);
-      expect(html).toMatch(/>Ask</);
+      expect(html).not.toMatch(/>Copy</);
+      expect(html).not.toMatch(/>Ask</);
+      expect(html).not.toContain('sk-cm-share');
     }
-    expect(sel('h1')).not.toMatch(/>Copy</);
     expect(sel('h2', { actions: acts() })).not.toMatch(/>Delete</);
   });
 
-  it('turns the writing actions off with the reason when saving is off, and leaves Copy and Ask on', () => {
+  it('keeps the menu on your own card when saving is off; its items are off, with the reason, once it is opened', () => {
     const html = sel('h1', { actions: acts({ readOnly: 'Your GitHub account has read-only access.' }) });
-    expect([...html.matchAll(/aria-disabled="true"/g)].length).toBeGreaterThanOrEqual(7);
-    expect(html).toContain('title="Your GitHub account has read-only access."');
-    expect(html).toMatch(/<button[^>]*>Copy<\/button>/);
-    expect(html).not.toMatch(/<button[^>]*aria-disabled[^>]*>Copy</);
-    expect(html).not.toMatch(/<button[^>]*aria-disabled[^>]*>Ask</);
+    expect(html).toContain('class="sk-cm-more"');
   });
 
   it('edits the note in the card with a box that says Save', () => {

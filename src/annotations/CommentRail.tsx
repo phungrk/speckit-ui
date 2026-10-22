@@ -4,10 +4,10 @@ import type { HighlightAuthor } from '../project/types';
 import type { HighlightActions } from './highlightActions';
 import { Avatar } from './Avatar';
 import { authorLabel, relTime } from './brief';
-import { HL_COLORS, HL_NONE, meaningOf } from './colors';
 import { CLOSED_CARD_HEIGHT, nextSelection, type CommentCard, type Cards, type SaveState } from './comments';
 import { groupReactions, replyCount } from './reactions';
 import { Composer } from './Composer';
+import { MoreMenu } from './MoreMenu';
 import { FreshBar, type FreshProps } from './FreshBar';
 import { layoutCards, railPlacement } from './layout';
 
@@ -135,31 +135,20 @@ export function Card({ card, top, selected, person, now, onSelect, onRetry, acti
     tabIndex={selected ? 0 : -1} style={style} onClick={() => onSelect(card.id)}
     onKeyDown={e => { if (e.key === 'Enter' && e.target === e.currentTarget) onSelect(card.id); }}>
     <div className="sk-cm-who"><Avatar name={name} /><b>{name}</b><span className="sk-cm-time">{relTime(h.createdAt, now)}</span>
+      {selected && card.mine && actions && <MoreMenu items={[
+        { key: 'edit', label: 'Edit', disabledReason: actions.readOnly, onSelect: () => actions.onEdit(card.id) },
+        { key: 'delete', label: 'Delete', disabledReason: actions.readOnly, onSelect: () => setConfirming(true) }]} />}
       {!selected && (replyCount(h) > 0 || !!h.reactions?.length) && <span className="sk-cm-count">{[
         replyCount(h) > 0 ? `${replyCount(h)} ${replyCount(h) === 1 ? 'reply' : 'replies'}` : '',
         ...groupReactions(h.reactions, null).map(g => `${g.emoji}${g.count}`)].filter(Boolean).join(' · ')}</span>}</div>
     <q className="sk-cm-quote">{h.quote}</q>
     <p className="sk-cm-note">{h.note}</p>
-    {selected && <div className="sk-cm-meta"><i className={'hl-' + h.color + '-solid'}></i>{meaningOf(h.color)}</div>}
     {selected && actions && <>
       {card.mine && <>
-        <div className="sk-cm-colors" role="group" aria-label="Colour">
-          {[HL_NONE, ...HL_COLORS].map(c => <button type="button" key={c.key} className={'sk-cm-sw hl-' + c.key} title={actions.readOnly ?? c.meaning} aria-label={'Mark as ' + c.meaning}
-            aria-pressed={h.color === c.key} aria-disabled={actions.readOnly ? true : undefined} onClick={e => { e.stopPropagation(); if (!actions.readOnly && h.color !== c.key) actions.onColor(card.id, c.key); }}></button>)}
-        </div>
-        {confirming
-          ? <div className="sk-cm-acts"><span>{replyCount(h) > 0 ? `Delete this comment and its ${replyCount(h)} ${replyCount(h) === 1 ? 'reply' : 'replies'}?` : 'Delete this comment?'}</span>
-            <button type="button" className="btn btn-secondary" onClick={e => { e.stopPropagation(); setConfirming(false); }}>Keep</button>
-            <button type="button" className="btn btn-primary" onClick={e => { e.stopPropagation(); actions.onDelete(card.id); }}>Delete</button></div>
-          : <div className="sk-cm-acts sk-cm-own">
-            <button type="button" className="btn btn-secondary" title={actions.readOnly ?? undefined} aria-disabled={actions.readOnly ? true : undefined} onClick={e => { e.stopPropagation(); if (!actions.readOnly) actions.onEdit(card.id); }}>Edit</button>
-            <button type="button" className="btn btn-secondary" title={actions.readOnly ?? undefined} aria-disabled={actions.readOnly ? true : undefined} onClick={e => { e.stopPropagation(); if (!actions.readOnly) setConfirming(true); }}>Delete</button></div>}
+        {confirming && <div className="sk-cm-acts"><span>{replyCount(h) > 0 ? `Delete this comment and its ${replyCount(h)} ${replyCount(h) === 1 ? 'reply' : 'replies'}?` : 'Delete this comment?'}</span>
+          <button type="button" className="btn btn-secondary" onClick={e => { e.stopPropagation(); setConfirming(false); }}>Keep</button>
+          <button type="button" className="btn btn-primary" onClick={e => { e.stopPropagation(); actions.onDelete(card.id); }}>Delete</button></div>}
       </>}
-      {/* Reading only, so for everyone, including a reader without write access (specs/013 FR-008). */}
-      <div className="sk-cm-acts sk-cm-share">
-        <button type="button" className="btn btn-secondary" onClick={e => { e.stopPropagation(); actions.onCopy(card.id); }}>Copy</button>
-        <button type="button" className="btn btn-secondary" onClick={e => { e.stopPropagation(); actions.onAsk(card.id); }}>Ask</button>
-      </div>
     </>}
     <SaveLine card={card} onRetry={onRetry} />
     {thread && <div className="sk-cm-thread">{thread}</div>}

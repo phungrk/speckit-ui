@@ -4,6 +4,7 @@ import { MAX_REPLY } from '../../server/highlightsFile';
 import { Avatar } from './Avatar';
 import { authorLabel, relTime, sameAuthor } from './brief';
 import { SaveNote } from './CommentRail';
+import { MoreMenu } from './MoreMenu';
 import type { SaveState } from './comments';
 import { EMOJI_SET, groupReactions, reactionLabel } from './reactions';
 
@@ -78,10 +79,15 @@ export function ReactionBar({ list, me, person, readOnly, what, onToggle }: Reac
 export function Thread({ h, me, person, now, save = {}, readOnly, draft, invalid, onDraft, onSend, onRetry, editing, onEdit, onDelete, onReact, announce }: ThreadProps) {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [discarding, setDiscarding] = useState(false);
+  const [focused, setFocused] = useState(false);
   const replies = h.replies ?? [];
   const nameOf = (a: HighlightAuthor) => person ? person(a).name : authorLabel(a);
   const tooLong = draft.trim().length > MAX_REPLY;
+  /** Cancel, and Escape: words in the box are asked about first; an empty box is just left. */
+  const cancel = (box: HTMLElement | null) => { if (draft.trim()) setDiscarding(true); else { onDraft(''); setFocused(false); box?.blur(); } };
   const off = readOnly ? true : undefined;
+  // Cancel and Reply are there while the box is being used: it has the focus or has words in it (specs/014 FR-010).
+  const active = focused || draft.length > 0 || discarding;
   // Nothing in the thread is the card's own click: it must not select, or move the selection by arrow keys.
   return <div className="sk-cm-thr" onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
     <ReactionBar list={h.reactions} me={me} person={person} readOnly={readOnly} what="this comment" onToggle={(emoji, on) => onReact(undefined, emoji, on)} />
@@ -91,7 +97,10 @@ export function Thread({ h, me, person, now, save = {}, readOnly, draft, invalid
         const name = nameOf(r.author);
         const state = save[r.id];
         return <li key={r.id} className="sk-cm-reply">
-          <div className="sk-cm-who"><Avatar name={name} /><b>{name}</b><span className="sk-cm-time">{relTime(r.createdAt, now)}</span>{r.editedAt && <span className="sk-cm-edited">edited</span>}</div>
+          <div className="sk-cm-who"><Avatar name={name} /><b>{name}</b><span className="sk-cm-time">{relTime(r.createdAt, now)}</span>{r.editedAt && <span className="sk-cm-edited">edited</span>}
+            {mine && editing?.replyId !== r.id && <MoreMenu label={`More actions for the reply by ${name}`} items={[
+              { key: 'edit', label: 'Edit', disabledReason: readOnly, onSelect: () => onEdit(r.id) },
+              { key: 'delete', label: 'Delete', disabledReason: readOnly, onSelect: () => setDeleting(r.id) }]} />}</div>
           {editing?.replyId === r.id
             ? <div className="sk-cm-reply-edit">
               <textarea aria-label="Edit reply" value={editing.text} rows={3} onChange={e => editing.onText(e.target.value)}
@@ -104,33 +113,31 @@ export function Thread({ h, me, person, now, save = {}, readOnly, draft, invalid
             </div>
             : <p className="sk-cm-text">{r.text}</p>}
           <ReactionBar list={r.reactions} me={me} person={person} readOnly={readOnly} what={`the reply by ${name}`} onToggle={(emoji, on) => onReact(r.id, emoji, on)} />
-          {mine && editing?.replyId !== r.id && (deleting === r.id
-            ? <div className="sk-cm-acts"><span>Delete this reply?</span>
-              <button type="button" className="btn btn-secondary" onClick={() => setDeleting(null)}>Keep</button>
-              <button type="button" className="btn btn-primary" onClick={() => { setDeleting(null); onDelete(r.id); }}>Delete</button></div>
-            : <div className="sk-cm-acts sk-cm-own">
-              <button type="button" className="btn btn-secondary" aria-disabled={off} title={readOnly ?? undefined} onClick={() => { if (!readOnly) onEdit(r.id); }}>Edit</button>
-              <button type="button" className="btn btn-secondary" aria-disabled={off} title={readOnly ?? undefined} onClick={() => { if (!readOnly) setDeleting(r.id); }}>Delete</button></div>)}
+          {mine && deleting === r.id && <div className="sk-cm-acts"><span>Delete this reply?</span>
+            <button type="button" className="btn btn-secondary" onClick={() => setDeleting(null)}>Keep</button>
+            <button type="button" className="btn btn-primary" onClick={() => { setDeleting(null); onDelete(r.id); }}>Delete</button></div>}
           {state && <SaveNote save={state} onRetry={onRetry ? () => onRetry(r.id) : undefined} />}
         </li>;
       })}
     </ol>}
-    <div className="sk-cm-reply-box">
-      <textarea aria-label="Reply" placeholder="Reply…" value={draft} rows={2} aria-invalid={invalid || tooLong || undefined} disabled={!!readOnly} title={readOnly ?? undefined}
+    <div className={'sk-cm-reply-box' + (active ? ' active' : '')} onFocus={() => setFocused(true)}
+      onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false); }}>
+      <textarea aria-label="Reply" placeholder="Reply…" value={draft} rows={active ? 3 : 1} aria-invalid={invalid || tooLong || undefined} disabled={!!readOnly} title={readOnly ?? undefined}
         onChange={e => { setDiscarding(false); onDraft(e.target.value); }}
         onKeyDown={e => {
           if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); if (!readOnly && !tooLong) onSend(); }
-          if (e.key === 'Escape') { if (draft.trim()) setDiscarding(true); else (e.target as HTMLElement).blur(); }
+          if (e.key === 'Escape') cancel(e.currentTarget);
         }} />
       {invalid && !draft.trim() && <div className="sk-cm-err" role="alert">Write a reply first</div>}
       {tooLong && <div className="sk-cm-err" role="alert">Replies are limited to {MAX_REPLY} characters ({draft.trim().length})</div>}
-      {discarding
+      {active && (discarding
         ? <div className="sk-cm-acts"><span>Discard this reply?</span>
           <button type="button" className="btn btn-secondary" onClick={() => setDiscarding(false)}>Keep editing</button>
-          <button type="button" className="btn btn-primary" onClick={() => { setDiscarding(false); onDraft(''); }}>Discard</button></div>
+          <button type="button" className="btn btn-primary" onClick={() => { setDiscarding(false); setFocused(false); onDraft(''); }}>Discard</button></div>
         : <div className="sk-cm-acts">
+          <button type="button" className="btn btn-secondary" onClick={e => cancel(e.currentTarget.closest('.sk-cm-reply-box')?.querySelector('textarea') ?? null)}>Cancel</button>
           <button type="button" className="btn btn-primary" aria-disabled={off || (tooLong ? true : undefined)} title={readOnly ?? undefined}
-            onClick={() => { if (!readOnly && !tooLong) onSend(); }}>Reply</button></div>}
+            onClick={() => { if (!readOnly && !tooLong) onSend(); }}>Reply</button></div>)}
       {readOnly && <p className="sk-cm-why" role="status">{readOnly}</p>}
     </div>
     <div className="sk-cm-live" role="status" aria-live="polite">{announce ?? ''}</div>

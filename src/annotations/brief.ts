@@ -5,14 +5,11 @@ export const authorLabel = (a: HighlightAuthor) => 'login' in a ? a.login : a.na
 export const sameAuthor = (a: HighlightAuthor | null, b: HighlightAuthor) =>
   !!a && authorLabel(a) === authorLabel(b) && ('login' in a) === ('login' in b);
 
-/** Issue notes first, then plain comments, then the other colours (specs/012). */
-const briefRank = (c: Highlight['color']) => c === 'p' ? 0 : c === 'n' ? 1 : 2;
-
-/** "{Author}: {note}" for the notes of one step: Issue, plain comments, then the rest (010 FR-022, 012 FR-003). */
+/** "{Author}: {note}" for the notes of one step, in the order they were written (010 FR-022; specs/014: not by colour any more). */
 export function briefNotes(items: Highlight[], phase: string, nameOf: (a: HighlightAuthor) => string = authorLabel): string[] {
   return items
     .filter(h => h.phase === phase && h.note.trim())
-    .sort((a, b) => briefRank(a.color) - briefRank(b.color) || a.createdAt.localeCompare(b.createdAt))
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id))
     .map(h => `${nameOf(h.author)}: ${h.note.trim()}`);
 }
 

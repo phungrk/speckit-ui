@@ -43,7 +43,6 @@ export interface AnnotatorProps {
   onOutdated?: (ids: string[]) => void;
   /** A save was refused for good (no permission, protected or missing branch): stay read-only. */
   onRefused?: (reason: string) => void;
-  onAsk: (text: string) => void;
   /** Hands the shell what can be done with a selected highlight, for the Highlights tab; null when this Annotator goes away (specs/013 FR-008). */
   onActions?: (a: HighlightActions | null) => void;
   /** The selected comment (specs/012 FR-008); the shell owns it so the sidebar's Highlights tab shares it. */
@@ -61,7 +60,7 @@ export interface AnnotatorProps {
 
 const newId = () => 'h_' + Array.from({ length: 12 }, () => '0123456789abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 36)]).join('');
 
-export function Annotator({ items, target, store, author, askAuthor, consent, focusId, clearFocus, onItems, onOutdated, onRefused, onAsk, onActions, selectedId = null, onSelect, person, fresh, docProps, children }: AnnotatorProps) {
+export function Annotator({ items, target, store, author, askAuthor, consent, focusId, clearFocus, onItems, onOutdated, onRefused, onActions, selectedId = null, onSelect, person, fresh, docProps, children }: AnnotatorProps) {
   const colRef = useRef<HTMLDivElement>(null);
   const docRef = useRef<HTMLDivElement>(null);
   // A comment that was just sent shows at once, as Sending, and stays (as Failed, with Retry) if the save is refused:
@@ -132,7 +131,7 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
   // Escape lets go of the selected comment when nothing else is open.
   useEffect(() => {
     if (!selectedId) return;
-    const k = (e: KeyboardEvent) => { if (e.key === 'Escape' && !tb && !asking && !editNote && !(document.activeElement as HTMLElement | null)?.closest?.('.sk-cm-thread')) onSelect?.(null); };
+    const k = (e: KeyboardEvent) => { if (e.key === 'Escape' && !tb && !asking && !editNote && !(document.activeElement as HTMLElement | null)?.closest?.('.sk-cm-thread, .sk-cm-more-wrap, .sk-cm-menu')) onSelect?.(null); };
     window.addEventListener('keydown', k);
     return () => window.removeEventListener('keydown', k);
   }, [selectedId, tb, asking, editNote]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -290,8 +289,8 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
     const by = author ?? askAuthor?.() ?? null;
     if (!by) { setError('Enter your name to save highlights.'); return; }
     const now = new Date().toISOString();
-    // A plain comment has no colour (n). The id was made with the draft, so a retry is the same comment.
-    const highlight: Highlight = { id: d.id ?? newId(), phase: d.phase, doc: d.doc, ...d.anchor, docSha: d.docSha ?? null, color: 'n', note, author: by, createdAt: now, updatedAt: now };
+    // Every new comment is Change (o): there is no colour to choose (specs/014 FR-001). The id was made with the draft, so a retry is the same comment.
+    const highlight: Highlight = { id: d.id ?? newId(), phase: d.phase, doc: d.doc, ...d.anchor, docSha: d.docSha ?? null, color: 'o', note, author: by, createdAt: now, updatedAt: now };
     // The comment shows at once as Sending, in its place beside the text; the box it was written in closes.
     setOptimistic(o => ({ ...o, [highlight.id]: highlight }));
     removeDraft(d.key);
@@ -334,9 +333,6 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
   // What the author of the selected comment can do on its card, and the note being edited there (specs/012 US2).
   const byId = (id: string) => items.find(x => x.id === id);
   const actions: CardActions = {
-    onCopy: id => { const h = byId(id); if (h) { void navigator.clipboard?.writeText(h.quote); setNotice('Copied'); } },
-    onAsk: id => { const h = byId(id); if (h) onAsk(h.quote); },
-    onColor: (id, color) => save({ type: 'update', id, color }),
     onEdit: id => { const h = byId(id); if (h) { setEditNote({ id, text: h.note }); setEditErr(null); setError(null); } },
     onDelete: id => save({ type: 'remove', id }, () => onSelect?.(null)),
     mine: h => sameAuthor(author, h.author),
@@ -349,8 +345,7 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
   useEffect(() => {
     if (!onActions) return;
     onActions({
-      onCopy: id => actionsRef.current.onCopy(id), onAsk: id => actionsRef.current.onAsk(id),
-      onColor: (id, c) => actionsRef.current.onColor(id, c), onEdit: id => actionsRef.current.onEdit(id), onDelete: id => actionsRef.current.onDelete(id),
+      onEdit: id => actionsRef.current.onEdit(id), onDelete: id => actionsRef.current.onDelete(id),
       mine: h => actionsRef.current.mine(h),
       get readOnly() { return actionsRef.current.readOnly; }
     });

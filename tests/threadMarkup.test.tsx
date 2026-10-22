@@ -35,13 +35,20 @@ describe('replies (FR-001, FR-002, FR-003, FR-005)', () => {
     expect(html).toContain('placeholder="Reply…"');
   });
 
-  it('says edited, and shows Edit and Delete on the writer\'s own reply only', () => {
+  it('says edited, and gives only the writer\'s own reply a three-dot menu for Edit and Delete (specs/014)', () => {
     const html = thread({ h: H({ replies: [R('r_1', { editedAt: '2026-10-22T09:10:00.000Z' }), R('r_2', { author: mai })] }) });
     expect(html).toContain('class="sk-cm-edited">edited<');
-    expect([...html.matchAll(/>Edit</g)]).toHaveLength(1);
-    expect([...html.matchAll(/>Delete</g)]).toHaveLength(1);
-    // Not even the author of the comment edits somebody else's reply.
-    expect(thread({ h: H({ replies: [R('r_1')] }), me: mai })).not.toMatch(/>Edit</);
+    expect([...html.matchAll(/class="sk-cm-more"/g)]).toHaveLength(1);
+    expect(html).toContain('aria-label="More actions for the reply by mai"');
+    expect(html).not.toMatch(/>Edit</);
+    expect(html).not.toMatch(/>Delete</);
+    // Not even the author of the comment gets a menu on somebody else's reply.
+    expect(thread({ h: H({ replies: [R('r_1')] }), me: mai })).not.toContain('sk-cm-more');
+  });
+
+  it('has no menu on a reply that is being edited', () => {
+    const html = thread({ h: H({ replies: [R('r_1', { author: mai })] }), editing: { replyId: 'r_1', text: 'x', onText: noop, onSubmit: noop, onCancel: noop } });
+    expect(html).not.toContain('sk-cm-more');
   });
 
   it('draws the text as plain text, whatever it holds (constitution II)', () => {
@@ -90,9 +97,33 @@ describe('the box to answer (FR-001, FR-005, FR-010)', () => {
     expect(html).toMatch(/<textarea[^>]*disabled/);
     expect(html).toContain(`title="${why}"`);
     expect(html).toContain(`<p class="sk-cm-why" role="status">${why}</p>`);
-    expect(html).toMatch(/aria-disabled="true"[^>]*>Reply</);
     expect(html).toContain('Because the cap is per day.');
-    expect(html).toMatch(/aria-disabled="true"[^>]*>Edit</);
+    // The menu of the reply you wrote is still there; its items are off, with the reason, once it is opened.
+    expect(html).toContain('class="sk-cm-more"');
+    // A box nobody can use has no Cancel and Reply buttons.
+    expect(html).not.toMatch(/>Reply<\/button>/);
+  });
+
+  it('shows Cancel and Reply only while the box is used: not at rest, there when it holds words (specs/014 FR-010)', () => {
+    const rest = thread({ draft: '' });
+    expect(rest).toContain('class="sk-cm-reply-box"');
+    expect(rest).not.toMatch(/>Cancel</);
+    expect(rest).not.toMatch(/>Reply<\/button>/);
+    expect(rest).toMatch(/<textarea[^>]*rows="1"/);
+    const used = thread({ draft: 'half a thought' });
+    expect(used).toContain('class="sk-cm-reply-box active"');
+    expect(used).toMatch(/class="btn btn-secondary"[^>]*>Cancel</);
+    expect(used).toMatch(/class="btn btn-primary"[^>]*>Reply</);
+    expect(used.indexOf('>Cancel<')).toBeLessThan(used.indexOf('>Reply<'));
+    expect(used).toMatch(/<textarea[^>]*rows="3"/);
+  });
+
+  it('puts the parts of an open card in the order of the reference: header, text, emoji, replies, then the box to answer', () => {
+    const html = thread({ h: H({ reactions: [{ emoji: '👍', author: lan }], replies: [R('r_1', { author: mai })] }), draft: 'x' });
+    const at = (s: string) => html.indexOf(s);
+    expect(at('Reactions on this comment')).toBeLessThan(at('class="sk-cm-replies"'));
+    expect(at('class="sk-cm-replies"')).toBeLessThan(at('class="sk-cm-reply-box'));
+    expect(at('class="sk-cm-more"')).toBeLessThan(at('Because the cap is per day.'));
   });
 
   it('tells a screen reader what happened, politely', () => {
@@ -157,11 +188,11 @@ describe('the card, closed and open (FR-004, FR-011)', () => {
     expect(html).not.toMatch(/sk-cm-count[^<]*<\/span>[^]*sk-cm-count[^]*class="probe"[^]*sk-cm-count"/);
   });
 
-  it('names the replies in the question when a comment with replies is about to be deleted', () => {
+  it('draws no Edit/Delete row on the card: they are in the menu, and the question to delete shows after Delete was chosen', () => {
     const acts = { onCopy: noop, onAsk: noop, onColor: noop, onEdit: noop, onDelete: noop, mine: () => true, readOnly: null };
     const html = rail([H({ replies: [R('r_1'), R('r_2')] })], 'h1', { actions: acts });
-    // The question shows once Delete was pressed; its text is chosen from the number of replies.
-    expect(html).toContain('>Delete<');
-    expect(html).not.toContain('Delete this comment and its');
+    expect(html).toContain('sk-cm-more');
+    expect(html).not.toContain('>Delete<');
+    expect(html).not.toContain('Delete this comment');
   });
 });
