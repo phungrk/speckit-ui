@@ -4,13 +4,13 @@
 
 **Created**: 2026-10-22
 
-**Status**: Draft
+**Status**: Clarified
 
 **Input**: User description: "về feature lưu comment: 1. đối với server (or local): có thể lưu nhanh vì không thông qua commit. 2. đối với github page, vì thông qua commit, nên mỗi lần lưu lại sẽ tốn thời gian không cần thiết, cho nên, hãy lưu trên browser cho đến khi user muốn save lại."
 
 ## Bối cảnh
 
-Từ 010 đến 015, mỗi thao tác trên nhận xét (viết, trả lời, thả/gỡ emoji, sửa, xoá) được ghi ngay. Ở chế độ **local** (thư mục đã chọn) thao tác ghi thẳng vào `specs/NNN/highlights.json`, không có commit, nên nhanh. Ở chế độ **GitHub Pages** (và chế độ máy chủ đăng nhập GitHub) mỗi thao tác là **một commit** lên nhánh đang xem: mỗi lần bấm phải chờ GitHub trả lời, và một buổi đọc spec có thể sinh hàng chục commit nhỏ. Đây là thời gian chờ không cần thiết và làm lịch sử nhiễu.
+Từ 010 đến 015, mỗi thao tác trên nhận xét (viết, trả lời, thả/gỡ emoji, sửa, xoá) được ghi ngay. Ứng dụng chạy ở ba môi trường. Ở **local** (thư mục đã chọn) thao tác ghi thẳng vào `specs/NNN/highlights.json`, không có commit, nên nhanh. Ở **GitHub Pages** và ở **server (VPS)** mỗi thao tác là **một commit** lên nhánh đang xem (server không có bản checkout repo, nó ghi qua GitHub bằng token hoặc phiên đăng nhập của người dùng): mỗi lần bấm phải chờ GitHub trả lời, và một buổi đọc spec có thể sinh hàng chục commit nhỏ. Đây là thời gian chờ không cần thiết và làm lịch sử nhiễu.
 
 Spec này tách hai cách lưu theo chế độ: nơi lưu không qua commit giữ nguyên tốc độ tức thì; nơi lưu qua commit thì giữ thay đổi trong trình duyệt và chỉ ghi lên GitHub khi người dùng chủ động bấm Save.
 
@@ -18,7 +18,7 @@ Spec này tách hai cách lưu theo chế độ: nơi lưu không qua commit gi�
 
 ### Session 2026-10-22
 
-- Q1: Chế độ **máy chủ** (đăng nhập GitHub App hoặc token trong `.env.local`) hiện cũng ghi bằng commit lên GitHub, giống Pages, chứ không phải ghi file không commit. Máy chủ nên theo cách nào? → [NEEDS CLARIFICATION: máy chủ dùng "giữ tới khi Save" như Pages, hay vẫn lưu ngay từng thao tác?]
+- Q1: Server (VPS) cũng ghi bằng commit lên GitHub như Pages (không có checkout cục bộ). Server nên theo cách nào? → A: Phương án A. Server dùng "giữ trong trình duyệt tới khi Save" giống Pages. Chỉ local (và demo) giữ lưu tức thì. Không thêm loại ghi phía server.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -105,7 +105,7 @@ Người dùng bỏ được các thay đổi chưa lưu của spec (có xác nh
 
 ### Functional Requirements
 
-- **FR-001**: Ở chế độ lưu qua commit (Pages, và máy chủ theo Clarifications Q1), mọi thao tác nhận xét (viết, trả lời, thả/gỡ emoji, sửa, xoá, đổi màu) MUST hiện ngay và MUST NOT gọi GitHub; thay đổi MUST được giữ trong trình duyệt và đánh dấu "Chưa lưu".
+- **FR-001**: Ở chế độ lưu qua commit (GitHub Pages và server/VPS, Clarifications Q1), mọi thao tác nhận xét (viết, trả lời, thả/gỡ emoji, sửa, xoá, đổi màu) MUST hiện ngay và MUST NOT gọi GitHub; thay đổi MUST được giữ trong trình duyệt và đánh dấu "Chưa lưu".
 - **FR-002**: Thay đổi chưa lưu MUST còn sau khi tải lại trang hoặc đóng rồi mở lại, trên cùng trình duyệt và cùng tài khoản, gắn với repo, spec và nhánh đã viết.
 - **FR-003**: Khi có thay đổi chưa lưu, giao diện MUST hiện số thay đổi và nút Save ở nơi nhìn thấy được trên rail và trong tab Highlights (cả màn hình hẹp).
 - **FR-004**: Bấm Save MUST ghi mọi thay đổi chưa lưu của spec đang xem trong **một** commit `[skip ci]` lên nhánh đang xem; thành công thì các dấu "Chưa lưu" và thanh MUST biến mất.
@@ -141,7 +141,7 @@ Người dùng bỏ được các thay đổi chưa lưu của spec (có xác nh
 ## Assumptions
 
 - **Dựa trên 010–015 (đã merge vào `main`).**
-- **Chế độ bị ảnh hưởng** (constitution III): Pages chắc chắn; máy chủ theo Clarifications Q1; local và demo không đổi.
+- **Chế độ bị ảnh hưởng** (constitution III): GitHub Pages và server (VPS) đổi (cùng một thành phần giao diện); local và demo không đổi.
 - **Một commit mỗi lần Save cho mỗi spec** vì mỗi spec có một `highlights.json`.
 - **Thay đổi chưa lưu giữ trong trình duyệt** (bộ nhớ cục bộ của trang), tách theo tài khoản, repo, spec và nhánh; không đồng bộ giữa các thiết bị.
 - **Không lưu tự động theo thời gian**: chỉ lưu khi người dùng bấm Save (theo yêu cầu). Tự lưu nền không thuộc spec này.
@@ -155,3 +155,4 @@ Người dùng bỏ được các thay đổi chưa lưu của spec (có xác nh
 - Không đổi khuôn dạng `highlights.json`, quyền token, đích mạng hay hộp xác nhận lần đầu.
 - Không đổi giao diện thẻ, rail, hover (012–015) ngoài dấu "Chưa lưu" và thanh lưu.
 - Không đổi cách lưu của local và demo.
+- Không giữ bản nháp phía server (Clarifications Q1): server không có loại ghi mới.

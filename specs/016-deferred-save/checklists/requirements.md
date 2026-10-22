@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain (1 open: Q1, server mode)
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,4 +31,4 @@
 
 ## Notes
 
-- Q1 phải được trả lời trước `/speckit-plan`.
+- Q1 đã trả lời (A). Sẵn sàng cho `/speckit-clarify` hoặc `/speckit-plan`.
