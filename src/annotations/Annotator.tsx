@@ -10,7 +10,9 @@ import type { FreshProps } from './FreshBar';
 import type { HighlightActions } from './highlightActions';
 import { Card, CommentRail, CommentSheet, useDocViewport, useRailRoom, type CardActions, type CardEditing, type RailDraft } from './CommentRail';
 import { Composer } from './Composer';
-import { draftKey, draftsElsewhere, draftsHere, pickOverlap, reducePending, toCards, type CommentDraft, type SaveState } from './comments';
+import { applyChange } from '../../server/highlightsFile';
+import { Thread } from './Thread';
+import { draftKey, draftsElsewhere, draftsHere, pickOverlap, reducePending, toCards, type CommentCard, type CommentDraft, type SaveState } from './comments';
 
 // The reading column with highlights (specs/010-spec-annotations): selection → toolbar → save
 // through a HighlightStore; pins in the margin; one-time commit consent and the saved toast.
@@ -67,7 +69,12 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
   const [pending, dispatchPending] = useReducer(reducePending, {} as Record<string, SaveState>);
   const [optimistic, setOptimistic] = useState<Record<string, Highlight>>({});
   const inFlight = useRef<Record<string, { change: HighlightChange; by: HighlightAuthor; after?: () => void }>>({});
-  const all = [...items, ...Object.values(optimistic).filter(o => !items.some(h => h.id === o.id))];
+  // What is on its way (a reply, an emoji) is shown as if saved: the same pure change the save applies, on top of what
+  // was last read. It goes when the save answers: for good on success (the saved list replaces it), and on failure for an
+  // emoji or an edit, while a reply that failed stays, as Failed with Retry (specs/011 R8).
+  const [overlay, setOverlay] = useState<Record<string, { change: HighlightChange; by: HighlightAuthor }>>({});
+  const confirmed = [...items, ...Object.values(optimistic).filter(o => !items.some(h => h.id === o.id))];
+  const all = Object.values(overlay).reduce((acc, o) => { try { return applyChange(acc, o.change, o.by); } catch { return acc; } }, confirmed);
   const shown = all.filter(h => h.phase === target.phase);
   // Comments being written (specs/012 FR-002, FR-005): kept in the page, by document and place in the text.
   const [drafts, setDrafts] = useState<Record<string, CommentDraft>>({});
@@ -77,6 +84,12 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
   // The note of a comment being edited in its card (specs/012 US2).
   const [editNote, setEditNote] = useState<{ id: string; text: string } | null>(null);
   const [editErr, setEditErr] = useState<string | null>(null);
+  // Replies being written, by comment; the reply being edited; what a screen reader is told (specs/011 R10).
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
+  const [replyNeed, setReplyNeed] = useState<string | null>(null);
+  const [editingReply, setEditingReply] = useState<{ id: string; replyId: string; text: string } | null>(null);
+  const [replyErr, setReplyErr] = useState<string | null>(null);
+  const [announce, setAnnounce] = useState('');
   const here = draftsHere(drafts, target);
   const { anchors, markers, outdated, tops, draftTops, unsupported } = useHighlights(colRef, docRef, shown, focusId, clearFocus, {
     selectedId,
@@ -119,7 +132,7 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
   // Escape lets go of the selected comment when nothing else is open.
   useEffect(() => {
     if (!selectedId) return;
-    const k = (e: KeyboardEvent) => { if (e.key === 'Escape' && !tb && !asking && !editNote) onSelect?.(null); };
+    const k = (e: KeyboardEvent) => { if (e.key === 'Escape' && !tb && !asking && !editNote && !(document.activeElement as HTMLElement | null)?.closest?.('.sk-cm-thread')) onSelect?.(null); };
     window.addEventListener('keydown', k);
     return () => window.removeEventListener('keydown', k);
   }, [selectedId, tb, asking, editNote]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -181,6 +194,8 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
     : change.type === 'reply' ? change.reply.id
       : change.type === 'reply-edit' || change.type === 'reply-remove' ? change.replyId
         : change.type === 'react' ? `${change.replyId ?? change.id}:${change.emoji}` : change.id;
+  const isThread = (c: HighlightChange) => c.type === 'reply' || c.type === 'reply-edit' || c.type === 'reply-remove' || c.type === 'react';
+  const dropOverlay = (id: string) => setOverlay(o => { if (!(id in o)) return o; const n = { ...o }; delete n[id]; return n; });
   const forget = (id: string) => setOptimistic(o => { if (!(id in o)) return o; const n = { ...o }; delete n[id]; return n; });
 
   const run = async (change: HighlightChange, by: HighlightAuthor, after?: () => void) => {
@@ -195,6 +210,7 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
       delete inFlight.current[id];
       onItems(saved.items, change);
       forget(id);
+      dropOverlay(id);
       if (saved.commit) setToast(saved.commit);
       after?.();
       close();
@@ -204,6 +220,8 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
       setError(msg);
       // A comment that could not be saved is selected, so its card (or the sheet, when narrow) shows why and offers Retry.
       if (change.type === 'add') onSelect?.(id);
+      // A reply that failed stays, with Retry; an emoji or an edit that failed goes back to what it was, and says why.
+      if (isThread(change) && change.type !== 'reply') { dropOverlay(id); setNotice(`Not saved: ${msg}`); setAnnounce(`Not saved: ${msg}`); }
       if (/cannot commit to|no longer exists|read-only/.test(msg)) onRefused?.(msg);
     } finally {
       setBusy(false);
@@ -222,6 +240,7 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
     if (store.readOnly) return setError(store.readOnly);
     const by = byArg ?? author ?? askAuthor?.() ?? null;
     if (!by) return setError('Enter your name to save highlights.');
+    if (isThread(change)) setOverlay(o => ({ ...o, [changeId(change)]: { change, by } }));
     if (store.kind === 'github' && consent?.needed) { dispatchPending({ type: 'start', id: changeId(change) }); return setAsking({ id: changeId(change), change, by, after }); }
     void run(change, by, after);
   };
@@ -348,6 +367,51 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
     onCancel: () => { setEditNote(null); setEditErr(null); setError(null); }
   } : undefined;
 
+  // ---- Replies and emoji (specs/011) ----
+  const newReplyId = () => 'r_' + Array.from({ length: 12 }, () => '0123456789abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 36)]).join('');
+  const sendReply = (hid: string) => {
+    const text = (replyDrafts[hid] ?? '').trim();
+    if (!text) { setReplyNeed(hid); return; }
+    // Whether saving can start at all is settled before the text leaves the box, so nothing typed is lost for nothing.
+    if (store.readOnly) { setError(store.readOnly); return; }
+    const by = author ?? askAuthor?.() ?? null;
+    if (!by) { setError('Enter your name to save highlights.'); return; }
+    setReplyNeed(null);
+    setReplyDrafts(d => { const n = { ...d }; delete n[hid]; return n; });
+    setAnnounce('Sending reply');
+    save({ type: 'reply', id: hid, reply: { id: newReplyId(), text } }, () => setAnnounce('Reply sent'), by);
+  };
+  const react = (hid: string, replyId: string | undefined, emoji: string, on: boolean) => {
+    setAnnounce(`${on ? 'Added' : 'Removed'} reaction ${emoji}`);
+    save({ type: 'react', id: hid, ...(replyId ? { replyId } : {}), emoji, on });
+  };
+  const threadFor = (c: CommentCard) => <Thread h={c.highlight} me={author} person={person} save={pending} readOnly={store.readOnly}
+    draft={replyDrafts[c.id] ?? ''} invalid={replyNeed === c.id}
+    onDraft={text => { setReplyDrafts(d => ({ ...d, [c.id]: text })); if (replyNeed === c.id) setReplyNeed(null); }}
+    onSend={() => sendReply(c.id)} onRetry={retry}
+    editing={editingReply?.id === c.id ? {
+      replyId: editingReply.replyId, text: editingReply.text, busy, error: replyErr,
+      onText: text => { setEditingReply({ ...editingReply, text }); setReplyErr(null); },
+      onSubmit: () => {
+        const text = editingReply.text.trim();
+        if (!text) { setReplyErr('Write a reply first'); return; }
+        save({ type: 'reply-edit', id: c.id, replyId: editingReply.replyId, text }, () => { setEditingReply(null); setAnnounce('Reply saved'); });
+      },
+      onCancel: () => { setEditingReply(null); setReplyErr(null); setError(null); }
+    } : null}
+    onEdit={replyId => { const r = c.highlight.replies?.find(x => x.id === replyId); if (r) { setEditingReply({ id: c.id, replyId, text: r.text }); setReplyErr(null); setError(null); } }}
+    onDelete={replyId => save({ type: 'reply-remove', id: c.id, replyId }, () => setAnnounce('Reply deleted'))}
+    onReact={(replyId, emoji, on) => react(c.id, replyId, emoji, on)} announce={announce} />;
+
+  // A reply being written for a comment that was removed elsewhere is not kept silently (specs/011 U2).
+  const knownIds = all.map(h => h.id).join(',');
+  useEffect(() => {
+    const gone = Object.keys(replyDrafts).filter(id => replyDrafts[id].trim() && !all.some(h => h.id === id));
+    if (!gone.length) return;
+    setReplyDrafts(d => { const n = { ...d }; gone.forEach(id => delete n[id]); return n; });
+    setNotice('A reply you were writing belonged to a comment that was removed.');
+  }, [knownIds]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Without room for the rail, the selected comment or the comment being written opens in a sheet at the foot (research R9).
   const selectedCard = selectedId ? [...cards.cards, ...cards.outdated].find(c => c.id === selectedId) : undefined;
   const sheetDraft = here.find(d => d.key === activeDraft) ?? here[0];
@@ -366,10 +430,10 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
       {unsupported && items.length > 0 && <p className="sk-hlp-empty" role="note">This browser cannot draw highlights in the text; they are listed in the Highlights tab.</p>}
       <div className="sk-col" ref={colRef}>{children}</div>
       {showRail && <CommentRail cards={cards} selectedId={selectedId} onSelect={(id, o) => onSelect?.(id, o)} branch={target.branch} left={railLeft} viewport={viewport} docRef={docRef} person={person}
-        actions={actions} editing={cardEditing} onRetry={retry} fresh={fresh} drafts={railDrafts} activeDraftId={activeDraft} draftsElsewhere={draftsElsewhere(drafts, target)} />}
+        actions={actions} editing={cardEditing} threadFor={threadFor} onRetry={retry} fresh={fresh} drafts={railDrafts} activeDraftId={activeDraft} draftsElsewhere={draftsElsewhere(drafts, target)} />}
       {!showRail && (sheetDraft || selectedCard) && <CommentSheet label="Comment" onClose={() => { if (sheetDraft) cancelDraft(sheetDraft); else onSelect?.(null); }}>
         {sheetDraft ? composerFor(sheetDraft)
-          : <Card card={selectedCard!} selected person={person} onSelect={() => {}} actions={actions} editing={cardEditing} />}
+          : <Card card={selectedCard!} selected person={person} onSelect={() => {}} actions={actions} editing={cardEditing} thread={threadFor(selectedCard!)} />}
       </CommentSheet>}
       {/* Where the rail is shown its cards take the place of the pins (spec FR-012). */}
       {!showRail && markers.map(m => <button type="button" key={m.id} className={'sk-hl-pin hl-' + m.color + '-solid'} style={{ top: m.top, left: m.left }}
@@ -377,7 +441,7 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
     </div>
     {tb && <HlToolbar key={(tb.id ?? '') + tb.text} tb={tb} readOnly={store.readOnly} busy={busy} error={error} onComment={startComment} />}
     {asking && consent && <ConsentDialog branch={consent.branch} login={consent.login}
-      onCancel={() => { dispatchPending({ type: 'fail', id: asking.id, error: 'Not saved: confirm that highlights are committed to this branch.' }); inFlight.current[asking.id] = { change: asking.change, by: asking.by, after: asking.after }; setAsking(null); }}
+      onCancel={() => { dispatchPending({ type: 'fail', id: asking.id, error: 'Not saved: confirm that highlights are committed to this branch.' }); if (isThread(asking.change) && asking.change.type !== 'reply') dropOverlay(asking.id); inFlight.current[asking.id] = { change: asking.change, by: asking.by, after: asking.after }; setAsking(null); }}
       onAccept={() => { const a = asking; consent.accept(); setAsking(null); void run(a.change, a.by, a.after); }} />}
     {notice && !toast && <div className="sk-hl-toast" role="status">{notice}</div>}
     {toast && <SavedToast {...toast} />}
