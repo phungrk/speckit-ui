@@ -273,7 +273,12 @@
 .sk-cm-float[aria-disabled="true"] { opacity: .5; cursor: default; }
 .sk-cm-picker { position: fixed; z-index: 40; box-sizing: border-box; display: flex; gap: 4px; padding: 6px; background: var(--color-bg); border: 1px solid var(--color-text); box-shadow: var(--shadow-md); }
 @media (prefers-reduced-motion: no-preference) { .sk-cm-float-wrap { transition: opacity .12s ease-out; } }
+/* Three dots show only on hover or focus (specs/015, US3); still in the tab order and named. */
+.sk-cm-more { opacity: 0; }
+.sk-cm-item:hover .sk-cm-more, .sk-cm-item:focus-within .sk-cm-more, .sk-cm-more[aria-expanded="true"] { opacity: 1; }
+@media (prefers-reduced-motion: no-preference) { .sk-cm-more { transition: opacity .12s ease-out; } }
 @media (hover: none), (pointer: coarse) {
+  .sk-cm-more { opacity: 1; }
   .sk-cm-card.on .sk-cm-float-wrap { opacity: 1; pointer-events: auto; }
   .sk-cm-float { width: 44px; height: 44px; }
   .sk-cm-card.on .sk-cm-row, .sk-cm-reply .sk-cm-row { min-height: 52px; padding-right: 60px; }

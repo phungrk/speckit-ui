@@ -16,3 +16,9 @@ Chuẩn bị: `npm run dev` (demo `http://localhost:5173/?demo`, vai QA để l�
 12. **Dữ liệu và lưu.** `npm test` qua các test của 011; thả/gỡ emoji tạo một commit `[skip ci]`, không nhân đôi. (SC-007)
 13. **Demo 1440×900 và 924×540** (màn hình chính, hộp thoại New spec) giống hệt trước khi sửa.
 14. **Cổng.** `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages`.
+
+## Kết quả kiểm (Playwright, GitHub giả và demo, 2026-10-22)
+
+- **2, 3 (nút nổi)**: lúc nghỉ `opacity` 0; hover: 1, đường kính 28 px, `border-radius: 50%`, nằm trong dòng, chữ kết thúc trước nút. Bấm nút: thẻ vẫn chọn, không cuộn, 6 emoji, `aria-expanded="true"`. Escape đóng bộ, thẻ vẫn mở, tiêu điểm về nút. Chọn 👍: viên "👍 1", gỡ bằng "Remove 👍", bấm ngoài đóng bộ, mở bộ đóng menu ba chấm. Hover một trả lời chỉ hiện nút của trả lời đó.
+- **5, 6 (ba chấm)**: lúc nghỉ `opacity` 0; hover 1; Tab/focus 1 và Tab tiếp tới "Add a reaction to this comment"; menu mở rồi rời chuột: nút còn 1; nhận xét của người khác: 0 nút.
+- **8 (cảm ứng 390)**: ba chấm `opacity` 1, 44×44; nút emoji hiện sẵn, 44 px.

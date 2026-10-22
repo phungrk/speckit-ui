@@ -77,3 +77,22 @@ describe('the floating emoji button (FR-003, FR-009, FR-010, FR-011)', () => {
   });
 });
 
+
+describe('three dots reveal (specs/015, US3)', () => {
+  const dots = block.slice(block.indexOf('Three dots show only'));
+
+  it('is transparent at rest but stays in the tab order (no display/visibility)', () => {
+    expect(dots).toMatch(/\.sk-cm-more \{ opacity: 0; \}/);
+    expect(dots.split('@media')[0]).not.toMatch(/display: none|visibility: hidden/);
+  });
+
+  it('shows on hover, focus within or an open menu', () => {
+    expect(dots).toContain('.sk-cm-item:hover .sk-cm-more');
+    expect(dots).toContain('.sk-cm-item:focus-within .sk-cm-more');
+    expect(dots).toContain('.sk-cm-more[aria-expanded="true"]');
+  });
+
+  it('is always shown on a screen with no hover', () => {
+    expect(dots).toMatch(/@media \(hover: none\), \(pointer: coarse\) \{\s*\.sk-cm-more \{ opacity: 1; \}/);
+  });
+});
