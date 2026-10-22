@@ -17,3 +17,27 @@ Chuẩn bị: `npm run dev` (demo: `http://localhost:5173/?demo`); với server 
 13. **Dữ liệu.** `npm test` qua các test lưu/đọc/commit cũ (SC-005); ở chế độ GitHub vẫn một commit `[skip ci]` mỗi lần lưu.
 14. **Bốn chế độ.** Lặp 1–3, 9 ở demo, server, static (build:pages), local. (FR-011)
 15. **Cổng.** `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages`.
+
+## Results (2026-10-22, implement)
+
+Run with Playwright outside the repo, synthetic data, fake GitHub (no real GitHub written).
+
+| Scenario | Mode | Result |
+|---|---|---|
+| 1 one button, no colours/Copy/Ask | demo 1920/1440/390/320 | Pass: one `Comment` button, one line, inside the viewport, no horizontal scroll |
+| 2 phone | demo 390, 320 | Pass |
+| 3 compose and send | demo 1440 (sheet), 390 | Pass: popup closes, composer opens, `n` comment saved |
+| 4 close | demo | Pass: outside click closes; resizing the window closes (T012) |
+| 5 read-only | server (fake, `push:false`) | Pass: button `aria-disabled` with the reason; card colour/Edit/Delete disabled; Copy and Ask on |
+| 6 keyboard | demo | Pass: selection → Tab lands on Comment → Enter opens composer with focus; Ctrl+Alt+M works |
+| 7 reading themes | demo | Pass: popup takes theme bg/text (White, Sepia, Green, Dark); contrast comes from the existing theme test (≥ 4.5:1) |
+| 8 edges | unit | Pass: flip below, clamp 8 px, 320 px with and without a note (`tests/annotationsMarkup.test.tsx`) |
+| 9 card actions | demo | Pass: own comment: 5 colours, Edit, Delete, Copy, Ask; another person's: Copy, Ask |
+| 10 Highlights tab, colour-only | demo (Director) | Pass: swatches, Copy (clipboard checked), Ask (opens Copilot), Delete asks to confirm and deletes |
+| 11 click colour-only highlight in text | server (fake) | Pass: mine → popup with Comment only; sending keeps colour `y` and adds the note; one `[skip ci]` commit; another person's → no popup |
+| 12 no new colour-only highlight | code | Pass: `add(color)` and swatches removed from the popup |
+| 13 data | tests | Pass: 410 tests, saving/reading/committing untouched |
+| 14 four modes | demo, server | Run. Static (`build:pages`) and local are the same components and build; not driven in a browser here |
+| 15 gates | — | `npm test` (410), `npm run typecheck`, `npm run build`, `npm run build:pages` pass |
+
+Demo screenshots at 1440×900 and 924×540 (main screen and New spec dialog) are byte-identical before and after. The seeded colour-only highlight `h1` is not found in the demo document text, so scenario 11 was run against the fake GitHub, where real text is available.

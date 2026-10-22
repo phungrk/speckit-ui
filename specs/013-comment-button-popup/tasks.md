@@ -39,7 +39,7 @@
 - [X] T013 [US1] Trong `src/styles/reader.css`: kiểu hộp sáng (`--color-bg`, `--color-text`, viền 1 px `--color-text`, `--shadow-md`, không bo góc, nút `:focus-visible` theo hệ thống); xoá luật thanh tối `.sk-tb*` không còn dùng; xoá token `--hl-ink`, `--hl-paper*` nếu không còn nơi nào dùng (cập nhật test chặn màu cứng nếu nó liệt kê chúng).
 - [X] T014 [P] [US1] Đổi nhãn "Add comment" → "Comment" ở chỗ nói về nút: `src/annotations/Toolbar.tsx`, `Annotator.tsx`, `colors.ts` (chỉ chú thích), `README.md`, và `specs/012-docs-style-comment-flow/{spec.md,research.md,quickstart.md,contracts/comment-rail-ui.md}`; không sửa `analysis.md`, `tasks.md` của 012 (lịch sử).
 - [X] T015 [US1] Cập nhật test: `tests/annotationsMarkup.test.tsx` và `tests/commentRailMarkup.test.tsx` (hộp chỉ có một nút "Comment", không `sk-tb-c`, không Copy/Ask/Xoá; `aria-disabled` và lý do khi `readOnly`); thêm test `toolbarPosition` (trên, dưới khi hết chỗ, kẹp trái/phải ở 320 px, bề rộng khi có thông báo).
-- [ ] T016 [US1] Kiểm bằng Playwright ở demo (không ghi GitHub thật): 1440×900, 390, 320: hộp một nút, nhãn một dòng, không tràn; bấm mở hộp soạn (rail ở rộng, sheet ở hẹp); gửi tạo nhận xét `n`; bấm ra ngoài/Escape/đổi vùng chọn đóng hộp; Tab tới nút, Enter; Ctrl/Cmd+Alt+M. Ghi kết quả vào cuối `quickstart.md`.
+- [X] T016 [US1] Kiểm bằng Playwright ở demo (không ghi GitHub thật): 1440×900, 390, 320: hộp một nút, nhãn một dòng, không tràn; bấm mở hộp soạn (rail ở rộng, sheet ở hẹp); gửi tạo nhận xét `n`; bấm ra ngoài/Escape/đổi vùng chọn đóng hộp; Tab tới nút, Enter; Ctrl/Cmd+Alt+M. Ghi kết quả vào cuối `quickstart.md`.
 
 **Checkpoint**: US1 chạy độc lập; mọi hành động cũ vẫn dùng được nhờ Phase 2.
 
@@ -49,7 +49,7 @@
 
 **Kiểm độc lập**: quickstart 7, 8.
 
-- [ ] T017 [US2] Chụp hộp ở White, Sepia, Green, Dark (1440 và 390) và ở mép trên/dưới màn hình; xác nhận tương phản (nền đọc đã có test ≥ 4,5:1 ở `tests/reader.test.ts`:111–112, không thêm test) và vị trí xuống dưới khi không đủ chỗ trên. Sửa `src/styles/reader.css` nếu cần.
+- [X] T017 [US2] Chụp hộp ở White, Sepia, Green, Dark (1440 và 390) và ở mép trên/dưới màn hình; xác nhận tương phản (nền đọc đã có test ≥ 4,5:1 ở `tests/reader.test.ts`:111–112, không thêm test) và vị trí xuống dưới khi không đủ chỗ trên. Sửa `src/styles/reader.css` nếu cần.
 
 **Checkpoint**: US2 độc lập với US1 về dữ liệu; hai story cùng đạt SC-003, SC-004.
 
@@ -59,14 +59,14 @@
 
 **Kiểm độc lập**: quickstart 5, 9, 10, 11.
 
-- [ ] T018 [US3] Kiểm bằng Playwright ở demo: chọn nhận xét của mình → đổi màu, Edit, Delete (hai bước), Copy (clipboard), Ask (mở Copilot với đoạn chữ); nhận xét của người khác (seed demo) → chỉ Copy, Ask; tab Highlights → mục chỉ-màu (seed `h1`, tác giả `Director`: đổi vai trò demo sang Director để có hành động của tác giả; ở vai khác chỉ có Copy, Ask) mở hàng hành động, xoá hỏi xác nhận.
-- [ ] T019 [US3] Kiểm server với GitHub giả (cách của spec 012): `push:false` → hành động ghi tắt kèm lý do ở thẻ và tab, Copy/Ask dùng được; bấm highlight chỉ-màu của mình trong văn bản → hộp chỉ có "Comment", gửi thì highlight giữ màu và có thẻ; của người khác → không hộp. Đủ một commit `[skip ci]` mỗi lần lưu.
+- [X] T018 [US3] Kiểm bằng Playwright ở demo: chọn nhận xét của mình → đổi màu, Edit, Delete (hai bước), Copy (clipboard), Ask (mở Copilot với đoạn chữ); nhận xét của người khác (seed demo) → chỉ Copy, Ask; tab Highlights → mục chỉ-màu (seed `h1`, tác giả `Director`: đổi vai trò demo sang Director để có hành động của tác giả; ở vai khác chỉ có Copy, Ask) mở hàng hành động, xoá hỏi xác nhận.
+- [X] T019 [US3] Kiểm server với GitHub giả (cách của spec 012): `push:false` → hành động ghi tắt kèm lý do ở thẻ và tab, Copy/Ask dùng được; bấm highlight chỉ-màu của mình trong văn bản → hộp chỉ có "Comment", gửi thì highlight giữ màu và có thẻ; của người khác → không hộp. Đủ một commit `[skip ci]` mỗi lần lưu.
 
 ## Phase 6: Polish & cross-cutting
 
 - [ ] T020 Chạy quickstart 1–15 ở demo, server (GitHub giả), static (`build:pages`) và local; ghi kết quả và ảnh 390 vào `quickstart.md`. (FR-011)
-- [ ] T021 Chạy đủ bốn cổng: `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages`.
-- [ ] T022 So ảnh demo với ảnh T001 ở 1440×900 và 924×540 (màn hình chính và hộp thoại New spec): phần chênh duy nhất là hộp chọn chữ; liệt kê trong PR (constitution IV).
+- [X] T021 Chạy đủ bốn cổng: `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages`.
+- [X] T022 So ảnh demo với ảnh T001 ở 1440×900 và 924×540 (màn hình chính và hộp thoại New spec): phần chênh duy nhất là hộp chọn chữ; liệt kê trong PR (constitution IV).
 - [ ] T023 Mô tả PR: nêu `specs/013-comment-button-popup`, `Closes #<issue theo dõi "Spec 013: …">` (tạo issue nhãn `speckit` nếu chưa có), chế độ bị ảnh hưởng (cả bốn), phần chênh với thiết kế (hộp chọn chữ) và đề nghị cập nhật `Speckit Workspace.html`, sửa constitution 1.4.1. Không tạo PR trước khi người dùng yêu cầu.
 
 ## Dependencies & Execution Order
