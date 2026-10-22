@@ -52,7 +52,9 @@ describe('the menu', () => {
 
   it('uses theme tokens and no corners', () => {
     const css = readFileSync('src/styles/reader.css', 'utf8');
-    const rules = css.slice(css.indexOf('Three-dot button and its menu'));
+    // The block of specs/014 only: the next block (specs/015) holds the one round element the constitution allows.
+    const from = css.indexOf('Three-dot button and its menu');
+    const rules = css.slice(from, css.indexOf('Hover on a comment or a reply (specs/015-comment-hover)', from));
     expect(rules).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
     expect(rules).not.toMatch(/border-radius/);
     expect(rules).toContain('var(--shadow-md)');

@@ -1,0 +1,27 @@
+# Quickstart: kiểm hiệu ứng hover (015)
+
+Chuẩn bị: `npm run dev` (demo `http://localhost:5173/?demo`, vai QA để là tác giả của nhận xét mình tạo); server dùng GitHub giả như 012/011/014. Dữ liệu tự tạo, không ghi GitHub thật.
+
+1. **Nền đậm.** Mở thẻ; rê chuột lên nội dung nhận xét rồi từng trả lời: mỗi lúc chỉ một dòng đậm hơn; rời thẻ thì không dòng nào. Thẻ đóng không có hiệu ứng. (US1-1…4, SC-001)
+2. **Nút nổi.** Khi hover: nút tròn trắng có bóng, mặt cười kèm dấu cộng ở mép phải dòng, không che chữ; rời chuột thì mất. (US2-1, 2)
+3. **Thả emoji.** Bấm nút, chọn 👍: viên "👍 1" hiện dưới nội dung; chọn lại 👍: gỡ. Bộ emoji đóng bằng Escape (tiêu điểm về nút) và bằng bấm ngoài. (US2-3, 4)
+4. **Không nhảy bố cục.** Đo chiều cao thẻ và vị trí các thẻ trước, trong và sau hover: chênh 0 px. (US2-7, SC-003)
+5. **Ba chấm.** Lúc nghỉ tiêu đề chỉ có avatar, tên, giờ; hover mục của mình: hiện ba chấm; mục của người khác không có. Mở menu rồi rời chuột: nút còn cho tới khi menu đóng. (US3-1, 2, FR-008)
+6. **Bàn phím.** Tab tới nút ba chấm: nút hiện, nền hàng đậm; Tab tiếp tới nút emoji; Enter mở bộ, chọn bằng Enter, Escape đóng. (FR-002, SC-006)
+7. **Chỉ đọc** (`push:false`): hover: nút emoji hiện nhưng tắt kèm lý do; các viên emoji đã có vẫn thấy. (US2-5)
+8. **Cảm ứng 390 px** (giả lập): nút emoji và ba chấm hiện sẵn ở mỗi mục của thẻ đang mở, ≥ 44 px, không cuộn ngang; bộ emoji và menu mở trong màn hình, cả trong sheet. (US2-6, US3-3, SC-005)
+9. **Bốn giao diện trang** (White, Sepia, Green, Dark): nền đậm và nút nổi đọc được, tách khỏi nền. (SC-004)
+10. **Đang sửa.** Chọn Edit: mục không có nền hover và nút nổi cho tới khi Save/Cancel. (FR-013)
+11. **Hình tròn duy nhất.** Test CSS: trong khối CSS của spec này đúng một `border-radius`, của nút nổi; viên emoji, ba chấm, menu, ô trả lời vẫn vuông. (FR-011)
+12. **Dữ liệu và lưu.** `npm test` qua các test của 011; thả/gỡ emoji tạo một commit `[skip ci]`, không nhân đôi. (SC-007)
+13. **Demo 1440×900 và 924×540** (màn hình chính, hộp thoại New spec) giống hệt trước khi sửa.
+14. **Cổng.** `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages`.
+
+## Kết quả kiểm (Playwright, GitHub giả và demo, 2026-10-22)
+
+- **2, 3 (nút nổi)**: lúc nghỉ `opacity` 0; hover: 1, đường kính 28 px, `border-radius: 50%`, nằm trong dòng, chữ kết thúc trước nút. Bấm nút: thẻ vẫn chọn, không cuộn, 6 emoji, `aria-expanded="true"`. Escape đóng bộ, thẻ vẫn mở, tiêu điểm về nút. Chọn 👍: viên "👍 1", gỡ bằng "Remove 👍", bấm ngoài đóng bộ, mở bộ đóng menu ba chấm. Hover một trả lời chỉ hiện nút của trả lời đó.
+- **5, 6 (ba chấm)**: lúc nghỉ `opacity` 0; hover 1; Tab/focus 1 và Tab tiếp tới "Add a reaction to this comment"; menu mở rồi rời chuột: nút còn 1; nhận xét của người khác: 0 nút.
+- **8 (cảm ứng 390)**: ba chấm `opacity` 1, 44×44; nút emoji hiện sẵn, 44 px.
+- **9 (bốn giao diện)**: White, Sepia, Green, Dark: hàng hover là nền chữ 8 %; nút nổi có nền `--color-bg` khác nền thẻ ở cả bốn, viền theo `--color-divider`.
+- **13 (demo)**: ảnh chính và hộp thoại New spec ở 1440×900 và 924×540, cùng ảnh popup 1440/390, giống từng byte với ảnh trước khi sửa.
+- **14 (cổng)**: `npm test` 509 qua, `npm run typecheck`, `npm run build`, `npm run build:pages` đều qua. Không còn `.sk-cm-add` trong `src`. Không cuộn ngang ở 390 px. Static và local: chỉ build, không chạy tay (cùng mã giao diện).

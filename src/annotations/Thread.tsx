@@ -6,7 +6,8 @@ import { authorLabel, relTime, sameAuthor } from './brief';
 import { SaveNote } from './CommentRail';
 import { MoreMenu } from './MoreMenu';
 import type { SaveState } from './comments';
-import { EMOJI_SET, groupReactions, reactionLabel } from './reactions';
+import { EmojiButton } from './EmojiButton';
+import { groupReactions, reactionLabel } from './reactions';
 
 // The discussion under a comment (specs/011-replies-reactions, contracts/thread-ui.md): emoji on the comment, the replies
 // with their own emoji, and the box to answer. Drawn inside the card's `.sk-cm-thread`, in the rail or in the sheet.
@@ -55,24 +56,15 @@ export interface ReactionBarProps {
   onToggle: (emoji: string, on: boolean) => void;
 }
 
-/** The emoji on one comment or reply: a button for each emoji in use, and "+" for the set. */
+/** The emoji already put on one comment or reply: a button for each one in use (specs/011). Adding one is the floating button's job (specs/015). */
 export function ReactionBar({ list, me, person, readOnly, what, onToggle }: ReactionBarProps) {
-  const [picking, setPicking] = useState(false);
   const name = person ? (a: HighlightAuthor) => person(a).name : authorLabel;
   const groups = groupReactions(list, me, name);
   const off = readOnly ? true : undefined;
+  if (groups.length === 0) return null;
   return <div className="sk-cm-react" role="group" aria-label={`Reactions on ${what}`}>
     {groups.map(g => <button type="button" key={g.emoji} className={'sk-cm-emoji' + (g.mine ? ' mine' : '')} aria-pressed={g.mine} aria-disabled={off}
       title={readOnly ?? reactionLabel(g)} aria-label={reactionLabel(g)} onClick={() => { if (!readOnly) onToggle(g.emoji, !g.mine); }}>{g.emoji}<b>{g.count}</b></button>)}
-    <button type="button" className="sk-cm-emoji sk-cm-add" aria-label={`Add a reaction to ${what}`} aria-haspopup="true" aria-expanded={picking} aria-disabled={off} title={readOnly ?? 'Add a reaction'}
-      onClick={() => { if (!readOnly) setPicking(p => !p); }}>+</button>
-    {picking && <div className="sk-cm-picker" role="group" aria-label="Choose an emoji">
-      {EMOJI_SET.map(e => {
-        const mine = groups.some(g => g.emoji === e && g.mine);
-        return <button type="button" key={e} className="sk-cm-emoji" aria-label={(mine ? 'Remove ' : 'React with ') + e} aria-pressed={mine}
-          onClick={() => { setPicking(false); onToggle(e, !mine); }}>{e}</button>;
-      })}
-    </div>}
   </div>;
 }
 
@@ -96,7 +88,7 @@ export function Thread({ h, me, person, now, save = {}, readOnly, draft, invalid
         const mine = sameAuthor(me, r.author);
         const name = nameOf(r.author);
         const state = save[r.id];
-        return <li key={r.id} className="sk-cm-reply">
+        return <li key={r.id} className="sk-cm-reply sk-cm-item">
           <div className="sk-cm-who"><Avatar name={name} /><b>{name}</b><span className="sk-cm-time">{relTime(r.createdAt, now)}</span>{r.editedAt && <span className="sk-cm-edited">edited</span>}
             {mine && editing?.replyId !== r.id && <MoreMenu label={`More actions for the reply by ${name}`} items={[
               { key: 'edit', label: 'Edit', disabledReason: readOnly, onSelect: () => onEdit(r.id) },
@@ -111,7 +103,8 @@ export function Thread({ h, me, person, now, save = {}, readOnly, draft, invalid
                 <button type="button" className="btn btn-primary" disabled={editing.busy} onClick={editing.onSubmit}>Save</button>
               </div>
             </div>
-            : <p className="sk-cm-text">{r.text}</p>}
+            : <div className="sk-cm-row"><p className="sk-cm-text">{r.text}</p>
+              <EmojiButton list={r.reactions} me={me} readOnly={readOnly} what={`the reply by ${name}`} onToggle={(emoji, on) => onReact(r.id, emoji, on)} /></div>}
           <ReactionBar list={r.reactions} me={me} person={person} readOnly={readOnly} what={`the reply by ${name}`} onToggle={(emoji, on) => onReact(r.id, emoji, on)} />
           {mine && deleting === r.id && <div className="sk-cm-acts"><span>Delete this reply?</span>
             <button type="button" className="btn btn-secondary" onClick={() => setDeleting(null)}>Keep</button>
