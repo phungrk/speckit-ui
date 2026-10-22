@@ -139,11 +139,6 @@
 /* Highlights tab of the right sidebar. With three tabs the strip uses .is-3. */
 .sk-rtabs.is-3 { grid-template-columns: repeat(3, 1fr); }
 .sk-hlp { overflow: auto; flex: 1; }
-.sk-hlp-flt { display: flex; flex-wrap: wrap; gap: 4px; padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-divider); }
-.sk-hlp-flt button { all: unset; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: var(--fs-12); padding: 4px 7px; border: 1px solid var(--color-divider); }
-.sk-hlp-flt button.on { background: var(--color-text); color: var(--color-bg); border-color: var(--color-text); }
-.sk-hlp-flt i { width: 10px; height: 10px; display: block; }
-.sk-hlp-flt b { font-weight: 700; }
 .sk-hlp-empty { font-size: var(--fs-13); padding: var(--space-4); }
 .sk-hlp-sec { padding: var(--space-4) var(--space-4) 0; }
 .sk-hlp-item { all: unset; cursor: pointer; box-sizing: border-box; width: 100%; display: grid; grid-template-columns: 4px 1fr; gap: 10px; padding: 10px 0; border-top: 1px solid var(--color-divider); }
@@ -208,7 +203,6 @@
 .sk-cm-card.on { overflow: visible; }
 .sk-cm-live { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 /* `all: unset` clears the swatch colour of .hl-*, so each colour is set again here, one class deeper. */
-.sk-cm-own { justify-content: flex-start; }
 .sk-cm-acts > span { margin-right: auto; align-self: center; font-size: var(--fs-12); }
 
 /* The line about new comments (specs/012 FR-014): in the rail's head and at the top of the Highlights tab. */

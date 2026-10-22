@@ -277,7 +277,6 @@ export function LiveWorkspace({ project, backend, user, storage, refreshing, onR
           consent={{ needed: askConsent, branch: hlBranch ?? project.ref, login: user.login, accept: () => { prefs.setHighlightConsent(project.repo, true); setAskConsent(false); } }}
           onItems={items => setSavedHls(x => ({ ...x, [hlKey]: items }))}
           onRefused={reason => setRefused(reason)}
-          onAsk={text => { setRtab('ai'); setSeed(`Explain this passage from ${phase.n} and flag any risk or gap: "${text}"`); }}
           docProps={{ role: 'tabpanel' }}>{view}</Annotator>
           : <div className="sk-doc" role="tabpanel"><div className="sk-col">{view}</div></div>}
         <div className="sk-cmd">

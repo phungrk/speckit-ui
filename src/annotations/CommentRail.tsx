@@ -149,11 +149,6 @@ export function Card({ card, top, selected, person, now, onSelect, onRetry, acti
           <button type="button" className="btn btn-secondary" onClick={e => { e.stopPropagation(); setConfirming(false); }}>Keep</button>
           <button type="button" className="btn btn-primary" onClick={e => { e.stopPropagation(); actions.onDelete(card.id); }}>Delete</button></div>}
       </>}
-      {/* Reading only, so for everyone, including a reader without write access (specs/013 FR-008). */}
-      <div className="sk-cm-acts sk-cm-share">
-        <button type="button" className="btn btn-secondary" onClick={e => { e.stopPropagation(); actions.onCopy(card.id); }}>Copy</button>
-        <button type="button" className="btn btn-secondary" onClick={e => { e.stopPropagation(); actions.onAsk(card.id); }}>Ask</button>
-      </div>
     </>}
     <SaveLine card={card} onRetry={onRetry} />
     {thread && <div className="sk-cm-thread">{thread}</div>}

@@ -11,7 +11,7 @@ const H = (id: string, over: Partial<Highlight> = {}): Highlight => ({
   author: { login: 'mai' }, createdAt: '2026-10-21T08:30:00.000Z', updatedAt: '2026-10-21T08:30:00.000Z', ...over
 });
 const noop = () => {};
-const acts = (over: Partial<HighlightActions> = {}): HighlightActions => ({ onCopy: noop, onAsk: noop, onEdit: noop, onDelete: noop, mine: h => 'login' in h.author && h.author.login === 'mai', readOnly: null, ...over });
+const acts = (over: Partial<HighlightActions> = {}): HighlightActions => ({ onEdit: noop, onDelete: noop, mine: h => 'login' in h.author && h.author.login === 'mai', readOnly: null, ...over });
 const phases = [{ key: 'specify', name: 'Specify' }];
 const panel = (items: Highlight[], actions?: HighlightActions | null) =>
   renderToStaticMarkup(<HighlightsPanel items={items} phases={phases} outdated={[]} onOpen={noop} actions={actions} now={Date.parse('2026-10-21T09:00:00.000Z')} />);
@@ -23,8 +23,8 @@ describe('Highlights tab entries', () => {
     expect(html).not.toMatch(/<button[^>]*sk-hlp-item[^>]*>(?:(?!<\/button>).)*<button/s);
   });
 
-  it('opens no actions until an entry is clicked, and tells a screen reader the entry can expand (colour-only entries with actions)', () => {
-    const html = panel([H('h1'), H('h2', { note: 'A note' })], acts());
+  it('opens no actions until an entry is clicked; only your own colour-only entry can expand, and says so (specs/014 U1)', () => {
+    const html = panel([H('h1'), H('h2', { note: 'A note' }), H('h3', { author: { login: 'lan' } })], acts());
     expect(html).not.toContain('sk-hlp-acts');
     expect(html.match(/aria-expanded="false"/g)).toHaveLength(1);
   });
@@ -39,20 +39,14 @@ describe('Highlights tab entries', () => {
 describe('actions under an open entry', () => {
   const row = (h: Highlight, a: HighlightActions, confirming = false) => renderToStaticMarkup(<EntryActions h={h} actions={a} confirming={confirming} onConfirm={noop} onDeleted={noop} />);
 
-  it('gives the author Copy, Ask and Delete, and no colour to choose (specs/014)', () => {
+  it('gives the author Delete and nothing else: no colour to choose, no Copy, no Ask (specs/014 FR-009)', () => {
     const html = row(H('h1', { color: 'b' }), acts());
-    expect(html).not.toContain('aria-label="Colour"');
-    expect(html).not.toContain('Mark as');
-    for (const label of ['Copy', 'Ask', 'Delete']) expect(html).toContain('>' + label + '<');
-    expect(html).not.toContain('Edit');
+    expect(html).toContain('>Delete<');
+    for (const gone of ['aria-label="Colour"', 'Mark as', '>Copy<', '>Ask<', 'Edit']) expect(html).not.toContain(gone);
   });
 
-  it("gives somebody else's highlight Copy and Ask only", () => {
-    const html = row(H('h2', { author: { login: 'lan' } }), acts());
-    expect(html).not.toContain('aria-label="Colour"');
-    expect(html).not.toContain('>Delete<');
-    expect(html).toContain('>Copy<');
-    expect(html).toContain('>Ask<');
+  it('gives somebody else\'s highlight no actions at all', () => {
+    expect(row(H('h2', { author: { login: 'lan' } }), acts())).toBe('');
   });
 
   it('asks before deleting', () => {

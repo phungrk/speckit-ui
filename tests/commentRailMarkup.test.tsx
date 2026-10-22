@@ -16,7 +16,7 @@ const H = (id: string, over: Partial<Highlight> = {}): Highlight => ({
   author: { login: 'mai' }, createdAt: '2026-10-21T08:30:00.000Z', updatedAt: '2026-10-21T08:30:00.000Z', ...over
 });
 const noop = () => {};
-const acts = (over: Partial<HighlightActions> = {}): HighlightActions => ({ onCopy: noop, onAsk: noop, onEdit: noop, onDelete: noop, mine: h => 'login' in h.author && h.author.login === 'mai', readOnly: null, ...over });
+const acts = (over: Partial<HighlightActions> = {}): HighlightActions => ({ onEdit: noop, onDelete: noop, mine: h => 'login' in h.author && h.author.login === 'mai', readOnly: null, ...over });
 const rail = (items: Highlight[], anchored: Record<string, number>, props: Partial<Parameters<typeof CommentRail>[0]> = {}) =>
   renderToStaticMarkup(<CommentRail cards={toCards(items, anchored, {}, { login: 'mai' })} selectedId={null} onSelect={noop} branch="feat/003-x" now={NOW} {...props} />);
 
@@ -161,23 +161,19 @@ describe('selected card, announcement and sheet (FR-008, FR-009, FR-011, FR-012)
     expect(sel(null, { actions: acts() })).not.toContain('sk-cm-more');
   });
 
-  it('gives everyone Copy and Ask on the selected card, including a reader of somebody else\'s comment (specs/013 FR-008)', () => {
+  it('has no Copy and no Ask on the card, for anyone (specs/014 FR-009)', () => {
     for (const id of ['h1', 'h2']) {
       const html = sel(id, { actions: acts() });
-      expect(html).toMatch(/class="sk-cm-acts sk-cm-share"/);
-      expect(html).toMatch(/>Copy</);
-      expect(html).toMatch(/>Ask</);
+      expect(html).not.toMatch(/>Copy</);
+      expect(html).not.toMatch(/>Ask</);
+      expect(html).not.toContain('sk-cm-share');
     }
-    expect(sel('h1')).not.toMatch(/>Copy</);
     expect(sel('h2', { actions: acts() })).not.toMatch(/>Delete</);
   });
 
-  it('leaves Copy and Ask on when saving is off; the menu is there, and its items are off once it is opened', () => {
+  it('keeps the menu on your own card when saving is off; its items are off, with the reason, once it is opened', () => {
     const html = sel('h1', { actions: acts({ readOnly: 'Your GitHub account has read-only access.' }) });
     expect(html).toContain('class="sk-cm-more"');
-    expect(html).toMatch(/<button[^>]*>Copy<\/button>/);
-    expect(html).not.toMatch(/<button[^>]*aria-disabled[^>]*>Copy</);
-    expect(html).not.toMatch(/<button[^>]*aria-disabled[^>]*>Ask</);
   });
 
   it('edits the note in the card with a box that says Save', () => {

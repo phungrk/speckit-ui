@@ -410,7 +410,6 @@ export function LocalWorkspace({ onExit }: Props) {
                     store={localFileStore(ready.handle ?? null)} author={authorName ? { name: authorName, local: true } : null} askAuthor={askAuthor}
                     focusId={focusId} clearFocus={() => setFocusId(null)} selectedId={selectedId} onSelect={selectHl} fresh={fresh} onOutdated={setOutdated} onActions={setHlActions}
                     onItems={items => setSavedHls(x => ({ ...x, [activeFeature.slug]: items }))}
-                    onAsk={text => { void navigator.clipboard?.writeText(text); }}
                     docProps={docProps}>{body}</Annotator>;
                 }} />}
           </main>

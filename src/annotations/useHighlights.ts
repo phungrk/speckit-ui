@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import type { Highlight } from '../project/types';
-import { HL_COLORS, HL_NONE } from './colors';
+import { HL_KEYS } from './colors';
 import { locate, rangeFor, textNodes } from './anchor';
 
-const ALL_COLORS = [...HL_COLORS, HL_NONE];
+const ALL_COLORS = HL_KEYS;
 
 export interface Anchored { h: Highlight; start: number; end: number; range: Range }
 export interface Marker { id: string; color: Highlight['color']; top: number; left: number; author: Highlight['author'] }
@@ -48,7 +48,7 @@ export function useHighlights(colRef: RefObject<HTMLElement | null>, docRef: Ref
     window.addEventListener('resize', r);
     return () => window.removeEventListener('resize', r);
   }, []);
-  useEffect(() => () => { const reg = registry(); if (reg) { for (const k of [...ALL_COLORS.map(c => c.key), 'focus', 'draft']) reg.delete('sk-' + k); for (const c of ALL_COLORS) reg.delete('sk-sel-' + c.key); } }, []);
+  useEffect(() => () => { const reg = registry(); if (reg) { for (const k of [...ALL_COLORS, 'focus', 'draft']) reg.delete('sk-' + k); for (const c of ALL_COLORS) reg.delete('sk-sel-' + c); } }, []);
 
   useEffect(() => {
     const root = colRef.current, sc = docRef.current;
@@ -64,10 +64,10 @@ export function useHighlights(colRef: RefObject<HTMLElement | null>, docRef: Ref
     anchors.current = out;
     const reg = registry();
     if (reg) {
-      for (const c of ALL_COLORS) reg.set('sk-' + c.key, makeHighlight(out.filter(a => a.h.color === c.key).map(a => a.range)));
+      for (const c of ALL_COLORS) reg.set('sk-' + c, makeHighlight(out.filter(a => a.h.color === c).map(a => a.range)));
       // One selected comment at a time, in its own colour (specs/012 FR-008); the other names are cleared.
       const sel = extra.selectedId ? out.find(a => a.h.id === extra.selectedId) : undefined;
-      for (const c of ALL_COLORS) reg.set('sk-sel-' + c.key, makeHighlight(sel && sel.h.color === c.key ? [sel.range] : []));
+      for (const c of ALL_COLORS) reg.set('sk-sel-' + c, makeHighlight(sel && sel.h.color === c ? [sel.range] : []));
       reg.set('sk-draft', makeHighlight((extra.drafts ?? []).flatMap(d => rangeFor(root, d.start, d.end) ?? [])));
       const fa = out.find(a => a.h.id === focusId);
       reg.set('sk-focus', fa && !reduceMotion() ? makeHighlight([fa.range]) : makeHighlight([]));

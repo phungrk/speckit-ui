@@ -87,51 +87,46 @@ describe('selection popup position (specs/013 FR-002, SC-003)', () => {
 describe('Highlights panel (FR-019 – FR-021)', () => {
   const items = [H('h1', { color: 'p', note: 'Must fix <script>x</script>' }), H('h2', { phase: 'plan', color: 'b' }), H('h3', { phase: 'specify', color: 'y' })];
 
-  it('filters by colour with counts, groups by step in order, and marks Outdated', () => {
+  it('groups by step in order, marks Outdated, and has no colour filter and no colour name in words (specs/014 Q2)', () => {
     const html = renderToStaticMarkup(<HighlightsPanel items={items} phases={PHASES} outdated={['h3']} onOpen={noop} now={Date.parse('2026-10-21T11:00:00Z')} />);
-    expect(html).toContain('All <b>3</b>');
-    expect(html).toMatch(/hl-p"><\/i>Issue <b>1<\/b>/);
     expect(html.indexOf('02 · Specify')).toBeLessThan(html.indexOf('03 · Plan'));
     expect(html).toContain('Outdated, text changed');
-    expect(html).toContain('mai · Issue · 3h ago');
+    expect(html).toContain('mai · 3h ago');
     expect(html).not.toContain('<script>');
+    for (const gone of ['sk-hlp-flt', 'Filter highlights', 'All <b>', 'Issue', 'Question', 'Key <b>']) expect(html).not.toContain(gone);
   });
 
-  it('has a Comment filter for plain comments after the four colours, with its count and name (spec 012)', () => {
-    const plain = [...items, H('h4', { color: 'n', note: 'Why daily?' }), H('h5', { color: 'n', note: '' })];
-    const html = renderToStaticMarkup(<HighlightsPanel items={plain} phases={PHASES} outdated={[]} onOpen={noop} now={Date.parse('2026-10-21T11:00:00Z')} />);
-    expect(html).toContain('All <b>5</b>');
-    expect(html).toMatch(/hl-n"><\/i>Comment <b>2<\/b>/);
-    expect(html.indexOf('Change <b>')).toBeLessThan(html.indexOf('Comment <b>'));
-    expect(html).toContain('mai · Comment · 3h ago');
-    expect(html).toContain('sk-hlp-bar hl-n-solid');
+  it('keeps a small colour bar on each entry, by the colour that was saved, so older comments can still be told apart', () => {
+    const html = renderToStaticMarkup(<HighlightsPanel items={[...items, H('h4', { color: 'n', note: 'Why daily?' }), H('h5', { color: 'o', note: 'New' })]} phases={PHASES} outdated={[]} onOpen={noop} now={Date.parse('2026-10-21T11:00:00Z')} />);
+    for (const c of ['p', 'b', 'y', 'n', 'o']) expect(html).toContain(`sk-hlp-bar hl-${c}-solid`);
+    expect(html).not.toMatch(/sk-hlp-bar[^>]*>[^<]*[A-Za-z]/);
   });
 
   it('says how to start when empty, and shows the consent switch only when given', () => {
     const empty = renderToStaticMarkup(<HighlightsPanel items={[]} phases={PHASES} outdated={[]} onOpen={noop} />);
-    expect(empty).toContain('Select text in any artifact to highlight it or leave a note for the team.');
+    expect(empty).toContain('Select text in any step&#x27;s document and press Comment to leave a note for the team.');
     expect(empty).not.toContain('Ask before committing highlights');
     expect(renderToStaticMarkup(<HighlightsPanel items={[]} phases={PHASES} outdated={[]} onOpen={noop} ask={{ on: true, set: noop }} />)).toContain('Ask before committing highlights');
   });
 });
 
 describe('"Before you approve" notes (FR-022)', () => {
-  it('lists the notes of one step, Issue first, as plain text', () => {
-    const items = [H('a', { note: 'key note' }), H('b', { color: 'p', note: 'issue note', createdAt: '2026-10-21T09:00:00.000Z' }), H('c', { phase: 'plan', note: 'other step' }), H('d')];
+  it('lists the notes of one step in the order they were written, as plain text', () => {
+    const items = [H('a', { note: 'key note', createdAt: '2026-10-21T09:30:00.000Z' }), H('b', { color: 'p', note: 'issue note', createdAt: '2026-10-21T09:00:00.000Z' }), H('c', { phase: 'plan', note: 'other step' }), H('d')];
     expect(briefNotes(items, 'specify')).toEqual(['mai: issue note', 'mai: key note']);
     const html = renderToStaticMarkup(<GateBrief items={briefNotes([H('e', { note: '<b>x</b>' })], 'specify')} onAsk={noop} />);
     expect(html).toContain('mai: &lt;b&gt;x&lt;/b&gt;');
   });
 
-  it('puts plain comments after Issue notes and before the other colours (spec 012 FR-003)', () => {
+  it('does not put Issue first or any colour first: an Issue written later comes later (specs/014 Q2)', () => {
     const items = [
       H('a', { color: 'y', note: 'key note', createdAt: '2026-10-21T08:00:00.000Z' }),
       H('b', { color: 'n', note: 'plain note', createdAt: '2026-10-21T08:30:00.000Z' }),
       H('c', { color: 'p', note: 'issue note', createdAt: '2026-10-21T09:00:00.000Z' })
     ];
     const html = renderToStaticMarkup(<GateBrief items={briefNotes(items, 'specify')} onAsk={noop} />);
-    expect(html.indexOf('issue note')).toBeLessThan(html.indexOf('plain note'));
-    expect(html.indexOf('plain note')).toBeLessThan(html.indexOf('key note'));
+    expect(html.indexOf('key note')).toBeLessThan(html.indexOf('plain note'));
+    expect(html.indexOf('plain note')).toBeLessThan(html.indexOf('issue note'));
   });
 
   it('does not block or approve gates: highlight code never touches the gate API', () => {

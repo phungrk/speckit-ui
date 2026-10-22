@@ -216,7 +216,6 @@ export function App({ initialLayout }: { initialLayout?: LayoutPrefs } = {}) {
             const note = change.type === 'add' ? change.highlight.note : change.type === 'update' ? change.note : undefined;
             if (note) push(role, `noted on ${phase.n}: “${note.slice(0, 60)}”`);
           }}
-          onAsk={text => { setRtab('ai'); setSeed(`Explain this passage from ${phase.n} and flag any risk or gap: "${text}"`); }}
           docProps={{ role: 'tabpanel' }}>{view}</Annotator>
         <div className="sk-cmd">
           {log.length > 0 && <div className="sk-log" ref={logRef} aria-live="polite">{log.map((l, i) => <div key={i} className={l.startsWith('›') ? 'in' : ''}>{l}</div>)}</div>}
