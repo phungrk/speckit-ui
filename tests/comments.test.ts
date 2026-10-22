@@ -255,6 +255,17 @@ describe('diffIncoming (spec 012 FR-014)', () => {
     expect(diffIncoming(cur, [cur[0]]).newCount).toBe(0);
   });
 
+  it('counts a reply or an emoji from somebody else as a change, because saving one touches updatedAt (specs/011 R7)', () => {
+    const replied = { ...cur[1], updatedAt: '2026-10-22T09:00:00.000Z', replies: [{ id: 'r_1', author: { login: 'lan' }, createdAt: '2026-10-22T09:00:00.000Z', text: 'a reply' }] };
+    const d = diffIncoming(cur, [cur[0], replied]);
+    expect(d.changed.map(h => h.id)).toEqual(['h2']);
+    expect(d.newCount).toBe(1);
+    const reacted = { ...cur[1], updatedAt: '2026-10-22T09:05:00.000Z', reactions: [{ emoji: '👍', author: { login: 'lan' } }] };
+    expect(diffIncoming(cur, [cur[0], reacted]).newCount).toBe(1);
+    // What this user just saved is already on screen with the same updatedAt: nothing to report.
+    expect(diffIncoming([cur[0], replied], [cur[0], { ...replied }]).newCount).toBe(0);
+  });
+
   it('does not count what this user just saved, which the screen already has', () => {
     const mine = H('h9', { note: 'just saved', updatedAt: '2026-10-21T10:00:00.000Z' });
     expect(diffIncoming([...cur, mine], [...cur, { ...mine }]).newCount).toBe(0);

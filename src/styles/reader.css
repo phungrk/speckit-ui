@@ -230,3 +230,29 @@
 .sk-hlp > .sk-cm-fresh { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-divider); }
 .sk-rtab-new { margin-left: 4px; font-size: var(--fs-11); font-weight: 700; color: var(--color-accent-700); }
 
+
+/* Replies and emoji under a comment (specs/011-replies-reactions). Modernist tokens only; no corners, no new colour. */
+.sk-cm-count { margin-left: auto; font-size: var(--fs-11); color: color-mix(in srgb, var(--color-text) 60%, transparent); }
+.sk-cm-who .sk-cm-count + .sk-cm-time { margin-left: 8px; }
+.sk-cm-thr { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--color-divider); cursor: auto; }
+.sk-cm-replies { list-style: none; margin: 8px 0 0; padding: 0; }
+.sk-cm-reply { padding: 8px 0; border-top: 1px solid var(--color-divider); }
+.sk-cm-reply:first-child { border-top: 0; }
+.sk-cm-edited { font-size: var(--fs-11); color: color-mix(in srgb, var(--color-text) 60%, transparent); }
+.sk-cm-text { margin: 6px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.sk-cm-reply-box textarea, .sk-cm-reply-edit textarea { box-sizing: border-box; width: 100%; margin-top: 8px; font: inherit; font-size: var(--fs-14); background: var(--color-bg); color: var(--color-text); border: 1px solid var(--color-divider); padding: 6px 8px; resize: vertical; }
+.sk-cm-reply-box textarea[aria-invalid="true"] { border-color: var(--color-accent-700); }
+.sk-cm-reply-box textarea:disabled { opacity: .6; }
+.sk-cm-why { margin: 6px 0 0; font-size: var(--fs-12); color: color-mix(in srgb, var(--color-text) 70%, transparent); }
+.sk-cm-thr .sk-cm-acts { justify-content: flex-start; }
+.sk-cm-thr .sk-cm-reply-box > .sk-cm-acts { justify-content: flex-end; }
+.sk-cm-thr button[aria-disabled="true"] { opacity: .5; cursor: default; }
+.sk-cm-react { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 6px; }
+.sk-cm-react:empty { display: none; }
+.sk-cm-emoji { all: unset; cursor: pointer; box-sizing: border-box; display: inline-flex; align-items: center; gap: 4px; min-width: 28px; height: 26px; padding: 0 6px; justify-content: center; font-size: var(--fs-13); background: var(--color-surface); border: 1px solid var(--color-divider); }
+.sk-cm-emoji b { font-size: var(--fs-11); font-weight: 700; }
+.sk-cm-emoji.mine, .sk-cm-emoji[aria-pressed="true"] { border-color: var(--color-text); }
+.sk-cm-emoji:hover { background: color-mix(in srgb, var(--color-text) 8%, transparent); }
+.sk-cm-emoji:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+.sk-cm-picker { position: absolute; left: 0; top: 100%; z-index: 5; display: flex; gap: 4px; padding: 6px; background: var(--color-bg); border: 1px solid var(--color-text); box-shadow: var(--shadow-md); }
+@media (pointer: coarse) { .sk-cm-emoji { min-width: 44px; height: 44px; } }

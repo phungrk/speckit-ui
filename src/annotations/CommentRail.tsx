@@ -5,7 +5,8 @@ import type { HighlightActions } from './highlightActions';
 import { Avatar } from './Avatar';
 import { authorLabel, relTime } from './brief';
 import { HL_COLORS, HL_NONE, meaningOf } from './colors';
-import { CLOSED_CARD_HEIGHT, nextSelection, type CommentCard, type Cards } from './comments';
+import { CLOSED_CARD_HEIGHT, nextSelection, type CommentCard, type Cards, type SaveState } from './comments';
+import { groupReactions, replyCount } from './reactions';
 import { Composer } from './Composer';
 import { FreshBar, type FreshProps } from './FreshBar';
 import { layoutCards, railPlacement } from './layout';
@@ -87,18 +88,22 @@ export interface CardProps {
   editing?: CardEditing;
   /** Reports the height of the open card, which the layout needs (a closed card has a fixed height). */
   onMeasure?: (id: string, height: number) => void;
-  /** Room for the replies, reactions and the resolve button of specs/011. */
+  /** The discussion under the comment (specs/011): shown when the card is open. */
   thread?: ReactNode;
 }
 
-function SaveLine({ card, onRetry }: { card: CommentCard; onRetry?: (id: string) => void }) {
-  const s = card.save;
+/** Sending, Saved or Failed with Retry: under a comment, and under each reply (specs/011 R8). */
+export function SaveNote({ save: s, onRetry }: { save: SaveState; onRetry?: () => void }) {
   if (s.state === 'idle') return null;
   return <div className="sk-cm-state" data-state={s.state} role={s.state === 'failed' ? 'alert' : 'status'}>
     {s.state === 'sending' && 'Sending…'}
     {s.state === 'saved' && (s.commit ? <>Saved · <a href={s.commit.url} target="_blank" rel="noreferrer">commit {s.commit.sha.slice(0, 7)}</a></> : s.where === 'folder' ? 'Saved to folder' : s.where === 'browser' ? 'Saved in this browser' : 'Saved')}
-    {s.state === 'failed' && <>Failed: {s.error}{onRetry && <button type="button" onClick={e => { e.stopPropagation(); onRetry(card.id); }}>Retry</button>}</>}
+    {s.state === 'failed' && <>Failed: {s.error}{onRetry && <button type="button" onClick={e => { e.stopPropagation(); onRetry(); }}>Retry</button>}</>}
   </div>;
+}
+
+function SaveLine({ card, onRetry }: { card: CommentCard; onRetry?: (id: string) => void }) {
+  return <SaveNote save={card.save} onRetry={onRetry ? () => onRetry(card.id) : undefined} />;
 }
 
 export function Card({ card, top, selected, person, now, onSelect, onRetry, actions, editing, onMeasure, thread }: CardProps) {
@@ -129,7 +134,10 @@ export function Card({ card, top, selected, person, now, onSelect, onRetry, acti
     aria-label={`Comment by ${name} on “${quote40(h.quote)}”`} aria-current={selected ? 'true' : undefined}
     tabIndex={selected ? 0 : -1} style={style} onClick={() => onSelect(card.id)}
     onKeyDown={e => { if (e.key === 'Enter' && e.target === e.currentTarget) onSelect(card.id); }}>
-    <div className="sk-cm-who"><Avatar name={name} /><b>{name}</b><span className="sk-cm-time">{relTime(h.createdAt, now)}</span></div>
+    <div className="sk-cm-who"><Avatar name={name} /><b>{name}</b><span className="sk-cm-time">{relTime(h.createdAt, now)}</span>
+      {!selected && (replyCount(h) > 0 || !!h.reactions?.length) && <span className="sk-cm-count">{[
+        replyCount(h) > 0 ? `${replyCount(h)} ${replyCount(h) === 1 ? 'reply' : 'replies'}` : '',
+        ...groupReactions(h.reactions, null).map(g => `${g.emoji}${g.count}`)].filter(Boolean).join(' · ')}</span>}</div>
     <q className="sk-cm-quote">{h.quote}</q>
     <p className="sk-cm-note">{h.note}</p>
     {selected && <div className="sk-cm-meta"><i className={'hl-' + h.color + '-solid'}></i>{meaningOf(h.color)}</div>}
@@ -140,7 +148,7 @@ export function Card({ card, top, selected, person, now, onSelect, onRetry, acti
             aria-pressed={h.color === c.key} aria-disabled={actions.readOnly ? true : undefined} onClick={e => { e.stopPropagation(); if (!actions.readOnly && h.color !== c.key) actions.onColor(card.id, c.key); }}></button>)}
         </div>
         {confirming
-          ? <div className="sk-cm-acts"><span>Delete this comment?</span>
+          ? <div className="sk-cm-acts"><span>{replyCount(h) > 0 ? `Delete this comment and its ${replyCount(h)} ${replyCount(h) === 1 ? 'reply' : 'replies'}?` : 'Delete this comment?'}</span>
             <button type="button" className="btn btn-secondary" onClick={e => { e.stopPropagation(); setConfirming(false); }}>Keep</button>
             <button type="button" className="btn btn-primary" onClick={e => { e.stopPropagation(); actions.onDelete(card.id); }}>Delete</button></div>
           : <div className="sk-cm-acts sk-cm-own">
@@ -185,6 +193,8 @@ export interface CommentRailProps {
   onRetry?: (id: string) => void;
   actions?: CardActions;
   editing?: CardEditing;
+  /** The discussion of a card, drawn when it is open (specs/011). */
+  threadFor?: (card: CommentCard) => ReactNode;
   /** Comments being written, each beside its text; the one being written keeps its place and the cards make way. */
   drafts?: RailDraft[];
   activeDraftId?: string | null;
@@ -194,7 +204,7 @@ export interface CommentRailProps {
   fresh?: FreshProps;
 }
 
-export function CommentRail({ cards, selectedId, onSelect, branch, left, viewport, docRef, person, now, onRetry, actions, editing, drafts = [], activeDraftId = null, draftsElsewhere = 0, fresh }: CommentRailProps) {
+export function CommentRail({ cards, selectedId, onSelect, branch, left, viewport, docRef, person, now, onRetry, actions, editing, threadFor, drafts = [], activeDraftId = null, draftsElsewhere = 0, fresh }: CommentRailProps) {
   const head = fresh ? RAIL_HEAD_FRESH : RAIL_HEAD;
   const asideRef = useRef<HTMLElement>(null);
   const byKey = useRef(false);
@@ -244,10 +254,10 @@ export function CommentRail({ cards, selectedId, onSelect, branch, left, viewpor
       {fresh && <FreshBar {...fresh} />}</header>
     <div className="sk-cm-live" role="status" aria-live="polite">{at >= 0 ? `Comment ${at + 1} of ${ids.length} selected` : ''}</div>
     {drafts.map(d => <Fragment key={d.id}>{d.render(tops[draftId(d)])}</Fragment>)}
-    {cards.cards.filter(near).map(c => <Card key={c.id} card={c} top={tops[c.id]} selected={c.id === selectedId} onSelect={pick} {...shared} />)}
+    {cards.cards.filter(near).map(c => <Card key={c.id} card={c} top={tops[c.id]} selected={c.id === selectedId} onSelect={pick} thread={c.id === selectedId ? threadFor?.(c) : undefined} {...shared} />)}
     {cards.outdated.length > 0 && <section className="sk-cm-out" style={{ top: lastBottom + GAP * 2 }}>
       <h3>Outdated, text changed</h3>
-      {cards.outdated.map(c => <Card key={c.id} card={c} selected={c.id === selectedId} onSelect={pick} {...shared} />)}
+      {cards.outdated.map(c => <Card key={c.id} card={c} selected={c.id === selectedId} onSelect={pick} thread={c.id === selectedId ? threadFor?.(c) : undefined} {...shared} />)}
     </section>}
   </aside>;
 }

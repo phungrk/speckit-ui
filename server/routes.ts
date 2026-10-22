@@ -173,12 +173,27 @@ async function handleGate(req: IncomingMessage, res: ServerResponse, access: Acc
   return send(res, 200, await decideGate(src, project, f, gate as GateKey, action as GateAction, ((note as string) || '').trim().slice(0, 2000)));
 }
 
+/** Shape of the change a page sent (specs/011): types and string sizes only; who may do what is settled in `applyChange`. */
+function changeShapeOk(c: unknown): boolean {
+  const o = c && typeof c === 'object' ? c as Record<string, unknown> : null;
+  if (!o) return false;
+  const s = (v: unknown, max = 200) => typeof v === 'string' && v.length <= max;
+  switch (o.type) {
+    case 'add': case 'update': case 'remove': return true;
+    case 'reply': { const r = o.reply as Record<string, unknown> | null; return s(o.id) && !!r && typeof r === 'object' && s(r.id, 64) && s(r.text, 4000); }
+    case 'reply-edit': return s(o.id) && s(o.replyId, 64) && s(o.text, 4000);
+    case 'reply-remove': return s(o.id) && s(o.replyId, 64);
+    case 'react': return s(o.id) && (o.replyId === undefined || s(o.replyId, 64)) && s(o.emoji, 16) && typeof o.on === 'boolean';
+    default: return false;
+  }
+}
+
 /** Commits one highlight change to the viewed spec's highlights.json (specs/010-spec-annotations). */
 async function handleHighlight(req: IncomingMessage, res: ServerResponse, access: Access, env: Env) {
   const { repo, slug, branch, change } = await readJson(req);
-  const c = change as HighlightChange | undefined;
-  if (typeof slug !== 'string' || !/^\d{3,}-[^/]+$/.test(slug) || typeof branch !== 'string' || !branch || !c || !['add', 'update', 'remove'].includes(c.type)) {
-    throw new HttpError(400, 'Expected { repo, slug, branch, change: { type: add | update | remove, … } }.');
+  const c = change as HighlightChange;
+  if (typeof slug !== 'string' || !/^\d{3,}-[^/]+$/.test(slug) || typeof branch !== 'string' || !branch || !changeShapeOk(c)) {
+    throw new HttpError(400, 'Expected { repo, slug, branch, change: { type: add | update | remove | reply | reply-edit | reply-remove | react, … } }.');
   }
   const src = sourceFor(access, repo, undefined, env);
   // The author is who the server knows, never what the page sends (FR-011).

@@ -1,7 +1,7 @@
 // highlights.json: parse, apply changes and commit through a fake GitHub (specs/010-spec-annotations).
 // Synthetic data only; nothing is written to real GitHub (constitution V).
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { MAX_NOTE, applyChange, commitMessage, parseHighlights, readHighlights, saveHighlight, serializeHighlights } from '../server/highlights';
+import { EMOJI, MAX_NOTE, MAX_REPLY, applyChange, commitMessage, parseHighlights, readHighlights, saveHighlight, serializeHighlights } from '../server/highlights';
 import { GitHubError } from '../server/github';
 import type { Highlight } from '../src/project/types';
 import { fakeGitHub, fakeReq, fakeRes, type FakeRepo } from './fakeGitHub';
@@ -26,7 +26,8 @@ describe('parseHighlights', () => {
 
   it('reports broken JSON and unknown versions (FR-014)', () => {
     expect(parseHighlights('{oops').error).toMatch(/cannot be read/);
-    expect(parseHighlights('{"version":2,"highlights":[]}').error).toMatch(/unknown format/);
+    expect(parseHighlights('{"version":3,"highlights":[]}').error).toMatch(/unknown format/);
+    expect(parseHighlights('{"version":2,"highlights":[]}').error).toBeNull();
   });
 });
 
@@ -202,6 +203,28 @@ describe('POST /api/highlights (T011, T026)', () => {
     const saved = JSON.parse(r.files!.main['specs/010-x/highlights.json']).highlights[0];
     expect(saved.author).toEqual({ login: 'mai' });
     expect(r.commits![0].message).toMatch(/^mai highlighted/);
+  });
+
+  it('takes the four reply and emoji changes, and refuses a change of the wrong shape before any GitHub call (specs/011)', async () => {
+    const { route } = await import('../server/routes');
+    const r: FakeRepo = { specs: {}, files: { main: { 'specs/010-x/highlights.json': serializeHighlights([H('h1', { note: 'n' })]) } } };
+    const calls = fakeGitHub({ 'o/r': r });
+    const post = async (change: unknown) => { const res = fakeRes(); await route(fakeReq('POST', {}, { ...body, change }), res, new URL('http://h/api/highlights'), env); return res.out; };
+    expect((await post({ type: 'reply', id: 'h1', reply: { id: 'r_1', text: 'hello' } })).status).toBe(200);
+    expect((await post({ type: 'react', id: 'h1', emoji: '👍', on: true })).status).toBe(200);
+    expect((await post({ type: 'reply-edit', id: 'h1', replyId: 'r_1', text: 'hello again' })).status).toBe(200);
+    expect((await post({ type: 'reply-remove', id: 'h1', replyId: 'r_1' })).status).toBe(200);
+    const saved = JSON.parse(r.files!.main['specs/010-x/highlights.json']);
+    expect(saved.version).toBe(2);
+    expect(saved.highlights[0].replies ?? []).toEqual([]);
+    expect(saved.highlights[0].reactions).toEqual([{ emoji: '👍', author: { login: 'mai' } }]);
+    const before = calls.length;
+    for (const bad of [{ type: 'reply', id: 'h1' }, { type: 'reply', id: 'h1', reply: { id: 'r', text: 'x'.repeat(5000) } }, { type: 'react', id: 'h1', emoji: '👍', on: 'yes' }, { type: 'react', id: 7, emoji: '👍', on: true }, { type: 'reply-remove', id: 'h1' }, { type: 'nope' }]) {
+      const out = await post(bad);
+      expect(out.status, JSON.stringify(bad)).toBe(400);
+      expect(JSON.parse(out.body).error).toMatch(/reply \| reply-edit \| reply-remove \| react/);
+    }
+    expect(calls.length).toBe(before);
   });
 
   it('refuses another origin before any GitHub call', async () => {
@@ -406,3 +429,245 @@ describe('GET /api/highlights (spec 012, contracts/refresh-api.md)', () => {
   });
 });
 
+
+// ---- Replies and emoji (specs/011-replies-reactions) ----
+
+const R = (id: string, over: Record<string, unknown> = {}) => ({ id, author: lan, createdAt: '2026-10-22T09:10:00.000Z', text: 'Because the cap is per day.', ...over });
+const NOW = '2026-10-22T10:00:00.000Z';
+const file = (highlights: unknown[], version = 2) => JSON.stringify({ version, highlights });
+
+describe('replies and emoji in the file (contracts/highlights-file.md)', () => {
+  it('reads version 1 and 2, replies, and emoji on the comment and on a reply', () => {
+    const r = parseHighlights(file([H('h1', { note: 'Why?', reactions: [{ emoji: '👍', author: lan }], replies: [R('r_1', { reactions: [{ emoji: '🎉', author: mai }] })] } as never)]));
+    expect(r.error).toBeNull();
+    expect(r.items[0].replies![0]).toMatchObject({ id: 'r_1', text: 'Because the cap is per day.', reactions: [{ emoji: '🎉', author: mai }] });
+    expect(r.items[0].reactions).toEqual([{ emoji: '👍', author: lan }]);
+  });
+
+  it('treats missing or non-array replies and reactions as none', () => {
+    const r = parseHighlights(file([H('h1', { replies: 'x', reactions: 5 } as never)], 1));
+    expect(r.error).toBeNull();
+    expect(r.items[0].replies).toBeUndefined();
+    expect(r.items[0].reactions).toBeUndefined();
+  });
+
+  it('ignores an emoji outside the set, a reaction without a readable author, and counts a person once (FR-013)', () => {
+    const r = parseHighlights(file([H('h1', { reactions: [{ emoji: '🦄', author: lan }, { emoji: '👍' }, { emoji: '👍', author: lan }, { emoji: '👍', author: lan }, { emoji: '👍', author: { name: 'lan', local: true } }] } as never)]));
+    expect(r.error).toBeNull();
+    expect(r.items[0].reactions).toEqual([{ emoji: '👍', author: lan }, { emoji: '👍', author: { name: 'lan', local: true } }]);
+  });
+
+  it('blocks writing when a reply cannot be read, so it is not lost on the next save (FR-014)', () => {
+    const r = parseHighlights(file([H('h1', { replies: [R('r_1'), { id: 'r_2' }, R('r_3', { text: 'x'.repeat(MAX_REPLY + 1) })] } as never)]));
+    expect(r.items[0].replies!.map(x => x.id)).toEqual(['r_1']);
+    expect(r.error).toMatch(/^2 replies in highlights.json could not be read/);
+    expect(parseHighlights(file([H('h1', { replies: [{ id: 'bad' }] } as never)])).error).toMatch(/^1 reply in/);
+  });
+
+  it('writes version 1 while nothing has a reply or an emoji, and version 2 as soon as one does (R1)', () => {
+    expect(JSON.parse(serializeHighlights([H('h1')])).version).toBe(1);
+    expect(JSON.parse(serializeHighlights([H('h1', { replies: [], reactions: [] })])).version).toBe(1);
+    expect(JSON.parse(serializeHighlights([H('h1', { reactions: [{ emoji: '👍', author: lan }] })])).version).toBe(2);
+    expect(JSON.parse(serializeHighlights([H('h1'), H('h2', { replies: [R('r_1')] } as never)])).version).toBe(2);
+  });
+
+  it('writes a file from before this spec back byte for byte', () => {
+    const old = serializeHighlights([H('h1', { note: 'n' }), H('h2')]);
+    expect(serializeHighlights(parseHighlights(old).items)).toBe(old);
+    expect(old).not.toContain('replies');
+    expect(old).not.toContain('reactions');
+  });
+
+  it('orders replies by time then id and emoji by the set then by name, and leaves empty lists out', () => {
+    const out = JSON.parse(serializeHighlights([H('h1', {
+      reactions: [{ emoji: '🎉', author: mai }, { emoji: '👍', author: mai }, { emoji: '👍', author: lan }],
+      replies: [R('r_b', { createdAt: '2026-10-22T09:30:00.000Z' }), R('r_a', { createdAt: '2026-10-22T09:30:00.000Z' }), R('r_0', { createdAt: '2026-10-22T09:00:00.000Z', reactions: [] })]
+    } as never)])).highlights[0];
+    expect(out.replies.map((r: { id: string }) => r.id)).toEqual(['r_0', 'r_a', 'r_b']);
+    expect(out.replies[0]).not.toHaveProperty('reactions');
+    expect(out.reactions.map((r: { emoji: string; author: { login: string } }) => r.emoji + r.author.login)).toEqual(['👍lan', '👍mai', '🎉mai']);
+  });
+
+  it('round trips through parse', () => {
+    const items = [H('h1', { note: 'Why?', reactions: [{ emoji: '❤️', author: mai }], replies: [R('r_1', { editedAt: '2026-10-22T09:20:00.000Z', reactions: [{ emoji: '😕', author: mai }] })] } as never)];
+    expect(parseHighlights(serializeHighlights(items)).items).toEqual(items);
+  });
+
+  it('an older build that knows only version 1 refuses the file instead of dropping what it does not know (R1)', () => {
+    const v1Only = (text: string) => { const o = JSON.parse(text); return o.version !== 1 ? 'unknown format' : 'ok'; };
+    expect(v1Only(serializeHighlights([H('h1', { reactions: [{ emoji: '👍', author: lan }] })]))).toBe('unknown format');
+    expect(v1Only(serializeHighlights([H('h1')]))).toBe('ok');
+  });
+
+  it('keeps the emoji set small and fixed', () => {
+    expect(EMOJI).toEqual(['👍', '❤️', '😄', '🎉', '😕', '👀']);
+  });
+});
+
+describe('applyChange for replies and emoji (data-model.md, research R3, R4, R12)', () => {
+  const base = () => [H('h1', { note: 'Why daily?' })];
+
+  it('lets anyone who can save reply, setting the writer and the time themselves', () => {
+    const out = applyChange(base(), { type: 'reply', id: 'h1', reply: { id: 'r_1', text: '  Because.  ', author: mai, createdAt: '1999-01-01T00:00:00.000Z' } as never }, lan, NOW);
+    expect(out[0].replies).toEqual([{ id: 'r_1', author: lan, createdAt: NOW, text: 'Because.' }]);
+    expect(out[0].updatedAt).toBe(NOW);
+  });
+
+  it('ignores a reply sent again with the same id', () => {
+    const once = applyChange(base(), { type: 'reply', id: 'h1', reply: { id: 'r_1', text: 'a' } }, lan, NOW);
+    expect(applyChange(once, { type: 'reply', id: 'h1', reply: { id: 'r_1', text: 'a' } }, lan, '2026-10-22T11:00:00.000Z')).toBe(once);
+  });
+
+  it('refuses an empty reply, one that is too long, and one without an id', () => {
+    for (const text of ['', '   \n ']) expect(() => applyChange(base(), { type: 'reply', id: 'h1', reply: { id: 'r_1', text } }, lan)).toThrow(/Write a reply first/);
+    expect(() => applyChange(base(), { type: 'reply', id: 'h1', reply: { id: 'r_1', text: 'x'.repeat(MAX_REPLY + 1) } }, lan)).toThrow(/limited to 2000/);
+    expect(() => applyChange(base(), { type: 'reply', id: 'h1', reply: { id: '', text: 'a' } }, lan)).toThrow(/incomplete/);
+    expect(applyChange(base(), { type: 'reply', id: 'h1', reply: { id: 'r_1', text: 'x'.repeat(MAX_REPLY) } }, lan)[0].replies).toHaveLength(1);
+  });
+
+  it('refuses a reply to a comment that is gone', () => {
+    expect(() => applyChange(base(), { type: 'reply', id: 'nope', reply: { id: 'r_1', text: 'a' } }, lan)).toThrow(/removed by someone else/);
+  });
+
+  it('lets only the writer edit or remove their reply, even the comment\'s author cannot', () => {
+    const withReply = [H('h1', { note: 'n', replies: [R('r_1')] } as never)];
+    expect(() => applyChange(withReply, { type: 'reply-edit', id: 'h1', replyId: 'r_1', text: 'mine now' }, mai)).toThrow(/Only lan can change this reply/);
+    expect(() => applyChange(withReply, { type: 'reply-remove', id: 'h1', replyId: 'r_1' }, mai)).toThrow(/Only lan/);
+    try { applyChange(withReply, { type: 'reply-remove', id: 'h1', replyId: 'r_1' }, mai); } catch (e) { expect((e as { status: number }).status).toBe(403); }
+    const edited = applyChange(withReply, { type: 'reply-edit', id: 'h1', replyId: 'r_1', text: ' better ' }, lan, NOW);
+    expect(edited[0].replies![0]).toMatchObject({ text: 'better', editedAt: NOW, author: lan });
+    expect(edited[0].updatedAt).toBe(NOW);
+    expect(applyChange(withReply, { type: 'reply-remove', id: 'h1', replyId: 'r_1' }, lan, NOW)[0].replies).toEqual([]);
+  });
+
+  it('treats a login and a typed name as different people', () => {
+    const withReply = [H('h1', { note: 'n', replies: [R('r_1', { author: { name: 'lan', local: true } })] } as never)];
+    expect(() => applyChange(withReply, { type: 'reply-edit', id: 'h1', replyId: 'r_1', text: 'x' }, lan)).toThrow(/Only lan/);
+  });
+
+  it('refuses to change a reply that is gone', () => {
+    expect(() => applyChange(base(), { type: 'reply-edit', id: 'h1', replyId: 'r_9', text: 'x' }, lan)).toThrow(/reply was removed/);
+    expect(() => applyChange(base(), { type: 'reply-remove', id: 'h1', replyId: 'r_9' }, lan)).toThrow(/reply was removed/);
+  });
+
+  it('sets and clears an emoji for whoever saves, never for somebody else, and is safe to send twice', () => {
+    const on = applyChange(base(), { type: 'react', id: 'h1', emoji: '👍', on: true }, lan, NOW);
+    expect(on[0].reactions).toEqual([{ emoji: '👍', author: lan }]);
+    expect(on[0].updatedAt).toBe(NOW);
+    expect(applyChange(on, { type: 'react', id: 'h1', emoji: '👍', on: true }, lan, '2026-10-22T11:00:00.000Z')).toBe(on);
+    const two = applyChange(on, { type: 'react', id: 'h1', emoji: '👍', on: true }, mai);
+    expect(two[0].reactions).toHaveLength(2);
+    const off = applyChange(two, { type: 'react', id: 'h1', emoji: '👍', on: false }, lan, NOW);
+    expect(off[0].reactions).toEqual([{ emoji: '👍', author: mai }]);
+    expect(applyChange(off, { type: 'react', id: 'h1', emoji: '👍', on: false }, lan)).toBe(off);
+    expect(applyChange(base(), { type: 'react', id: 'h1', emoji: '👍', on: false }, lan)).toEqual(base());
+  });
+
+  it('puts an emoji on a reply, and refuses an emoji outside the set or a reply that is gone', () => {
+    const withReply = [H('h1', { note: 'n', replies: [R('r_1')] } as never)];
+    const out = applyChange(withReply, { type: 'react', id: 'h1', replyId: 'r_1', emoji: '🎉', on: true }, mai, NOW);
+    expect(out[0].replies![0].reactions).toEqual([{ emoji: '🎉', author: mai }]);
+    expect(out[0].reactions).toBeUndefined();
+    expect(() => applyChange(withReply, { type: 'react', id: 'h1', emoji: '🦄', on: true }, mai)).toThrow(/Unknown emoji/);
+    expect(() => applyChange(withReply, { type: 'react', id: 'h1', replyId: 'r_9', emoji: '🎉', on: true }, mai)).toThrow(/reply was removed/);
+    expect(() => applyChange(withReply, { type: 'react', id: 'nope', emoji: '🎉', on: true }, mai)).toThrow(/removed by someone else/);
+  });
+
+  it('drops replies and emoji a client sends inside a new comment (R12)', () => {
+    const forged = { ...H('h2', { note: 'new' }), replies: [R('r_x', { author: mai })], reactions: [{ emoji: '👍', author: mai }] } as never;
+    const out = applyChange([], { type: 'add', highlight: forged }, lan);
+    expect(out[0].replies).toBeUndefined();
+    expect(out[0].reactions).toBeUndefined();
+    expect(out[0].author).toEqual(lan);
+  });
+
+  it('removes the replies and emoji with the comment, and only its author may', () => {
+    const items = [H('h1', { note: 'n', replies: [R('r_1')], reactions: [{ emoji: '👍', author: lan }] } as never)];
+    expect(() => applyChange(items, { type: 'remove', id: 'h1' }, lan)).toThrow(/Only mai/);
+    expect(applyChange(items, { type: 'remove', id: 'h1' }, mai)).toEqual([]);
+  });
+
+  it('keeps changing the note or colour to the author alone, as before', () => {
+    const items = [H('h1', { note: 'n', replies: [R('r_1')] } as never)];
+    expect(() => applyChange(items, { type: 'update', id: 'h1', note: 'x' }, lan)).toThrow(/Only mai/);
+    expect(applyChange(items, { type: 'update', id: 'h1', color: 'p' }, mai)[0].replies).toHaveLength(1);
+  });
+});
+
+describe('commit messages for replies and emoji (contracts/save-change-api.md)', () => {
+  const items = [H('h1', { note: 'n' })];
+  it('names what was done and ends with [skip ci]', () => {
+    const m = (c: never) => commitMessage(c, items, 'lan');
+    expect(m({ type: 'reply', id: 'h1', reply: { id: 'r', text: 'a' } } as never)).toBe('lan replied on Specify: "the cap applies daily" [skip ci]');
+    expect(m({ type: 'reply-edit', id: 'h1', replyId: 'r', text: 'a' } as never)).toBe('lan edited a reply on Specify: "the cap applies daily" [skip ci]');
+    expect(m({ type: 'reply-remove', id: 'h1', replyId: 'r' } as never)).toBe('lan removed a reply on Specify: "the cap applies daily" [skip ci]');
+    expect(m({ type: 'react', id: 'h1', emoji: '👍', on: true } as never)).toBe('lan reacted 👍 on Specify: "the cap applies daily" [skip ci]');
+    expect(m({ type: 'react', id: 'h1', emoji: '👍', on: false } as never)).toBe('lan removed a reaction on Specify: "the cap applies daily" [skip ci]');
+  });
+});
+
+describe('saving replies and emoji through a fake GitHub (FR-008, FR-009, SC-002, SC-003)', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const src = { owner: 'o', repo: 'r', token: 't' };
+  const path = 'specs/010-x/highlights.json';
+  const seed = serializeHighlights([H('h1', { note: 'Why daily?' })]);
+
+  it('makes one commit that changes only highlights.json, and writes version 2', async () => {
+    const r: FakeRepo = { specs: {}, files: { main: { [path]: seed } } };
+    const calls = fakeGitHub({ 'o/r': r });
+    const out = await saveHighlight(src, { slug: '010-x', branch: 'main', change: { type: 'reply', id: 'h1', reply: { id: 'r_1', text: 'Because.' } }, user: 'lan' });
+    expect(out.items[0].replies![0]).toMatchObject({ author: { login: 'lan' }, text: 'Because.' });
+    expect(r.commits).toHaveLength(1);
+    expect(r.commits![0].path).toBe(path);
+    expect(r.commits![0].message).toBe('lan replied on Specify: "the cap applies daily" [skip ci]');
+    expect(JSON.parse(r.files!.main[path]).version).toBe(2);
+    expect(calls.filter(c => c.method !== 'GET').every(c => c.path.endsWith('/contents/' + path))).toBe(true);
+  });
+
+  it('keeps both replies when two people reply at once (the second save re-reads and re-applies)', async () => {
+    let raced = false;
+    const r: FakeRepo = {
+      specs: {}, files: { main: { [path]: seed } },
+      beforePut: files => {
+        if (raced) return;
+        raced = true;
+        files.main[path] = serializeHighlights(applyChange(parseHighlights(files.main[path]).items, { type: 'reply', id: 'h1', reply: { id: 'r_lan', text: 'from lan' } }, lan));
+      }
+    };
+    fakeGitHub({ 'o/r': r });
+    await saveHighlight(src, { slug: '010-x', branch: 'main', change: { type: 'reply', id: 'h1', reply: { id: 'r_mai', text: 'from mai' } }, user: 'mai' });
+    const replies = JSON.parse(r.files!.main[path]).highlights[0].replies.map((x: { id: string }) => x.id).sort();
+    expect(replies).toEqual(['r_lan', 'r_mai']);
+  });
+
+  it('counts both when two people react with the same emoji at once, and a person once when they send it twice', async () => {
+    let raced = false;
+    const r: FakeRepo = {
+      specs: {}, files: { main: { [path]: seed } },
+      beforePut: files => {
+        if (raced) return;
+        raced = true;
+        files.main[path] = serializeHighlights(applyChange(parseHighlights(files.main[path]).items, { type: 'react', id: 'h1', emoji: '👍', on: true }, lan));
+      }
+    };
+    fakeGitHub({ 'o/r': r });
+    const change = { type: 'react', id: 'h1', emoji: '👍', on: true } as const;
+    await saveHighlight(src, { slug: '010-x', branch: 'main', change, user: 'mai' });
+    await saveHighlight(src, { slug: '010-x', branch: 'main', change, user: 'mai' });
+    expect(JSON.parse(r.files!.main[path]).highlights[0].reactions).toHaveLength(2);
+  });
+
+  it('refuses a reply to a comment somebody deleted meanwhile, before writing', async () => {
+    const r: FakeRepo = { specs: {}, files: { main: { [path]: seed } } };
+    fakeGitHub({ 'o/r': r });
+    await expect(saveHighlight(src, { slug: '010-x', branch: 'main', change: { type: 'reply', id: 'gone', reply: { id: 'r_1', text: 'a' } }, user: 'lan' })).rejects.toThrow(/removed by someone else/);
+    expect(r.commits ?? []).toHaveLength(0);
+  });
+
+  it('refuses to add more once the file is past its size limit (010 FR-013), replies included', async () => {
+    const big = serializeHighlights(Array.from({ length: 8 }, (_, i) => H('h' + i, { note: 'n', replies: Array.from({ length: 40 }, (_, k) => R('r_' + i + '_' + k, { text: 'x'.repeat(2000) })) } as never)));
+    const r: FakeRepo = { specs: {}, files: { main: { [path]: big } } };
+    fakeGitHub({ 'o/r': r });
+    await expect(saveHighlight(src, { slug: '010-x', branch: 'main', change: { type: 'reply', id: 'h0', reply: { id: 'r_new', text: 'one more' } }, user: 'lan' })).rejects.toThrow(/too many highlights/);
+  });
+});
