@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain (2 open: when the three-dot button shows; the round button vs constitution IV)
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,4 +31,4 @@
 
 ## Notes
 
-- Resolve the two clarifications (`/speckit-clarify`) before `/speckit-plan`.
+- Both clarifications resolved 2026-10-22 (Q1 B, Q2 A). The constitution amendment (1.4.2) is a task of the plan. Ready for `/speckit-plan`.
