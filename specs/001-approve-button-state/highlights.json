@@ -60,7 +60,15 @@
         "login": "phungrk"
       },
       "createdAt": "2026-10-22T14:22:58.215Z",
-      "updatedAt": "2026-10-22T14:22:58.215Z"
+      "updatedAt": "2026-10-22T14:23:20.784Z",
+      "reactions": [
+        {
+          "emoji": "👍",
+          "author": {
+            "login": "phungrk"
+          }
+        }
+      ]
     }
   ]
 }
