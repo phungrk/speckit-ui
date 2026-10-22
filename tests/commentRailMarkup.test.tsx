@@ -8,6 +8,7 @@ import { FreshBar } from '../src/annotations/FreshBar';
 import { HighlightsPanel } from '../src/annotations/HighlightsPanel';
 import { HlToolbar, type ToolbarState } from '../src/annotations/Toolbar';
 import { toCards } from '../src/annotations/comments';
+import type { HighlightActions } from '../src/annotations/highlightActions';
 import type { Highlight } from '../src/project/types';
 
 const NOW = Date.parse('2026-10-21T09:00:00.000Z');
@@ -16,6 +17,7 @@ const H = (id: string, over: Partial<Highlight> = {}): Highlight => ({
   author: { login: 'mai' }, createdAt: '2026-10-21T08:30:00.000Z', updatedAt: '2026-10-21T08:30:00.000Z', ...over
 });
 const noop = () => {};
+const acts = (over: Partial<HighlightActions> = {}): HighlightActions => ({ onCopy: noop, onAsk: noop, onColor: noop, onEdit: noop, onDelete: noop, mine: h => 'login' in h.author && h.author.login === 'mai', readOnly: null, ...over });
 const rail = (items: Highlight[], anchored: Record<string, number>, props: Partial<Parameters<typeof CommentRail>[0]> = {}) =>
   renderToStaticMarkup(<CommentRail cards={toCards(items, anchored, {}, { login: 'mai' })} selectedId={null} onSelect={noop} branch="feat/003-x" now={NOW} {...props} />);
 
@@ -187,21 +189,41 @@ describe('selected card, announcement and sheet (FR-008, FR-009, FR-011, FR-012)
   });
 
   it('gives the author of the selected comment colours, Edit and Delete, and nobody else', () => {
-    const mine = sel('h1', { actions: { onColor: noop, onEdit: noop, onDelete: noop } });
+    const mine = sel('h1', { actions: acts() });
     expect(mine).toContain('aria-label="Colour"');
     expect([...mine.matchAll(/aria-label="Mark as (\w+)"/g)].map(m => m[1])).toEqual(['Comment', 'Key', 'Issue', 'Question', 'Change']);
     expect(mine).toContain('aria-pressed="true"');
     expect(mine).toMatch(/>Edit</);
     expect(mine).toMatch(/>Delete</);
-    const theirs = sel('h2', { actions: { onColor: noop, onEdit: noop, onDelete: noop } });
+    const theirs = sel('h2', { actions: acts() });
     expect(theirs).not.toContain('aria-label="Colour"');
     expect(theirs).not.toMatch(/>Edit</);
     expect(theirs).not.toMatch(/>Delete</);
     expect(sel('h1')).not.toMatch(/>Edit</);
   });
 
+  it('gives everyone Copy and Ask on the selected card, including a reader of somebody else\'s comment (specs/013 FR-008)', () => {
+    for (const id of ['h1', 'h2']) {
+      const html = sel(id, { actions: acts() });
+      expect(html).toMatch(/class="sk-cm-acts sk-cm-share"/);
+      expect(html).toMatch(/>Copy</);
+      expect(html).toMatch(/>Ask</);
+    }
+    expect(sel('h1')).not.toMatch(/>Copy</);
+    expect(sel('h2', { actions: acts() })).not.toMatch(/>Delete</);
+  });
+
+  it('turns the writing actions off with the reason when saving is off, and leaves Copy and Ask on', () => {
+    const html = sel('h1', { actions: acts({ readOnly: 'Your GitHub account has read-only access.' }) });
+    expect([...html.matchAll(/aria-disabled="true"/g)].length).toBeGreaterThanOrEqual(7);
+    expect(html).toContain('title="Your GitHub account has read-only access."');
+    expect(html).toMatch(/<button[^>]*>Copy<\/button>/);
+    expect(html).not.toMatch(/<button[^>]*aria-disabled[^>]*>Copy</);
+    expect(html).not.toMatch(/<button[^>]*aria-disabled[^>]*>Ask</);
+  });
+
   it('edits the note in the card with a box that says Save', () => {
-    const html = sel('h1', { actions: { onColor: noop, onEdit: noop, onDelete: noop }, editing: { id: 'h1', text: 'Why daily?', onText: noop, onSubmit: noop, onCancel: noop } });
+    const html = sel('h1', { actions: acts(), editing: { id: 'h1', text: 'Why daily?', onText: noop, onSubmit: noop, onCancel: noop } });
     expect(html).toContain('aria-label="Edit comment"');
     expect(html).toMatch(/<textarea[^>]*>Why daily\?<\/textarea>/);
     expect(html).toMatch(/class="btn btn-primary"[^>]*>Save</);

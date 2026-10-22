@@ -161,6 +161,10 @@
 .sk-hlp-empty { font-size: var(--fs-13); padding: var(--space-4); }
 .sk-hlp-sec { padding: var(--space-4) var(--space-4) 0; }
 .sk-hlp-item { all: unset; cursor: pointer; box-sizing: border-box; width: 100%; display: grid; grid-template-columns: 4px 1fr; gap: 10px; padding: 10px 0; border-top: 1px solid var(--color-divider); }
+.sk-hlp-acts { padding: 0 0 10px 14px; }
+.sk-hlp-acts .sk-cm-colors { margin-top: 0; }
+.sk-hlp-btns { justify-content: flex-start; }
+.sk-hlp-why { display: block; margin-top: 6px; font-size: var(--fs-12); color: color-mix(in srgb, var(--color-text) 70%, transparent); }
 .sk-hlp-item:hover { background: color-mix(in srgb, var(--color-text) 4%, transparent); }
 .sk-hlp-item:focus-visible { outline: 2px solid var(--color-accent); }
 .sk-hlp-item.on { background: color-mix(in srgb, var(--color-text) 8%, transparent); outline: 2px solid var(--color-text); outline-offset: -2px; }
