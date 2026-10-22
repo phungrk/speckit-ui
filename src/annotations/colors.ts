@@ -8,7 +8,7 @@ export const HL_COLORS: readonly { key: HighlightColor; meaning: string }[] = [
   { key: 'o', meaning: 'Change' }
 ];
 
-/** A comment with no category (specs/012): not a toolbar swatch, it is what "Add comment" creates. */
+/** A comment with no category (specs/012): not a toolbar swatch, it is what "Comment" creates. */
 export const HL_NONE: { key: HighlightColor; meaning: string } = { key: 'n', meaning: 'Comment' };
 
 export const meaningOf = (k: HighlightColor) => [...HL_COLORS, HL_NONE].find(c => c.key === k)?.meaning ?? 'Key';

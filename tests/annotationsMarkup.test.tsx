@@ -14,53 +14,73 @@ import type { Highlight } from '../src/project/types';
 
 const noop = () => {};
 const tb = (over: Partial<ToolbarState> = {}): ToolbarState => ({ mode: 'new', text: 'the cap applies daily', x: 500, top: 300, bottom: 320, ...over });
-const bar = (props: Partial<Parameters<typeof HlToolbar>[0]> = {}) => renderToStaticMarkup(<HlToolbar tb={tb()} canEdit readOnly={null} viewport={{ width: 1440, height: 900 }}
-  onColor={noop} onComment={noop} onCopy={noop} onAsk={noop} onDelete={noop} {...props} />);
+const bar = (props: Partial<Parameters<typeof HlToolbar>[0]> = {}) => renderToStaticMarkup(<HlToolbar tb={tb()} readOnly={null} viewport={{ width: 1440, height: 900 }} onComment={noop} {...props} />);
 const H = (id: string, over: Partial<Highlight> = {}): Highlight => ({
   id, phase: 'specify', doc: 'spec.md', quote: 'quoted text', prefix: '', suffix: '', startHint: 0, docSha: null, color: 'y', note: '',
   author: { login: 'mai' }, createdAt: '2026-10-21T08:00:00.000Z', updatedAt: '2026-10-21T08:00:00.000Z', ...over
 });
 const PHASES = [{ key: 'constitution', name: 'Constitution' }, { key: 'specify', name: 'Specify' }, { key: 'plan', name: 'Plan' }];
 
-describe('selection toolbar (FR-003, FR-004)', () => {
-  it('offers Add comment, four colours in order, Copy and Ask, and no Note or Remove when creating', () => {
+describe('selection popup: one Comment button (specs/013 FR-001, FR-004, FR-005, FR-006, FR-009)', () => {
+  it('has one button, named Comment, with a bubble icon, and nothing else', () => {
     const html = bar();
-    expect(html).toMatch(/role="dialog" aria-label="Highlight"/);
-    expect([...html.matchAll(/aria-label="Highlight (\w+)"/g)].map(m => m[1])).toEqual(['Key', 'Issue', 'Question', 'Change']);
-    for (const t of ['Add comment', '>Copy<', 'Ask']) expect(html).toContain(t);
-    expect(html).not.toContain('>Note<');
-    expect(html).not.toContain('Remove highlight');
+    expect(html).toMatch(/role="dialog" aria-label="Comment"/);
+    expect([...html.matchAll(/<button/g)]).toHaveLength(1);
+    expect(html).toMatch(/<button[^>]*class="sk-tb-b"[^>]*aria-label="Comment"[^>]*><svg[^>]*>.*<\/svg>Comment<\/button>/);
+    for (const gone of ['Add comment', 'sk-tb-c', 'aria-label="Highlight', '>Copy<', 'Ask', 'Remove highlight', '<textarea', 'sk-tb-note', '>Note<']) expect(html).not.toContain(gone);
+    expect(html).not.toContain('aria-disabled');
+    expect(html).not.toContain('sk-tb-msg');
   });
 
-  it('adds Remove and marks the colour for the author, and only Copy and Ask for others or read-only', () => {
-    const own = bar({ tb: tb({ mode: 'edit', id: 'h1', color: 'p' }) });
-    expect(own).toContain('aria-label="Remove highlight"');
-    expect(own).toMatch(/class="sk-tb-c hl-p on"/);
-    for (const html of [bar({ tb: tb({ mode: 'edit', id: 'h1' }), canEdit: false }), bar({ readOnly: 'Your token cannot commit to main.' })]) {
-      expect(html).not.toMatch(/aria-label="Highlight Key"/);
-      expect(html).not.toContain('>Note<');
-      expect(html).toContain('>Copy<');
-      expect(html).not.toContain('Remove highlight');
-    }
-    expect(bar({ readOnly: 'Your token cannot commit to main.' })).toContain('Your token cannot commit to main.');
+  it('is the same one button when it opens on a highlight of yours that has only a colour', () => {
+    const html = bar({ tb: tb({ mode: 'edit', id: 'h1' }) });
+    expect([...html.matchAll(/<button/g)]).toHaveLength(1);
+    expect(html).toContain('>Comment<');
   });
 
-  it('has no floating note editor any more: notes are written in the rail or the sheet (spec 012, task T038)', () => {
-    for (const html of [bar(), bar({ tb: tb({ mode: 'edit', id: 'h1', color: 'p' }) })]) {
-      expect(html).not.toContain('sk-tb-note');
-      expect(html).not.toContain('Save note');
-      expect(html).not.toContain('<textarea');
-      expect(html).not.toContain('>Note<');
-    }
+  it('turns Comment off with the reason shown when saving is not possible', () => {
+    const reason = 'Your GitHub account has read-only access to o/a. Ask for write access to comment.';
+    const html = bar({ readOnly: reason });
+    expect(html).toMatch(/<button[^>]*aria-disabled="true"/);
+    expect(html).toContain(`title="${reason}"`);
+    expect(html).toMatch(/<div class="sk-tb-msg" role="status">Your GitHub account has read-only access/);
+    expect([...html.matchAll(/<button/g)]).toHaveLength(1);
   });
 
-  it('sits 52px above the selection, flips below, and stays 8px inside the viewport', () => {
-    const vp = { width: 1440, height: 900 };
-    expect(toolbarPosition({ x: 500, top: 300, bottom: 320 }, vp)).toEqual({ left: 310, top: 248, width: 380 });
+  it('shows a failed save under the button', () => {
+    expect(bar({ error: 'Not saved: branch is protected.' })).toContain('role="status">Not saved: branch is protected.<');
+  });
+
+  it('uses theme tokens only: no inline colours', () => {
+    expect(bar()).not.toMatch(/style="[^"]*(#|rgb)/);
+  });
+});
+
+describe('selection popup position (specs/013 FR-002, SC-003)', () => {
+  const vp = { width: 1440, height: 900 };
+
+  it('sits 44px above the selection, flips below it, and stays 8px inside the viewport', () => {
+    expect(toolbarPosition({ x: 500, top: 300, bottom: 320 }, vp)).toEqual({ left: 434, top: 256 });
     expect(toolbarPosition({ x: 500, top: 30, bottom: 50 }, vp).top).toBe(60);
     expect(toolbarPosition({ x: 5, top: 300, bottom: 320 }, vp).left).toBe(8);
-    expect(toolbarPosition({ x: 1435, top: 300, bottom: 320 }, vp)).toMatchObject({ left: 1440 - 380 - 8, width: 380 });
+    expect(toolbarPosition({ x: 1435, top: 300, bottom: 320 }, vp).left).toBe(1440 - 132 - 8);
     expect(quotePreview('abc')).toBe('abc');
+  });
+
+  it('is wider, and says so, when a line of explanation sits under the button', () => {
+    expect(toolbarPosition({ x: 500, top: 300, bottom: 320 }, vp, true)).toEqual({ left: 370, top: 256, width: 260 });
+  });
+
+  it('fits a 320px phone, with or without the line of explanation', () => {
+    const phone = { width: 320, height: 640 };
+    for (const x of [0, 160, 320]) {
+      const p = toolbarPosition({ x, top: 300, bottom: 320 }, phone);
+      expect(p.left).toBeGreaterThanOrEqual(8);
+      expect(p.left + 132).toBeLessThanOrEqual(320 - 8);
+      const q = toolbarPosition({ x, top: 300, bottom: 320 }, phone, true);
+      expect(q.left).toBeGreaterThanOrEqual(8);
+      expect(q.left + (q.width as number)).toBeLessThanOrEqual(320 - 8);
+    }
   });
 });
 

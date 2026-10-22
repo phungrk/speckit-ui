@@ -6,7 +6,6 @@ import { CommentRail, CommentSheet } from '../src/annotations/CommentRail';
 import { Composer } from '../src/annotations/Composer';
 import { FreshBar } from '../src/annotations/FreshBar';
 import { HighlightsPanel } from '../src/annotations/HighlightsPanel';
-import { HlToolbar, type ToolbarState } from '../src/annotations/Toolbar';
 import { toCards } from '../src/annotations/comments';
 import type { HighlightActions } from '../src/annotations/highlightActions';
 import type { Highlight } from '../src/project/types';
@@ -77,53 +76,6 @@ describe('comment rail (FR-007, FR-015)', () => {
   });
 });
 
-const tb = (over: Partial<ToolbarState> = {}): ToolbarState => ({ mode: 'new', text: 'the cap applies daily', x: 500, top: 300, bottom: 320, ...over });
-const bar = (props: Partial<Parameters<typeof HlToolbar>[0]> = {}) => renderToStaticMarkup(<HlToolbar tb={tb()} canEdit readOnly={null} viewport={{ width: 1440, height: 900 }}
-  onColor={noop} onComment={noop} onCopy={noop} onAsk={noop} onDelete={noop} {...props} />);
-
-describe('selection toolbar: Add comment first (FR-001, FR-006, FR-016)', () => {
-  it('leads with Add comment, then the four colours, then Copy and Ask, and has no Note for a new selection', () => {
-    const html = bar();
-    expect(html).toMatch(/<button[^>]*class="sk-tb-b sk-tb-primary"[^>]*aria-label="Add comment"[^>]*>Add comment</);
-    expect(html).not.toContain('>Note<');
-    const at = (s: string) => html.indexOf(s);
-    expect(at('Add comment')).toBeGreaterThan(-1);
-    expect(at('aria-label="Highlight Key"')).toBeGreaterThan(at('Add comment'));
-    expect(at('aria-label="Highlight Change"')).toBeGreaterThan(at('aria-label="Highlight Key"'));
-    expect(at('>Copy<')).toBeGreaterThan(at('aria-label="Highlight Change"'));
-    expect(at('Ask')).toBeGreaterThan(at('>Copy<'));
-    expect(html).not.toContain('aria-disabled');
-  });
-
-  it('lets the author of a colour-only highlight add a comment to it, and recolour or remove it', () => {
-    const own = bar({ tb: tb({ mode: 'edit', id: 'h1', color: 'p' }), canComment: true });
-    expect(own).toContain('Add comment');
-    expect(own).toContain('aria-label="Remove highlight"');
-    expect(own).not.toContain('>Note<');
-    // A highlight that already has a note is commented on its card, so the toolbar does not offer it again.
-    expect(bar({ tb: tb({ mode: 'edit', id: 'h1', color: 'p' }), canComment: false })).not.toContain('Add comment');
-    expect(own).toMatch(/class="sk-tb-c hl-p on"/);
-    // A plain comment is none of the four swatches, so none is marked.
-    expect(bar({ tb: tb({ mode: 'edit', id: 'h1', color: 'n' }) })).not.toMatch(/class="sk-tb-c hl-\w+ on"/);
-  });
-
-  it('turns Add comment off with the reason shown and keeps Copy and Ask when saving is not possible', () => {
-    const reason = 'Your GitHub account has read-only access to o/a. Ask for write access to comment.';
-    const html = bar({ readOnly: reason });
-    expect(html).toMatch(/aria-disabled="true"/);
-    expect(html).toContain(`title="${reason}"`);
-    expect(html).toMatch(/<div class="sk-tb-msg" role="status">Your GitHub account has read-only access/);
-    expect(html).toContain('>Copy<');
-    expect(html).toContain('Ask');
-    expect(html).not.toContain('aria-label="Highlight Key"');
-  });
-
-  it('gives somebody else\'s comment only Copy and Ask, with no Add comment', () => {
-    const html = bar({ tb: tb({ mode: 'edit', id: 'h1' }), canEdit: false });
-    expect(html).not.toContain('Add comment');
-    expect(html).toContain('>Copy<');
-  });
-});
 
 describe('composer (FR-002, FR-004, FR-005)', () => {
   const composer = (props: Partial<Parameters<typeof Composer>[0]> = {}) => renderToStaticMarkup(<Composer name="mai" quote="the cap applies daily" text="" onText={noop} onSubmit={noop} onCancel={noop} {...props} />);

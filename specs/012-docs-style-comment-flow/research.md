@@ -41,11 +41,11 @@ Nền là code của 010 trên `main` (`Annotator`, `Toolbar`, `useHighlights`, 
 - **Alternatives**: State trong `Annotator` và đẩy lên bằng callback hai chiều (dễ lệch); context
   riêng (thêm một lớp không cần thiết).
 
-## R4. Nút Add comment và phím tắt
+## R4. Nút Comment và phím tắt
 
 - **Decision**: Giữ thanh công cụ của 010 (một thành phần, một vị trí) nhưng đổi thứ tự:
   `[Comment (nút chính)] │ [bốn ô màu] │ [Copy] [Ask]`. Nút Comment dùng `btn-primary` kiểu thanh công
-  cụ tối, có nhãn "Add comment". Bấm màu vẫn tạo highlight không ghi chú (hành vi 010). Bỏ nút "Note" và
+  cụ tối, có nhãn "Comment". Bấm màu vẫn tạo highlight không ghi chú (hành vi 010). Bỏ nút "Note" và
   trình sửa ghi chú nổi; sửa ghi chú đã có chuyển vào thẻ. Phím tắt `Ctrl+Alt+M` / `Cmd+Option+M` mở
   hộp soạn trên vùng chọn hiện tại (giống Google Docs), thêm vào luồng `onKeyUp` của 010.
 - **Rationale**: Ít bề mặt giao diện hơn việc dựng thêm một nút nổi thứ hai; FR-006 yêu cầu thanh công
@@ -133,7 +133,7 @@ Nền là code của 010 trên `main` (`Annotator`, `Toolbar`, `useHighlights`, 
 
 ## R11. Nhãn và ngôn ngữ
 
-- **Decision**: Nhãn trong ứng dụng bằng tiếng Anh, giống 010: "Add comment", "Comment", "Cancel",
+- **Decision**: Nhãn trong ứng dụng bằng tiếng Anh, giống 010: "Comment", "Comment", "Cancel",
   "Sending…", "Saved · commit {sha}", "Retry", "New comments", "Updated {rel}". Không dựng lớp i18n.
   Nhãn tiếng Việt trong spec là tham chiếu từ ảnh.
 - **Rationale**: Toàn bộ giao diện hiện là tiếng Anh; một lớp đa ngôn ngữ là phạm vi riêng (VII).

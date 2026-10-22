@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useRef, useState, type HTMLAttributes, type ReactNode } from 'react';
 import { Icon } from '../ui';
-import type { Highlight, HighlightAuthor, HighlightChange, HighlightColor } from '../project/types';
+import type { Highlight, HighlightAuthor, HighlightChange } from '../project/types';
 import { anchorAt, caretOffset, offsetIn, textNodes, type Anchor } from './anchor';
 import { authorLabel, pendingTarget, sameAuthor } from './brief';
 import type { HighlightStore } from './store';
@@ -124,13 +124,21 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
     return () => window.removeEventListener('keydown', k);
   }, [selectedId, tb, asking, editNote]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // The popup was placed for one window size: when the window is resized or turned it goes, rather than being left off screen.
+  useEffect(() => {
+    if (!tb) return;
+    window.addEventListener('resize', close);
+    window.addEventListener('orientationchange', close);
+    return () => { window.removeEventListener('resize', close); window.removeEventListener('orientationchange', close); };
+  }, [tb]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const open = (draft: Omit<Draft, 'target'>) => { setError(null); setTb({ ...draft, target }); };
 
   const openFor = (id: string) => {
     const a = anchors.current.find(x => x.h.id === id);
     if (!a) return;
     const b = a.range.getBoundingClientRect();
-    open({ mode: 'edit', id, text: a.h.quote, color: a.h.color, x: b.left + b.width / 2, top: b.top, bottom: b.bottom });
+    open({ mode: 'edit', id, text: a.h.quote, x: b.left + b.width / 2, top: b.top, bottom: b.bottom });
   };
 
   const onUp = (x: number, y: number, target_: EventTarget | null) => {
@@ -153,13 +161,14 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
       }
       // Pointer: the character under it; keyboard (x < 0): the caret.
       const o = x >= 0 ? caretOffset(root, x, y) : sel?.anchorNode && root.contains(sel.anchorNode) ? offsetIn(root, sel.anchorNode, sel.anchorOffset) : -1;
-      // A comment under the click is selected (the newest, then the next on another click); a highlight with only a
-      // colour keeps the toolbar of 010; a click elsewhere lets go of the selection (specs/012 FR-008).
+      // A comment under the click is selected (the newest, then the next on another click); a highlight of yours with
+      // only a colour opens the popup, whose Comment adds the note to it; somebody else's colour-only highlight does
+      // nothing (specs/013 FR-009); a click elsewhere lets go of the selection (specs/012 FR-008).
       const commented = anchors.current.filter(a => a.h.note.trim()).map(a => ({ id: a.h.id, start: a.start, end: a.end, createdAt: a.h.createdAt }));
       const picked = pickOverlap(commented, o, selectedId);
       if (picked) { onSelect?.(picked); return; }
       const hit = anchors.current.find(a => o >= a.start && o < a.end);
-      if (hit) { openFor(hit.h.id); return; }
+      if (hit && sameAuthor(author, hit.h.author)) { openFor(hit.h.id); return; }
       if (selectedId && o >= 0) onSelect?.(null);
     }, 0);
   };
@@ -219,13 +228,8 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
     return () => clearTimeout(t);
   }, [pending]);
 
-  const add = (color: HighlightColor, note = '') => {
-    if (!tb?.anchor) return;
-    const now = new Date().toISOString();
-    save({ type: 'add', highlight: { id: newId(), phase: tb.target.phase, doc: tb.target.doc, ...tb.anchor, docSha: tb.target.docSha, color, note, author: author ?? { name: 'You', local: true }, createdAt: now, updatedAt: now } });
-  };
 
-  // ---- Add comment (specs/012 US1) ----
+  // ---- Comment (specs/012 US1, specs/013) ----
   const me = author ? (person?.(author).name ?? authorLabel(author)) : 'You';
 
   const startDraftAt = (anchor: Anchor, tgt: AnnotatorTarget, existingId?: string) => {
@@ -342,9 +346,6 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
   const selectedCard = selectedId ? [...cards.cards, ...cards.outdated].find(c => c.id === selectedId) : undefined;
   const sheetDraft = here.find(d => d.key === activeDraft) ?? here[0];
 
-  const editing = tb?.id ? items.find(h => h.id === tb.id) : undefined;
-  const canEdit = tb?.mode === 'new' || (!!editing && sameAuthor(author, editing.author));
-
   return <>
     <div ref={docRef} {...docProps} className={'sk-doc' + (showRail ? ' has-rail' : '')}
       onMouseUp={e => onUp(e.clientX, e.clientY, e.target)}
@@ -368,12 +369,7 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
       {!showRail && markers.map(m => <button type="button" key={m.id} className={'sk-hl-pin hl-' + m.color + '-solid'} style={{ top: m.top, left: m.left }}
         aria-label={`Note by ${authorLabel(m.author)}`} onClick={() => onSelect?.(m.id, { jump: true })}><Icon n="note" s={12} /></button>)}
     </div>
-    {tb && <HlToolbar key={(tb.id ?? '') + tb.text} tb={tb} canEdit={canEdit} canComment={tb.mode === 'new' || (canEdit && !editing?.note.trim())} readOnly={store.readOnly} busy={busy} error={error}
-      onColor={c => tb.mode === 'new' ? add(c) : save({ type: 'update', id: tb.id!, color: c })}
-      onComment={startComment}
-      onCopy={() => { void navigator.clipboard?.writeText(tb.text); close(); }}
-      onAsk={() => { onAsk(tb.text); close(); }}
-      onDelete={() => save({ type: 'remove', id: tb.id! })} />}
+    {tb && <HlToolbar key={(tb.id ?? '') + tb.text} tb={tb} readOnly={store.readOnly} busy={busy} error={error} onComment={startComment} />}
     {asking && consent && <ConsentDialog branch={consent.branch} login={consent.login}
       onCancel={() => { dispatchPending({ type: 'fail', id: asking.id, error: 'Not saved: confirm that highlights are committed to this branch.' }); inFlight.current[asking.id] = { change: asking.change, by: asking.by, after: asking.after }; setAsking(null); }}
       onAccept={() => { const a = asking; consent.accept(); setAsking(null); void run(a.change, a.by, a.after); }} />}

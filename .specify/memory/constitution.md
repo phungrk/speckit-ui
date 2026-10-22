@@ -4,7 +4,8 @@ Sync Impact Report
 - Modified principles: IV. Trung thành với thiết kế. Bảng màu highlight chỉ còn "màu tô, màu đặc";
   bỏ cụm "thanh công cụ luôn tối". Hộp chọn chữ nay là một nút "Comment" trên bề mặt sáng dùng token
   Modernist (`--color-bg`, `--color-text`, `--shadow-md`) và đi theo nền đọc. Token `--hl-*` giữ
-  nguyên ở mọi nền; các token riêng của thanh tối (`--hl-ink`, `--hl-paper*`) bị xoá khi không còn nơi dùng.
+  nguyên ở mọi nền; các token độ trong suốt riêng của thanh tối (`--hl-paper-75/60/50/25/12`) bị xoá vì
+  không còn nơi dùng (`--hl-ink`, `--hl-paper` vẫn dùng cho ghim và thông báo).
 - Added sections: none
 - Removed sections: none
 - Lý do: specs/013-comment-button-popup (plan.md, Complexity Tracking), người dùng duyệt 2026-10-22.

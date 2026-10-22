@@ -96,8 +96,6 @@
   --hl-n-text: color-mix(in srgb, var(--color-text) 14%, transparent);
   --hl-selection: rgba(70, 160, 235, .35);
   --hl-ink: #1A1A1A; --hl-paper: #FFFFFF;
-  --hl-paper-75: rgba(255, 255, 255, .75); --hl-paper-60: rgba(255, 255, 255, .6); --hl-paper-50: rgba(255, 255, 255, .5);
-  --hl-paper-25: rgba(255, 255, 255, .25); --hl-paper-12: rgba(255, 255, 255, .12);
 }
 ::highlight(sk-y) { background-color: var(--hl-y-text); }
 ::highlight(sk-b) { background-color: var(--hl-b-text); }
@@ -118,27 +116,15 @@
 .hl-y { background: var(--hl-y); } .hl-b { background: var(--hl-b); } .hl-p { background: var(--hl-p); } .hl-o { background: var(--hl-o); } .hl-n { background: var(--hl-n); }
 .hl-y-solid { background: var(--hl-y-solid); } .hl-b-solid { background: var(--hl-b-solid); } .hl-p-solid { background: var(--hl-p-solid); } .hl-o-solid { background: var(--hl-o-solid); } .hl-n-solid { background: var(--hl-n-solid); }
 
-/* Selection toolbar: always dark, on every theme. The swatch and button rules are scoped under .sk-tb so
-   they beat the reset on `.sk-tb button:not(.btn)` (in the design they lose to it and the swatches collapse). */
-.sk-tb { position: fixed; z-index: 30; background: var(--hl-ink); color: var(--hl-paper); font-family: "Archivo", system-ui, sans-serif; }
-.sk-tb-row { display: flex; align-items: center; gap: 6px; padding: 8px; }
+/* Selection popup (specs/013): one Comment button on a light surface that follows the reading theme. The rules are
+   scoped under .sk-tb so they beat the reset on `.sk-tb button:not(.btn)`. */
+.sk-tb { position: fixed; z-index: 30; box-sizing: border-box; width: max-content; max-width: calc(100vw - 16px); background: var(--color-bg); color: var(--color-text); border: 1px solid var(--color-text); box-shadow: var(--shadow-md); font-family: "Archivo", system-ui, sans-serif; }
 .sk-tb button:not(.btn) { all: unset; cursor: pointer; box-sizing: border-box; }
-.sk-tb button:focus-visible { outline: 2px solid var(--hl-paper); outline-offset: 1px; }
-.sk-tb button.sk-tb-c { width: 26px; height: 26px; flex: none; }
-.sk-tb button.sk-tb-c.on { outline: 2px solid var(--hl-paper); outline-offset: 2px; }
-.sk-tb-sep { width: 1px; height: 22px; background: var(--hl-paper-25); margin: 0 2px; }
-.sk-tb button.sk-tb-b { display: flex; align-items: center; gap: 4px; font-size: var(--fs-13); font-weight: 600; padding: 4px 6px; }
-.sk-tb button.sk-tb-b:hover { background: var(--hl-paper-12); }
-.sk-tb-note { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
-.sk-tb-quote { font-family: "Literata", serif; font-size: var(--fs-13); font-style: italic; color: var(--hl-paper-75); border-left: 3px solid var(--hl-y-solid); padding-left: 8px; }
-.sk-tb-note textarea { font: inherit; font-size: var(--fs-14); background: var(--hl-paper); color: var(--hl-ink); border: 0; padding: 8px; resize: none; }
-.sk-tb-acts { display: flex; align-items: center; gap: 6px; }
-.sk-tb-acts span { margin-right: auto; font-size: var(--fs-11); color: var(--hl-paper-60); }
-.sk-tb-acts .btn { padding: 6px 10px; font-size: var(--fs-12); }
-.sk-tb-acts .btn-secondary { color: var(--hl-paper); border-color: var(--hl-paper-50); }
-.sk-tb-msg { padding: 0 8px 8px; font-size: var(--fs-12); color: var(--hl-paper-75); }
-.sk-tb button:disabled { opacity: .5; cursor: default; }
-.sk-hlp-foot { padding: var(--space-4); font-size: var(--fs-12); display: flex; gap: 6px; align-items: center; color: color-mix(in srgb, var(--color-text) 62%, transparent); }
+.sk-tb button:focus-visible { outline: 2px solid var(--color-accent); outline-offset: -2px; }
+.sk-tb button.sk-tb-b { display: flex; align-items: center; gap: 8px; white-space: nowrap; font-size: var(--fs-13); font-weight: 600; padding: 10px 14px; }
+.sk-tb button.sk-tb-b:hover { background: color-mix(in srgb, var(--color-text) 8%, transparent); }
+.sk-tb-msg { padding: 0 14px 10px; font-size: var(--fs-12); color: color-mix(in srgb, var(--color-text) 70%, transparent); }
+.sk-tb button:disabled, 
 .sk-hl-toast { position: fixed; left: 50%; bottom: var(--space-6); transform: translateX(-50%); z-index: 40; background: var(--hl-ink); color: var(--hl-paper); padding: 8px 12px; font-size: var(--fs-13); font-weight: 600; }
 .sk-hl-toast a { color: inherit; }
 .sk-hlp-out { font-size: var(--fs-11); font-weight: 600; color: var(--color-accent-700); }
@@ -211,9 +197,6 @@
 .sk-cm-out { position: absolute; left: 0; right: 0; }
 .sk-cm-out > .sk-cm-card { position: static; margin-top: 6px; }
 .sk-cm-out > h3 { margin: 0; font-size: var(--fs-11); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
-.sk-tb button.sk-tb-b.sk-tb-primary { background: var(--hl-paper); color: var(--hl-ink); font-weight: 700; }
-.sk-tb button.sk-tb-b.sk-tb-primary:hover { background: var(--hl-paper-75); }
-.sk-tb button[aria-disabled="true"] { opacity: .5; cursor: default; }
 
 /* Narrow layout: no room for the rail, so the selected comment or the composer opens in a sheet. */
 .sk-cm-sheet { position: sticky; bottom: 0; z-index: 25; box-sizing: border-box; max-height: 60vh; overflow: auto; margin-top: var(--space-4); padding: 10px 12px; background: var(--color-bg); border-top: 2px solid var(--color-text); }
