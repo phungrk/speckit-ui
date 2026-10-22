@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "highlights": [
     {
       "id": "h_0xwokh5ed1qc",
@@ -33,7 +33,17 @@
         "login": "phungrk"
       },
       "createdAt": "2026-10-22T12:13:17.911Z",
-      "updatedAt": "2026-10-22T12:13:17.911Z"
+      "updatedAt": "2026-10-22T12:51:26.958Z",
+      "replies": [
+        {
+          "id": "r_26v0gtjtqg8x",
+          "author": {
+            "login": "phungrk"
+          },
+          "createdAt": "2026-10-22T12:51:26.958Z",
+          "text": "tôi không tin"
+        }
+      ]
     }
   ]
 }
