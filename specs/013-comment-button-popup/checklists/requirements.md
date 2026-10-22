@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain (2 open: fate of colours/Copy/Ask; existing colour-only highlights)
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,4 +31,4 @@
 
 ## Notes
 
-- Resolve the two clarifications (`/speckit-clarify`) before `/speckit-plan`.
+- Both clarifications resolved 2026-10-22 (Q1 A, Q2 B). Ready for `/speckit-plan`.
