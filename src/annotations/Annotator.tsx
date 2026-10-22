@@ -173,8 +173,14 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
     }, 0);
   };
 
-  /** The highlight a change is about: its own id for an add, the id it names otherwise. */
-  const changeId = (change: HighlightChange) => change.type === 'add' ? change.highlight.id : change.id;
+  /**
+   * What a change is about, for its save state: the highlight's own id for an add, the id it names otherwise, and for a
+   * reply the reply itself, so each reply shows Sending, Saved or Failed on its own (specs/011 R8).
+   */
+  const changeId = (change: HighlightChange) => change.type === 'add' ? change.highlight.id
+    : change.type === 'reply' ? change.reply.id
+      : change.type === 'reply-edit' || change.type === 'reply-remove' ? change.replyId
+        : change.type === 'react' ? `${change.replyId ?? change.id}:${change.emoji}` : change.id;
   const forget = (id: string) => setOptimistic(o => { if (!(id in o)) return o; const n = { ...o }; delete n[id]; return n; });
 
   const run = async (change: HighlightChange, by: HighlightAuthor, after?: () => void) => {

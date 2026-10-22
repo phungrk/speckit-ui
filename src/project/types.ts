@@ -78,6 +78,20 @@ export type HighlightColor = 'y' | 'b' | 'p' | 'o' | 'n';
 /** GitHub login (server, Pages), a typed name (local) or a sample person (demo). */
 export type HighlightAuthor = { login: string } | { name: string; local: true } | { name: string; demo: true };
 
+/** An emoji someone put on a comment or a reply (specs/011): one entry per (emoji, person). */
+export interface Reaction { emoji: string; author: HighlightAuthor }
+
+/** An answer under a comment (specs/011). `createdAt` and `author` are set by whoever saves it, not by the client. */
+export interface Reply {
+  id: string;
+  author: HighlightAuthor;
+  createdAt: string;
+  /** Set once the reply was edited. */
+  editedAt?: string;
+  text: string;
+  reactions?: Reaction[];
+}
+
 /** One highlight in specs/NNN-slug/highlights.json (data-model.md). */
 export interface Highlight {
   id: string;
@@ -93,14 +107,25 @@ export interface Highlight {
   author: HighlightAuthor;
   createdAt: string;
   updatedAt: string;
+  /** Answers to the comment, oldest first (specs/011). Absent means none. */
+  replies?: Reply[];
+  /** Emoji on the comment itself (specs/011). Absent means none. */
+  reactions?: Reaction[];
 }
 
 export type HighlightChange =
   | { type: 'add'; highlight: Highlight }
   | { type: 'update'; id: string; color?: HighlightColor; note?: string }
-  | { type: 'remove'; id: string };
+  | { type: 'remove'; id: string }
+  // Specs/011. A reply is added by anyone who can save; its author and time are set where it is saved. Editing and
+  // removing are the writer's alone. `react` sets (on) or clears (off) the saver's emoji, on a comment or on one reply.
+  | { type: 'reply'; id: string; reply: { id: string; text: string } }
+  | { type: 'reply-edit'; id: string; replyId: string; text: string }
+  | { type: 'reply-remove'; id: string; replyId: string }
+  | { type: 'react'; id: string; replyId?: string; emoji: string; on: boolean };
 
-export interface HighlightsFile { version: 1; highlights: Highlight[] }
+/** `version` is 1 while no highlight has replies or emoji, 2 once one has (specs/011 R1), so an older build refuses to write it. */
+export interface HighlightsFile { version: 1 | 2; highlights: Highlight[] }
 
 /** The highlights of one spec version, as read with it. `error` blocks writing (FR-014). */
 export interface SpecHighlights { items: Highlight[]; error: string | null }
