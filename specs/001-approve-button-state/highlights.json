@@ -60,10 +60,16 @@
         "login": "phungrk"
       },
       "createdAt": "2026-10-22T14:22:58.215Z",
-      "updatedAt": "2026-10-22T14:23:20.784Z",
+      "updatedAt": "2026-10-22T14:23:29.757Z",
       "reactions": [
         {
           "emoji": "👍",
+          "author": {
+            "login": "phungrk"
+          }
+        },
+        {
+          "emoji": "❤️",
           "author": {
             "login": "phungrk"
           }
