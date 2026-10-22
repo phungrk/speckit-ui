@@ -4,6 +4,7 @@ import { MAX_REPLY } from '../../server/highlightsFile';
 import { Avatar } from './Avatar';
 import { authorLabel, relTime, sameAuthor } from './brief';
 import { SaveNote } from './CommentRail';
+import { MoreMenu } from './MoreMenu';
 import type { SaveState } from './comments';
 import { EMOJI_SET, groupReactions, reactionLabel } from './reactions';
 
@@ -91,7 +92,10 @@ export function Thread({ h, me, person, now, save = {}, readOnly, draft, invalid
         const name = nameOf(r.author);
         const state = save[r.id];
         return <li key={r.id} className="sk-cm-reply">
-          <div className="sk-cm-who"><Avatar name={name} /><b>{name}</b><span className="sk-cm-time">{relTime(r.createdAt, now)}</span>{r.editedAt && <span className="sk-cm-edited">edited</span>}</div>
+          <div className="sk-cm-who"><Avatar name={name} /><b>{name}</b><span className="sk-cm-time">{relTime(r.createdAt, now)}</span>{r.editedAt && <span className="sk-cm-edited">edited</span>}
+            {mine && editing?.replyId !== r.id && <MoreMenu label={`More actions for the reply by ${name}`} items={[
+              { key: 'edit', label: 'Edit', disabledReason: readOnly, onSelect: () => onEdit(r.id) },
+              { key: 'delete', label: 'Delete', disabledReason: readOnly, onSelect: () => setDeleting(r.id) }]} />}</div>
           {editing?.replyId === r.id
             ? <div className="sk-cm-reply-edit">
               <textarea aria-label="Edit reply" value={editing.text} rows={3} onChange={e => editing.onText(e.target.value)}
@@ -104,13 +108,9 @@ export function Thread({ h, me, person, now, save = {}, readOnly, draft, invalid
             </div>
             : <p className="sk-cm-text">{r.text}</p>}
           <ReactionBar list={r.reactions} me={me} person={person} readOnly={readOnly} what={`the reply by ${name}`} onToggle={(emoji, on) => onReact(r.id, emoji, on)} />
-          {mine && editing?.replyId !== r.id && (deleting === r.id
-            ? <div className="sk-cm-acts"><span>Delete this reply?</span>
-              <button type="button" className="btn btn-secondary" onClick={() => setDeleting(null)}>Keep</button>
-              <button type="button" className="btn btn-primary" onClick={() => { setDeleting(null); onDelete(r.id); }}>Delete</button></div>
-            : <div className="sk-cm-acts sk-cm-own">
-              <button type="button" className="btn btn-secondary" aria-disabled={off} title={readOnly ?? undefined} onClick={() => { if (!readOnly) onEdit(r.id); }}>Edit</button>
-              <button type="button" className="btn btn-secondary" aria-disabled={off} title={readOnly ?? undefined} onClick={() => { if (!readOnly) setDeleting(r.id); }}>Delete</button></div>)}
+          {mine && deleting === r.id && <div className="sk-cm-acts"><span>Delete this reply?</span>
+            <button type="button" className="btn btn-secondary" onClick={() => setDeleting(null)}>Keep</button>
+            <button type="button" className="btn btn-primary" onClick={() => { setDeleting(null); onDelete(r.id); }}>Delete</button></div>}
           {state && <SaveNote save={state} onRetry={onRetry ? () => onRetry(r.id) : undefined} />}
         </li>;
       })}

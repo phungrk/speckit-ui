@@ -140,18 +140,27 @@ describe('selected card, announcement and sheet (FR-008, FR-009, FR-011, FR-012)
     expect(sel(null)).not.toContain('sk-cm-meta');
   });
 
-  it('gives the author of the selected comment colours, Edit and Delete, and nobody else', () => {
+  it('gives the author of the selected comment colours and a three-dot menu for Edit and Delete, and nobody else (specs/014)', () => {
     const mine = sel('h1', { actions: acts() });
     expect(mine).toContain('aria-label="Colour"');
     expect([...mine.matchAll(/aria-label="Mark as (\w+)"/g)].map(m => m[1])).toEqual(['Comment', 'Key', 'Issue', 'Question', 'Change']);
     expect(mine).toContain('aria-pressed="true"');
-    expect(mine).toMatch(/>Edit</);
-    expect(mine).toMatch(/>Delete</);
+    expect(mine).toMatch(/<button[^>]*class="sk-cm-more"[^>]*aria-label="More actions"/);
+    // Edit and Delete are in the menu, which is closed here, and no longer a row of buttons on the card.
+    expect(mine).not.toMatch(/>Edit</);
+    expect(mine).not.toMatch(/>Delete</);
+    expect(mine).not.toContain('sk-cm-own');
     const theirs = sel('h2', { actions: acts() });
     expect(theirs).not.toContain('aria-label="Colour"');
-    expect(theirs).not.toMatch(/>Edit</);
-    expect(theirs).not.toMatch(/>Delete</);
-    expect(sel('h1')).not.toMatch(/>Edit</);
+    expect(theirs).not.toContain('sk-cm-more');
+    expect(sel('h1')).not.toContain('sk-cm-more');
+  });
+
+  it('puts the three-dot button on the open card only, in its header', () => {
+    const html = sel('h1', { actions: acts() });
+    expect([...html.matchAll(/class="sk-cm-more"/g)]).toHaveLength(1);
+    expect(html.indexOf('sk-cm-more')).toBeLessThan(html.indexOf('class="sk-cm-quote"'));
+    expect(sel(null, { actions: acts() })).not.toContain('sk-cm-more');
   });
 
   it('gives everyone Copy and Ask on the selected card, including a reader of somebody else\'s comment (specs/013 FR-008)', () => {
@@ -165,9 +174,9 @@ describe('selected card, announcement and sheet (FR-008, FR-009, FR-011, FR-012)
     expect(sel('h2', { actions: acts() })).not.toMatch(/>Delete</);
   });
 
-  it('turns the writing actions off with the reason when saving is off, and leaves Copy and Ask on', () => {
+  it('turns the colours off with the reason when saving is off, and leaves Copy and Ask on', () => {
     const html = sel('h1', { actions: acts({ readOnly: 'Your GitHub account has read-only access.' }) });
-    expect([...html.matchAll(/aria-disabled="true"/g)].length).toBeGreaterThanOrEqual(7);
+    expect([...html.matchAll(/aria-disabled="true"/g)].length).toBeGreaterThanOrEqual(5);
     expect(html).toContain('title="Your GitHub account has read-only access."');
     expect(html).toMatch(/<button[^>]*>Copy<\/button>/);
     expect(html).not.toMatch(/<button[^>]*aria-disabled[^>]*>Copy</);

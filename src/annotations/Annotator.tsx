@@ -132,7 +132,7 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
   // Escape lets go of the selected comment when nothing else is open.
   useEffect(() => {
     if (!selectedId) return;
-    const k = (e: KeyboardEvent) => { if (e.key === 'Escape' && !tb && !asking && !editNote && !(document.activeElement as HTMLElement | null)?.closest?.('.sk-cm-thread')) onSelect?.(null); };
+    const k = (e: KeyboardEvent) => { if (e.key === 'Escape' && !tb && !asking && !editNote && !(document.activeElement as HTMLElement | null)?.closest?.('.sk-cm-thread, .sk-cm-more-wrap, .sk-cm-menu')) onSelect?.(null); };
     window.addEventListener('keydown', k);
     return () => window.removeEventListener('keydown', k);
   }, [selectedId, tb, asking, editNote]); // eslint-disable-line react-hooks/exhaustive-deps
