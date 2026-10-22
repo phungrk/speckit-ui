@@ -2,7 +2,7 @@
 // statically. Synthetic data only.
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { CommentRail } from '../src/annotations/CommentRail';
+import { CommentRail, CommentSheet } from '../src/annotations/CommentRail';
 import { Composer } from '../src/annotations/Composer';
 import { HlToolbar, type ToolbarState } from '../src/annotations/Toolbar';
 import { toCards } from '../src/annotations/comments';
@@ -43,15 +43,15 @@ describe('comment rail (FR-007, FR-015)', () => {
     expect(html).toContain('30 min ago');
     expect(html).toMatch(/<q class="sk-cm-quote">the cap applies daily<\/q>/);
     expect(html).toMatch(/<p class="sk-cm-note">Why daily\?<\/p>/);
-    expect(html).toMatch(/style="top:\d+px"/);
+    expect(html).toMatch(/style="top:\d+px;height:124px"/);
     expect(html).not.toContain('aria-current');
   });
 
   it('keeps cards apart: a second card close to the first sits lower', () => {
     const html = rail([H('h1'), H('h2', { createdAt: '2026-10-21T08:31:00.000Z' })], { h1: 100, h2: 110 });
-    const tops = [...html.matchAll(/style="top:(\d+)px"/g)].map(m => Number(m[1]));
+    const tops = [...html.matchAll(/style="top:(\d+)px;height:(\d+)px"/g)].map(m => [Number(m[1]), Number(m[2])]);
     expect(tops).toHaveLength(2);
-    expect(tops[1]).toBeGreaterThanOrEqual(tops[0] + 96 + 8);
+    expect(tops[1][0]).toBeGreaterThanOrEqual(tops[0][0] + tops[0][1] + 8);
   });
 
   it('lists a comment whose text is gone in its own group with the old quote (FR-010)', () => {
@@ -75,7 +75,7 @@ describe('comment rail (FR-007, FR-015)', () => {
 
 const tb = (over: Partial<ToolbarState> = {}): ToolbarState => ({ mode: 'new', text: 'the cap applies daily', x: 500, top: 300, bottom: 320, ...over });
 const bar = (props: Partial<Parameters<typeof HlToolbar>[0]> = {}) => renderToStaticMarkup(<HlToolbar tb={tb()} canEdit readOnly={null} viewport={{ width: 1440, height: 900 }}
-  onColor={noop} onNote={noop} onComment={noop} onCopy={noop} onAsk={noop} onDelete={noop} onClose={noop} {...props} />);
+  onColor={noop} onComment={noop} onCopy={noop} onAsk={noop} onDelete={noop} {...props} />);
 
 describe('selection toolbar: Add comment first (FR-001, FR-006, FR-016)', () => {
   it('leads with Add comment, then the four colours, then Copy and Ask, and has no Note for a new selection', () => {
@@ -91,11 +91,13 @@ describe('selection toolbar: Add comment first (FR-001, FR-006, FR-016)', () => 
     expect(html).not.toContain('aria-disabled');
   });
 
-  it('keeps the note editor for a highlight that exists, until the card can edit it (task T038)', () => {
-    const own = bar({ tb: tb({ mode: 'edit', id: 'h1', color: 'p', noteText: 'x' }) });
-    expect(own).toContain('>Note<');
+  it('lets the author of a colour-only highlight add a comment to it, and recolour or remove it', () => {
+    const own = bar({ tb: tb({ mode: 'edit', id: 'h1', color: 'p' }), canComment: true });
+    expect(own).toContain('Add comment');
     expect(own).toContain('aria-label="Remove highlight"');
-    expect(own).not.toContain('Add comment');
+    expect(own).not.toContain('>Note<');
+    // A highlight that already has a note is commented on its card, so the toolbar does not offer it again.
+    expect(bar({ tb: tb({ mode: 'edit', id: 'h1', color: 'p' }), canComment: false })).not.toContain('Add comment');
     expect(own).toMatch(/class="sk-tb-c hl-p on"/);
     // A plain comment is none of the four swatches, so none is marked.
     expect(bar({ tb: tb({ mode: 'edit', id: 'h1', color: 'n' }) })).not.toMatch(/class="sk-tb-c hl-\w+ on"/);
@@ -160,6 +162,65 @@ describe('composer (FR-002, FR-004, FR-005)', () => {
     expect(html).not.toContain('<script>');
     expect(html).not.toContain('<img');
     expect(html).not.toContain('<b>x</b>');
+  });
+});
+
+describe('selected card, announcement and sheet (FR-008, FR-009, FR-011, FR-012)', () => {
+  const items = [H('h1'), H('h2', { note: 'Second', author: { login: 'lan' }, createdAt: '2026-10-21T08:40:00.000Z' }), H('h3', { note: 'Third', createdAt: '2026-10-21T08:50:00.000Z' })];
+  const sel = (id: string | null, extra: Partial<Parameters<typeof CommentRail>[0]> = {}) => rail(items, { h1: 100, h2: 400, h3: 700 }, { selectedId: id, ...extra });
+
+  it('opens exactly one card, marks it current, and keeps the others out of the tab order', () => {
+    const html = sel('h2');
+    expect([...html.matchAll(/aria-current="true"/g)]).toHaveLength(1);
+    expect(html).toMatch(/<article class="sk-cm-card on"[^>]*aria-label="Comment by lan/);
+    expect([...html.matchAll(/tabindex="0"/g)]).toHaveLength(1);
+    expect([...html.matchAll(/tabindex="-1"/g)]).toHaveLength(2);
+    expect(sel(null)).not.toContain('aria-current');
+  });
+
+  it('shows which colour the selected comment has', () => {
+    expect(sel('h1')).toContain('class="sk-cm-meta"');
+    expect(sel('h1')).toContain('Comment</div>');
+    expect(sel(null)).not.toContain('sk-cm-meta');
+  });
+
+  it('gives the author of the selected comment colours, Edit and Delete, and nobody else', () => {
+    const mine = sel('h1', { actions: { onColor: noop, onEdit: noop, onDelete: noop } });
+    expect(mine).toContain('aria-label="Colour"');
+    expect([...mine.matchAll(/aria-label="Mark as (\w+)"/g)].map(m => m[1])).toEqual(['Comment', 'Key', 'Issue', 'Question', 'Change']);
+    expect(mine).toContain('aria-pressed="true"');
+    expect(mine).toMatch(/>Edit</);
+    expect(mine).toMatch(/>Delete</);
+    const theirs = sel('h2', { actions: { onColor: noop, onEdit: noop, onDelete: noop } });
+    expect(theirs).not.toContain('aria-label="Colour"');
+    expect(theirs).not.toMatch(/>Edit</);
+    expect(theirs).not.toMatch(/>Delete</);
+    expect(sel('h1')).not.toMatch(/>Edit</);
+  });
+
+  it('edits the note in the card with a box that says Save', () => {
+    const html = sel('h1', { actions: { onColor: noop, onEdit: noop, onDelete: noop }, editing: { id: 'h1', text: 'Why daily?', onText: noop, onSubmit: noop, onCancel: noop } });
+    expect(html).toContain('aria-label="Edit comment"');
+    expect(html).toMatch(/<textarea[^>]*>Why daily\?<\/textarea>/);
+    expect(html).toMatch(/class="btn btn-primary"[^>]*>Save</);
+  });
+
+  it('announces the selection politely, and says nothing when none is selected', () => {
+    expect(sel('h2')).toMatch(/<div class="sk-cm-live" role="status" aria-live="polite">Comment 2 of 3 selected<\/div>/);
+    expect(sel(null)).toMatch(/<div class="sk-cm-live" role="status" aria-live="polite"><\/div>/);
+  });
+
+  it('lets an outdated comment be selected like any other', () => {
+    const html = rail([H('h1'), H('h2', { quote: 'old wording', note: 'Gone' })], { h1: 100 }, { selectedId: 'h2' });
+    expect(html).toMatch(/class="sk-cm-out"[\s\S]*sk-cm-card on/);
+    expect(html).toContain('aria-current="true"');
+  });
+
+  it('opens in a sheet at the foot of the document when there is no room for the rail', () => {
+    const html = renderToStaticMarkup(<CommentSheet label="Comment" onClose={noop}><p>card here</p></CommentSheet>);
+    expect(html).toMatch(/<div class="sk-cm-sheet" role="dialog" aria-label="Comment"/);
+    expect(html).toContain('aria-label="Close comment"');
+    expect(html).toContain('card here');
   });
 });
 

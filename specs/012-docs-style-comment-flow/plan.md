@@ -92,7 +92,7 @@ src/
 │   ├── Avatar.tsx       # mới: avatar chữ cái đầu, `src?` tuỳ chọn cho sau này
 │   ├── Annotator.tsx    # sửa: selectedId có kiểm soát, nháp, lưu lạc quan, chủ rail, Ctrl/Cmd+Alt+M
 │   ├── Toolbar.tsx      # sửa: Comment là nút chính; màu thành tuỳ chọn; bỏ trình sửa ghi chú nổi
-│   ├── useHighlights.ts # sửa: đăng ký sk-sel, sk-draft; xuất top của neo cho rail
+│   ├── useHighlights.ts # sửa: đăng ký sk-sel-{màu}, sk-draft; xuất top của neo và của nháp cho rail
 │   ├── HighlightsPanel.tsx # sửa: chip "Comment", chọn dùng chung, dấu và nút làm mới
 │   ├── colors.ts        # sửa: HL_NONE ('n', "Comment"), meaningOf
 │   ├── brief.ts         # sửa: briefNotes thứ tự Issue, rồi n, rồi còn lại
@@ -103,7 +103,7 @@ src/
 │   ├── LiveWorkspace.tsx    # sửa: selectedId, freshness, bố cục rail
 │   └── LocalWorkspace.tsx   # sửa: selectedId, làm mới khi cửa sổ được focus
 ├── App.tsx              # sửa: demo dùng chung selectedId và rail
-└── styles/reader.css    # sửa: .sk-cm-* (rail, thẻ, composer, sheet), ::highlight(sk-sel|sk-draft|sk-n), .hl-n
+└── styles/reader.css    # sửa: .sk-cm-* (rail, thẻ, composer, sheet), ::highlight(sk-sel-{k}|sk-draft|sk-n), .hl-n
 tests/
 ├── layout.test.ts       # mới
 ├── comments.test.ts     # mới

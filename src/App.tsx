@@ -49,6 +49,9 @@ export function App({ initialLayout }: { initialLayout?: LayoutPrefs } = {}) {
   const hlStore = useRef(demoStore(DEMO_SEED)).current;
   const [hls, setHls] = useState<Record<string, Highlight[]>>(() => Object.fromEntries(Object.keys(DEMO_SEED).map(k => [k, hlStore.list(k)])));
   const [focusId, setFocusId] = useState<string | null>(null);
+  // The selected comment, shared by the reading column, its rail and the Highlights tab (specs/012 FR-008, FR-012).
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selectHl = (id: string | null, o?: { jump?: boolean }) => { setSelectedId(id); if (id && o?.jump) setFocusId(id); };
   const [outdated, setOutdated] = useState<string[]>([]);
   const [threads, setThreads] = useState<Record<string, CopilotMsg[]>>({});
   const [seed, setSeed] = useState<string | null>(null);
@@ -144,7 +147,7 @@ export function App({ initialLayout }: { initialLayout?: LayoutPrefs } = {}) {
   const personOf = (a: HighlightAuthor) => { const p = SK.people['name' in a ? a.name as Role : role]; return p ? { name: p.name, ini: p.ini } : { name: 'name' in a ? a.name : a.login, ini: '?' }; };
   const notes = briefNotes(fHls, phase.k, a => personOf(a).name);
   const briefItems = status === 'review' && (brief || notes.length) ? [...(brief || []), ...notes] : null;
-  const openHl = (h: Highlight) => { const i = SK.phases.findIndex(p => p.k === h.phase); if (i >= 0) setSel(i); setFocusId(h.id); };
+  const openHl = (h: Highlight) => { const i = SK.phases.findIndex(p => p.k === h.phase); if (i >= 0) setSel(i); selectHl(h.id, { jump: true }); };
 
   let view: ReactNode;
   if (pi === 0) view = <ConstitutionView />;
@@ -204,7 +207,7 @@ export function App({ initialLayout }: { initialLayout?: LayoutPrefs } = {}) {
           </button>;
         })}</div>
         <Annotator items={fHls} target={{ slug: f.id, branch: null, phase: phase.k, doc: '', docSha: null }} store={hlStore}
-          author={{ name: role, demo: true }} person={personOf} focusId={focusId} clearFocus={() => setFocusId(null)} onOutdated={setOutdated}
+          author={{ name: role, demo: true }} person={personOf} focusId={focusId} clearFocus={() => setFocusId(null)} selectedId={selectedId} onSelect={selectHl} onOutdated={setOutdated}
           onItems={(items, change) => {
             setHls(x => ({ ...x, [f.id]: items }));
             const note = change.type === 'add' ? change.highlight.note : change.type === 'update' ? change.note : undefined;
@@ -227,7 +230,7 @@ export function App({ initialLayout }: { initialLayout?: LayoutPrefs } = {}) {
           <button role="tab" aria-selected={rtab === 'hl'} onClick={() => setRtab('hl')}>Highlights{fHls.length > 0 && <span className="sk-rtab-n">{fHls.length}</span>}</button>
           <button role="tab" aria-selected={rtab === 'ai'} onClick={() => setRtab('ai')}><span className="sk-ai-badge">AI</span>Copilot{msgs.length > 0 && <span className="sk-rtab-n">{Math.ceil(msgs.length / 2)}</span>}</button>
         </div>
-        {rtab === 'hl' ? <HighlightsPanel items={fHls} phases={SK.phases.map(p => ({ key: p.k, name: p.n }))} outdated={outdated} onOpen={openHl} person={personOf} /> : rtab === 'ai' ? <Copilot label={<>Reading <b>{f.id}</b> · {phase.n} · as {role}</>} tag={`${f.id} · ${phase.n} · ${role}`} audience={role} suggestions={CP_SUGGEST[role]} placeholder={`Ask about ${f.title.toLowerCase()}…`} refPattern={CP_REF} msgs={msgs} setMsgs={setMsgs} ask={ask} seed={seed} clearSeed={() => setSeed(null)} onRef={onRef} onShare={onShare} /> : <>
+        {rtab === 'hl' ? <HighlightsPanel items={fHls} phases={SK.phases.map(p => ({ key: p.k, name: p.n }))} outdated={outdated} onOpen={openHl} selectedId={selectedId} person={personOf} /> : rtab === 'ai' ? <Copilot label={<>Reading <b>{f.id}</b> · {phase.n} · as {role}</>} tag={`${f.id} · ${phase.n} · ${role}`} audience={role} suggestions={CP_SUGGEST[role]} placeholder={`Ask about ${f.title.toLowerCase()}…`} refPattern={CP_REF} msgs={msgs} setMsgs={setMsgs} ask={ask} seed={seed} clearSeed={() => setSeed(null)} onRef={onRef} onShare={onShare} /> : <>
           <div className="sk-pad">
             <Label>Gate · {phase.n}</Label>
             <p className="sk-what">{phase.what}</p>

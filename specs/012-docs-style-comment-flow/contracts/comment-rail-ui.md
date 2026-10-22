@@ -49,7 +49,7 @@ article.sk-cm-card[role=group][aria-label="Comment by {tác giả} on “{trích
 └── .sk-cm-thread          (khe cho 011: trả lời, emoji, giải quyết)
 ```
 
-- Thẻ đang chọn: mở rộng, `.sk-cm-card.on`, viền đậm theo token. Đoạn chữ tương ứng: `::highlight(sk-sel)`
+- Thẻ đang chọn: mở rộng, `.sk-cm-card.on`, viền đậm theo token. Đoạn chữ tương ứng: `::highlight(sk-sel-{k})` (một tên cho mỗi màu `y|b|p|o|n`, chỉ đăng ký tên của màu đang chọn; nền đậm hơn của chính màu đó cộng gạch chân, nên vẫn thấy khi trình duyệt không có `priority`). Thẻ đóng cao đúng `CLOSED_CARD_HEIGHT` = 124px (đặt inline, để bố cục không phải đo); thẻ mở cao theo nội dung và được đo. Rail cao bằng thẻ cuối cùng của nó (`height` inline) để tài liệu cuộn tới được các thẻ ở xa, vì thẻ ngoài vùng nhìn không được dựng.
   (nền đậm hơn và gạch chân), đăng ký sau các màu với `priority = 1`.
 - Màu `n`: `.hl-n-solid` thanh bên thẻ; chip "Comment" ở bộ lọc tab Highlights.
 - Trạng thái lưu hiện trong `role="status"` của vùng live (research R12).

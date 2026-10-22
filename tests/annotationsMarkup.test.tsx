@@ -15,7 +15,7 @@ import type { Highlight } from '../src/project/types';
 const noop = () => {};
 const tb = (over: Partial<ToolbarState> = {}): ToolbarState => ({ mode: 'new', text: 'the cap applies daily', x: 500, top: 300, bottom: 320, ...over });
 const bar = (props: Partial<Parameters<typeof HlToolbar>[0]> = {}) => renderToStaticMarkup(<HlToolbar tb={tb()} canEdit readOnly={null} viewport={{ width: 1440, height: 900 }}
-  onColor={noop} onNote={noop} onComment={noop} onCopy={noop} onAsk={noop} onDelete={noop} onClose={noop} {...props} />);
+  onColor={noop} onComment={noop} onCopy={noop} onAsk={noop} onDelete={noop} {...props} />);
 const H = (id: string, over: Partial<Highlight> = {}): Highlight => ({
   id, phase: 'specify', doc: 'spec.md', quote: 'quoted text', prefix: '', suffix: '', startHint: 0, docSha: null, color: 'y', note: '',
   author: { login: 'mai' }, createdAt: '2026-10-21T08:00:00.000Z', updatedAt: '2026-10-21T08:00:00.000Z', ...over
@@ -45,29 +45,21 @@ describe('selection toolbar (FR-003, FR-004)', () => {
     expect(bar({ readOnly: 'Your token cannot commit to main.' })).toContain('Your token cannot commit to main.');
   });
 
-  it('renders the note editor with real buttons', () => {
-    const html = bar({ tb: tb({ mode: 'edit', id: 'h1', noting: true, text: 'x'.repeat(120), noteText: 'n' }) });
-    expect(html).toContain('x'.repeat(90) + '…');
-    expect(html).toContain('placeholder="Add a note for the team…"');
-    expect(html).toContain('Visible to approvers');
-    expect(html).toMatch(/class="btn btn-secondary"[^>]*>Cancel</);
-    expect(html).toMatch(/class="btn btn-primary"[^>]*>Save note</);
-  });
-
-  it('keeps quotes and notes as plain text (FR-007)', () => {
-    const evil = '<img src=x onerror=alert(1)> **bold**';
-    const html = bar({ tb: tb({ mode: 'edit', id: 'h1', noting: true, text: evil, noteText: evil }) });
-    expect(html).not.toContain('<img');
-    expect(html).not.toContain('<strong>');
-    expect(html).toContain('&lt;img src=x onerror=alert(1)&gt; **bold**');
+  it('has no floating note editor any more: notes are written in the rail or the sheet (spec 012, task T038)', () => {
+    for (const html of [bar(), bar({ tb: tb({ mode: 'edit', id: 'h1', color: 'p' }) })]) {
+      expect(html).not.toContain('sk-tb-note');
+      expect(html).not.toContain('Save note');
+      expect(html).not.toContain('<textarea');
+      expect(html).not.toContain('>Note<');
+    }
   });
 
   it('sits 52px above the selection, flips below, and stays 8px inside the viewport', () => {
     const vp = { width: 1440, height: 900 };
-    expect(toolbarPosition({ x: 500, top: 300, bottom: 320 }, false, vp)).toEqual({ left: 350, top: 248, width: 300 });
-    expect(toolbarPosition({ x: 500, top: 30, bottom: 50 }, false, vp).top).toBe(60);
-    expect(toolbarPosition({ x: 5, top: 300, bottom: 320 }, false, vp).left).toBe(8);
-    expect(toolbarPosition({ x: 1435, top: 300, bottom: 320 }, true, vp)).toMatchObject({ left: 1440 - 320 - 8, width: 320 });
+    expect(toolbarPosition({ x: 500, top: 300, bottom: 320 }, vp)).toEqual({ left: 310, top: 248, width: 380 });
+    expect(toolbarPosition({ x: 500, top: 30, bottom: 50 }, vp).top).toBe(60);
+    expect(toolbarPosition({ x: 5, top: 300, bottom: 320 }, vp).left).toBe(8);
+    expect(toolbarPosition({ x: 1435, top: 300, bottom: 320 }, vp)).toMatchObject({ left: 1440 - 380 - 8, width: 380 });
     expect(quotePreview('abc')).toBe('abc');
   });
 });

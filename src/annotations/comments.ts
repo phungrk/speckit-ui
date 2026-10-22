@@ -4,8 +4,8 @@ import type { Highlight, HighlightAuthor } from '../project/types';
 import type { Anchor } from './anchor';
 import { sameAuthor } from './brief';
 
-/** Height of a closed card in the rail: fixed, so the layout needs no measuring (research R2). */
-export const CLOSED_CARD_HEIGHT = 96;
+/** Height of a closed card in the rail: fixed by the CSS to this number, so the layout needs no measuring (research R2). */
+export const CLOSED_CARD_HEIGHT = 124;
 
 /** Where a change stands: reading from the file, being saved, saved (with where), or refused. */
 export type SaveState =
@@ -57,6 +57,8 @@ export interface CommentDraft {
   key: string;
   /** The id the highlight gets when it is sent, kept across retries so a retry never makes a second comment. */
   id?: string;
+  /** The comment is a note for a highlight that already exists (a colour-only one): sending it updates that highlight. */
+  existingId?: string;
   slug: string;
   branch: string | null;
   phase: string;
@@ -81,4 +83,24 @@ export const draftsHere = (drafts: Record<string, CommentDraft>, t: DraftPlace):
 /** How many unsent drafts with some text live in other documents, so the reader is told they are kept. */
 export const draftsElsewhere = (drafts: Record<string, CommentDraft>, t: DraftPlace): number =>
   Object.values(drafts).filter(d => !same(d, t) && d.text.trim()).length;
+
+/**
+ * The comment under a click, among those whose text covers `offset`: the newest first, and the next one when the
+ * same place is clicked again, round and round (research R13). Only commented highlights belong in `anchors`.
+ */
+export function pickOverlap(anchors: { id: string; start: number; end: number; createdAt: string }[], offset: number, current: string | null): string | null {
+  const hits = anchors.filter(a => offset >= a.start && offset < a.end)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id));
+  if (hits.length === 0) return null;
+  const at = hits.findIndex(h => h.id === current);
+  return hits[at < 0 ? 0 : (at + 1) % hits.length].id;
+}
+
+/** The comment selected after a key on the rail: arrows move along it and stop at the ends; Escape lets go. */
+export function nextSelection(ids: string[], current: string | null, key: 'ArrowUp' | 'ArrowDown' | 'Escape'): string | null {
+  if (key === 'Escape' || ids.length === 0) return null;
+  const at = current === null ? -1 : ids.indexOf(current);
+  if (key === 'ArrowDown') return at < 0 ? ids[0] : ids[Math.min(at + 1, ids.length - 1)];
+  return at < 0 ? ids[ids.length - 1] : ids[Math.max(at - 1, 0)];
+}
 

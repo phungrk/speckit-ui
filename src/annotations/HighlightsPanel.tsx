@@ -15,6 +15,8 @@ export interface HighlightsPanelProps {
   phases: readonly PanelPhase[];
   /** Highlights whose text is gone (Outdated) on the step on screen. */
   outdated: string[];
+  /** The selected comment, shared with the reading column and its rail (specs/012 FR-012). */
+  selectedId?: string | null;
   onOpen: (h: Highlight) => void;
   /** Avatar initials and display name of an author. */
   person?: (a: HighlightAuthor) => { name: string; ini: string };
@@ -27,7 +29,7 @@ export interface HighlightsPanelProps {
 
 const defaultPerson = (a: HighlightAuthor) => { const name = authorLabel(a); return { name, ini: initials(name) }; };
 
-export function HighlightsPanel({ items, phases, outdated, onOpen, person = defaultPerson, ask, readOnly, now }: HighlightsPanelProps) {
+export function HighlightsPanel({ items, phases, outdated, selectedId = null, onOpen, person = defaultPerson, ask, readOnly, now }: HighlightsPanelProps) {
   const [flt, setFlt] = useState<'all' | HighlightColor>('all');
   const shown = items.filter(h => flt === 'all' || h.color === flt);
   const order = phases.map(p => p.key);
@@ -43,7 +45,7 @@ export function HighlightsPanel({ items, phases, outdated, onOpen, person = defa
     {groups.map(g => <section key={g.k} className="sk-hlp-sec"><Label>{String(g.i + 1).padStart(2, '0')} · {phases[g.i].name}</Label>
       {g.list.map(h => {
         const p = person(h.author);
-        return <button type="button" key={h.id} className="sk-hlp-item" onClick={() => onOpen(h)}>
+        return <button type="button" key={h.id} className={'sk-hlp-item' + (h.id === selectedId ? ' on' : '')} aria-current={h.id === selectedId ? 'true' : undefined} onClick={() => onOpen(h)}>
           <i className={'sk-hlp-bar hl-' + h.color + '-solid'}></i>
           <div>
             <q>{h.quote}</q>

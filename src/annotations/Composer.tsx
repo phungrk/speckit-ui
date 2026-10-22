@@ -26,10 +26,13 @@ export interface ComposerProps {
   /** Top in the scroll container; absent when the composer sits in a sheet. */
   top?: number;
   autoFocus?: boolean;
+  /** `aria-label` of the box and the label of the send button: a new comment, or an edit of one (specs/012 FR-002). */
+  label?: string;
+  submitLabel?: string;
 }
 
-export function Composer({ name, quote, text, onText, onSubmit, onCancel, busy, invalid, error, confirming, onKeep, onDiscard, top, autoFocus = true }: ComposerProps) {
-  return <article className="sk-cm-card sk-cm-draft" role="group" aria-label="New comment" style={top === undefined ? undefined : { top }}>
+export function Composer({ name, quote, text, onText, onSubmit, onCancel, busy, invalid, error, confirming, onKeep, onDiscard, top, autoFocus = true, label = 'New comment', submitLabel = 'Comment' }: ComposerProps) {
+  return <article className="sk-cm-card sk-cm-draft" role="group" aria-label={label} style={top === undefined ? undefined : { top }}>
     <div className="sk-cm-who"><Avatar name={name} /><b>{name}</b></div>
     <q className="sk-cm-quote">{quotePreview(quote)}</q>
     <textarea rows={3} value={text} maxLength={2000} placeholder="Add a comment…" aria-label="Comment" autoFocus={autoFocus}
@@ -47,6 +50,6 @@ export function Composer({ name, quote, text, onText, onSubmit, onCancel, busy, 
         <button type="button" className="btn btn-primary" onClick={onDiscard}>Discard</button></div>
       : <div className="sk-cm-acts">
         <button type="button" className="btn btn-secondary" onClick={onCancel}>Cancel</button>
-        <button type="button" className="btn btn-primary" disabled={busy} onClick={onSubmit}>Comment</button></div>}
+        <button type="button" className="btn btn-primary" disabled={busy} onClick={onSubmit}>{submitLabel}</button></div>}
   </article>;
 }

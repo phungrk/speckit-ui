@@ -6,9 +6,9 @@ import { authorLabel, pendingTarget, sameAuthor } from './brief';
 import type { HighlightStore } from './store';
 import { HlToolbar, type ToolbarState } from './Toolbar';
 import { useHighlights } from './useHighlights';
-import { CommentRail, useDocViewport, useRailRoom, type RailDraft } from './CommentRail';
+import { Card, CommentRail, CommentSheet, useDocViewport, useRailRoom, type CardActions, type CardEditing, type RailDraft } from './CommentRail';
 import { Composer } from './Composer';
-import { draftKey, draftsElsewhere, draftsHere, toCards, type CommentDraft } from './comments';
+import { draftKey, draftsElsewhere, draftsHere, pickOverlap, toCards, type CommentDraft } from './comments';
 
 // The reading column with highlights (specs/010-spec-annotations): selection → toolbar → save
 // through a HighlightStore; pins in the margin; one-time commit consent and the saved toast.
@@ -62,6 +62,9 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
   const [activeDraft, setActiveDraft] = useState<string | null>(null);
   const [discardAsk, setDiscardAsk] = useState<string | null>(null);
   const [needText, setNeedText] = useState<string | null>(null);
+  // The note of a comment being edited in its card (specs/012 US2).
+  const [editNote, setEditNote] = useState<{ id: string; text: string } | null>(null);
+  const [editErr, setEditErr] = useState<string | null>(null);
   const here = draftsHere(drafts, target);
   const { anchors, markers, outdated, tops, draftTops, unsupported } = useHighlights(colRef, docRef, shown, focusId, clearFocus, {
     selectedId,
@@ -96,19 +99,26 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
   }, [tb, asking]);
   useEffect(() => { if (!toast && !notice) return; const t = setTimeout(() => { setToast(null); setNotice(null); }, 4000); return () => clearTimeout(t); }, [toast, notice]);
 
-  // A draft follows its own spec and step; moving away keeps it but says so (spec edge case).
-  const stale = tb && pendingTarget(tb.target, target) === 'moved'
-    ? (tb.noteText || tb.mode === 'new' ? `Discard this note? It belongs to ${tb.target.slug} · ${tb.target.phase}. Save keeps it there.` : null)
-    : null;
-  useEffect(() => { if (tb && pendingTarget(tb.target, target) === 'moved' && !tb.noting) close(); }, [target.slug, target.branch, target.phase]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The toolbar belongs to the step it opened on: moving away closes it (what is typed is in a draft, which is kept).
+  useEffect(() => { if (tb && pendingTarget(tb.target, target) === 'moved') close(); }, [target.slug, target.branch, target.phase]); // eslint-disable-line react-hooks/exhaustive-deps
+  // A selection that is not on this step any more is let go (a click on the Highlights tab switches step and selects together).
+  const shownIds = shown.map(h => h.id).join(',');
+  useEffect(() => { if (selectedId && !shown.some(h => h.id === selectedId)) onSelect?.(null); }, [selectedId, shownIds]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Escape lets go of the selected comment when nothing else is open.
+  useEffect(() => {
+    if (!selectedId) return;
+    const k = (e: KeyboardEvent) => { if (e.key === 'Escape' && !tb && !asking && !editNote) onSelect?.(null); };
+    window.addEventListener('keydown', k);
+    return () => window.removeEventListener('keydown', k);
+  }, [selectedId, tb, asking, editNote]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const open = (draft: Omit<Draft, 'target'>) => { setError(null); setTb({ ...draft, target }); };
 
-  const openFor = (id: string, noting = false) => {
+  const openFor = (id: string) => {
     const a = anchors.current.find(x => x.h.id === id);
     if (!a) return;
     const b = a.range.getBoundingClientRect();
-    open({ mode: 'edit', id, text: a.h.quote, color: a.h.color, noteText: a.h.note, noting, x: b.left + b.width / 2, top: b.top, bottom: b.bottom });
+    open({ mode: 'edit', id, text: a.h.quote, color: a.h.color, x: b.left + b.width / 2, top: b.top, bottom: b.bottom });
   };
 
   const onUp = (x: number, y: number, target_: EventTarget | null) => {
@@ -131,8 +141,14 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
       }
       // Pointer: the character under it; keyboard (x < 0): the caret.
       const o = x >= 0 ? caretOffset(root, x, y) : sel?.anchorNode && root.contains(sel.anchorNode) ? offsetIn(root, sel.anchorNode, sel.anchorOffset) : -1;
+      // A comment under the click is selected (the newest, then the next on another click); a highlight with only a
+      // colour keeps the toolbar of 010; a click elsewhere lets go of the selection (specs/012 FR-008).
+      const commented = anchors.current.filter(a => a.h.note.trim()).map(a => ({ id: a.h.id, start: a.start, end: a.end, createdAt: a.h.createdAt }));
+      const picked = pickOverlap(commented, o, selectedId);
+      if (picked) { onSelect?.(picked); return; }
       const hit = anchors.current.find(a => o >= a.start && o < a.end);
-      if (hit) openFor(hit.h.id);
+      if (hit) { openFor(hit.h.id); return; }
+      if (selectedId && o >= 0) onSelect?.(null);
     }, 0);
   };
 
@@ -171,13 +187,18 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
   // ---- Add comment (specs/012 US1) ----
   const me = author ? (person?.(author).name ?? authorLabel(author)) : 'You';
 
-  const startDraftAt = (anchor: Anchor, tgt: AnnotatorTarget) => {
+  const startDraftAt = (anchor: Anchor, tgt: AnnotatorTarget, existingId?: string) => {
     const key = draftKey(tgt, anchor.startHint);
-    setDrafts(d => d[key] ? d : { ...d, [key]: { key, id: newId(), slug: tgt.slug, branch: tgt.branch, phase: tgt.phase, doc: tgt.doc, docSha: tgt.docSha, anchor, text: '' } });
+    setDrafts(d => d[key] ? d : { ...d, [key]: { key, id: newId(), existingId, slug: tgt.slug, branch: tgt.branch, phase: tgt.phase, doc: tgt.doc, docSha: tgt.docSha, anchor, text: '' } });
     setActiveDraft(key); setNeedText(null); setDiscardAsk(null); setError(null);
     close();
   };
-  const startComment = () => { if (tb?.anchor) startDraftAt(tb.anchor, tb.target); };
+  const startComment = () => {
+    if (tb?.mode === 'new' && tb.anchor) return startDraftAt(tb.anchor, tb.target);
+    // A highlight of yours that has only a colour gets its comment as a note on it, not a second highlight.
+    const h = tb?.id ? items.find(x => x.id === tb.id) : undefined;
+    if (h) startDraftAt({ quote: h.quote, prefix: h.prefix, suffix: h.suffix, startHint: h.startHint }, tb!.target, h.id);
+  };
 
   const setDraftText = (key: string, text: string) => { setDrafts(d => d[key] ? { ...d, [key]: { ...d[key], text } } : d); if (needText === key && text.trim()) setNeedText(null); };
   const removeDraft = (key: string) => {
@@ -193,6 +214,7 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
     if (!note) { setNeedText(d.key); return; }
     setNeedText(null);
     setActiveDraft(d.key);
+    if (d.existingId) { save({ type: 'update', id: d.existingId, note }, () => removeDraft(d.key)); return; }
     const now = new Date().toISOString();
     // A plain comment has no colour (n). The id was made with the draft, so a retry is the same comment.
     save({ type: 'add', highlight: { id: d.id ?? newId(), phase: d.phase, doc: d.doc, ...d.anchor, docSha: d.docSha ?? null, color: 'n', note, author: author ?? { name: 'You', local: true }, createdAt: now, updatedAt: now } }, () => removeDraft(d.key));
@@ -217,22 +239,40 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
       const s = readSelection();
       if (!s) return;
       e.preventDefault();
-      // Without room for the rail, or when saving is off (the toolbar says why), the toolbar is the place.
-      if (store.readOnly || !room) open({ mode: 'new', text: s.anchor.quote, anchor: s.anchor, x: s.x, top: s.top, bottom: s.bottom, noting: !store.readOnly });
+      // When saving is off the toolbar says why; otherwise the composer opens (in the rail, or in the sheet when narrow).
+      if (store.readOnly) open({ mode: 'new', text: s.anchor.quote, anchor: s.anchor, x: s.x, top: s.top, bottom: s.bottom });
       else startDraftAt(s.anchor, target);
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   });
 
-  const railDrafts: RailDraft[] = here.filter(d => draftTops[d.key] !== undefined).map(d => ({
-    id: d.key,
-    anchorTop: draftTops[d.key],
-    render: top => <Composer key={d.key} name={me} quote={d.anchor.quote} text={d.text} top={top} autoFocus={activeDraft === d.key}
-      onText={t => setDraftText(d.key, t)} onSubmit={() => submitDraft(d)} onCancel={() => cancelDraft(d)}
-      busy={busy && activeDraft === d.key} invalid={needText === d.key} error={activeDraft === d.key ? error : null}
-      confirming={discardAsk === d.key} onKeep={() => setDiscardAsk(null)} onDiscard={() => removeDraft(d.key)} />
-  }));
+  const composerFor = (d: CommentDraft, top?: number) => <Composer key={d.key} name={me} quote={d.anchor.quote} text={d.text} top={top} autoFocus={activeDraft === d.key}
+    onText={t => setDraftText(d.key, t)} onSubmit={() => submitDraft(d)} onCancel={() => cancelDraft(d)}
+    busy={busy && activeDraft === d.key} invalid={needText === d.key} error={activeDraft === d.key ? error : null}
+    confirming={discardAsk === d.key} onKeep={() => setDiscardAsk(null)} onDiscard={() => removeDraft(d.key)} />;
+  const railDrafts: RailDraft[] = here.filter(d => draftTops[d.key] !== undefined).map(d => ({ id: d.key, anchorTop: draftTops[d.key], render: top => composerFor(d, top) }));
+
+  // What the author of the selected comment can do on its card, and the note being edited there (specs/012 US2).
+  const actions: CardActions = {
+    onColor: (id, color) => save({ type: 'update', id, color }),
+    onEdit: id => { const h = items.find(x => x.id === id); if (h) { setEditNote({ id, text: h.note }); setEditErr(null); setError(null); } },
+    onDelete: id => save({ type: 'remove', id }, () => onSelect?.(null))
+  };
+  const cardEditing: CardEditing | undefined = editNote ? {
+    id: editNote.id, text: editNote.text, busy, error: editErr ?? error,
+    onText: t => { setEditNote({ id: editNote.id, text: t }); setEditErr(null); },
+    onSubmit: () => {
+      const note = editNote.text.trim();
+      if (!note) { setEditErr('Write a comment first'); return; }
+      save({ type: 'update', id: editNote.id, note }, () => setEditNote(null));
+    },
+    onCancel: () => { setEditNote(null); setEditErr(null); setError(null); }
+  } : undefined;
+
+  // Without room for the rail, the selected comment or the comment being written opens in a sheet at the foot (research R9).
+  const selectedCard = selectedId ? [...cards.cards, ...cards.outdated].find(c => c.id === selectedId) : undefined;
+  const sheetDraft = here.find(d => d.key === activeDraft) ?? here[0];
 
   const editing = tb?.id ? items.find(h => h.id === tb.id) : undefined;
   const canEdit = tb?.mode === 'new' || (!!editing && sameAuthor(author, editing.author));
@@ -247,23 +287,25 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
         const first = document.querySelector<HTMLElement>('.sk-tb button:not(:disabled), .sk-tb textarea');
         if (first) { e.preventDefault(); first.focus(); }
       }}
-      onScroll={() => tb && !tb.noting && close()}>
+      onScroll={() => tb && close()}>
       {unsupported && items.length > 0 && <p className="sk-hlp-empty" role="note">This browser cannot draw highlights in the text; they are listed in the Highlights tab.</p>}
       <div className="sk-col" ref={colRef}>{children}</div>
-      {showRail && <CommentRail cards={cards} selectedId={selectedId} onSelect={(id, o) => onSelect?.(id, o)} branch={target.branch} left={railLeft} viewport={viewport} person={person}
-        drafts={railDrafts} activeDraftId={activeDraft} draftsElsewhere={draftsElsewhere(drafts, target)} />}
+      {showRail && <CommentRail cards={cards} selectedId={selectedId} onSelect={(id, o) => onSelect?.(id, o)} branch={target.branch} left={railLeft} viewport={viewport} docRef={docRef} person={person}
+        actions={actions} editing={cardEditing} drafts={railDrafts} activeDraftId={activeDraft} draftsElsewhere={draftsElsewhere(drafts, target)} />}
+      {!showRail && (sheetDraft || selectedCard) && <CommentSheet label="Comment" onClose={() => { if (sheetDraft) cancelDraft(sheetDraft); else onSelect?.(null); }}>
+        {sheetDraft ? composerFor(sheetDraft)
+          : <Card card={selectedCard!} selected person={person} onSelect={() => {}} actions={actions} editing={cardEditing} />}
+      </CommentSheet>}
       {/* Where the rail is shown its cards take the place of the pins (spec FR-012). */}
       {!showRail && markers.map(m => <button type="button" key={m.id} className={'sk-hl-pin hl-' + m.color + '-solid'} style={{ top: m.top, left: m.left }}
-        aria-label={`Note by ${authorLabel(m.author)}`} onClick={() => openFor(m.id, true)}><Icon n="note" s={12} /></button>)}
+        aria-label={`Note by ${authorLabel(m.author)}`} onClick={() => onSelect?.(m.id, { jump: true })}><Icon n="note" s={12} /></button>)}
     </div>
-    {tb && <HlToolbar key={(tb.id ?? '') + tb.text} tb={tb} canEdit={canEdit} readOnly={store.readOnly} busy={busy} error={error} stale={stale}
+    {tb && <HlToolbar key={(tb.id ?? '') + tb.text} tb={tb} canEdit={canEdit} canComment={tb.mode === 'new' || (canEdit && !editing?.note.trim())} readOnly={store.readOnly} busy={busy} error={error}
       onColor={c => tb.mode === 'new' ? add(c) : save({ type: 'update', id: tb.id!, color: c })}
-      inline={!room} onComment={startComment}
-      onNote={t => tb.mode === 'new' ? (t.trim() ? add('n', t.trim()) : setError('Write a comment first')) : save({ type: 'update', id: tb.id!, note: t.trim() })}
+      onComment={startComment}
       onCopy={() => { void navigator.clipboard?.writeText(tb.text); close(); }}
       onAsk={() => { onAsk(tb.text); close(); }}
-      onDelete={() => save({ type: 'remove', id: tb.id! })}
-      onClose={close} />}
+      onDelete={() => save({ type: 'remove', id: tb.id! })} />}
     {asking && consent && <ConsentDialog branch={consent.branch} login={consent.login} onCancel={() => setAsking(null)}
       onAccept={() => { const a = asking; consent.accept(); setAsking(null); void run(a.change, a.by, a.after); }} />}
     {notice && !toast && <div className="sk-hl-toast" role="status">{notice}</div>}

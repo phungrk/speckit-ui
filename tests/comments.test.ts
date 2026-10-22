@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { HL_COLORS, HL_NONE, meaningOf } from '../src/annotations/colors';
 import { briefNotes, readOnlyReason } from '../src/annotations/brief';
-import { toCards, CLOSED_CARD_HEIGHT, draftKey, draftsElsewhere, draftsHere, type CommentDraft } from '../src/annotations/comments';
+import { toCards, CLOSED_CARD_HEIGHT, draftKey, draftsElsewhere, draftsHere, nextSelection, pickOverlap, type CommentDraft } from '../src/annotations/comments';
 import type { Highlight } from '../src/project/types';
 
 export const H = (id: string, over: Partial<Highlight> = {}): Highlight => ({
@@ -135,6 +135,60 @@ describe('why saving is off (spec 012 FR-016, research R16)', () => {
     expect(readOnlyReason({ ...all, pinned: false }, 'highlights.json cannot be read', 'refused')).toBe('highlights.json cannot be read');
     expect(readOnlyReason({ ...all, pinned: false }, null, 'refused')).toMatch(/read-only access/);
     expect(readOnlyReason(base, null, 'Your token cannot commit to main.')).toBe('Your token cannot commit to main.');
+  });
+});
+
+describe('pickOverlap (spec 012 research R13)', () => {
+  const a = (id: string, start: number, end: number, createdAt: string) => ({ id, start, end, createdAt });
+  const anchors = [a('c1', 10, 50, '2026-10-21T08:00:00.000Z'), a('c2', 30, 70, '2026-10-21T09:00:00.000Z'), a('c3', 100, 120, '2026-10-21T07:00:00.000Z')];
+
+  it('finds nothing where no comment is', () => {
+    expect(pickOverlap(anchors, 5, null)).toBeNull();
+    expect(pickOverlap(anchors, 80, null)).toBeNull();
+    expect(pickOverlap(anchors, -1, null)).toBeNull();
+  });
+
+  it('picks the only comment at a place', () => {
+    expect(pickOverlap(anchors, 15, null)).toBe('c1');
+    expect(pickOverlap(anchors, 110, null)).toBe('c3');
+  });
+
+  it('picks the newest where comments overlap, and goes to the next on another click, round and round', () => {
+    expect(pickOverlap(anchors, 40, null)).toBe('c2');
+    expect(pickOverlap(anchors, 40, 'c2')).toBe('c1');
+    expect(pickOverlap(anchors, 40, 'c1')).toBe('c2');
+  });
+
+  it('starts again with the newest when the selected comment is not at that place', () => {
+    expect(pickOverlap(anchors, 40, 'c3')).toBe('c2');
+  });
+
+  it('does not include the end offset, which belongs to the text after', () => {
+    expect(pickOverlap(anchors, 50, null)).toBe('c2');
+    expect(pickOverlap(anchors, 70, null)).toBeNull();
+  });
+});
+
+describe('nextSelection (spec 012 FR-008, keyboard)', () => {
+  const ids = ['c1', 'c2', 'c3'];
+  it('moves down and up the rail and stops at the ends', () => {
+    expect(nextSelection(ids, null, 'ArrowDown')).toBe('c1');
+    expect(nextSelection(ids, 'c1', 'ArrowDown')).toBe('c2');
+    expect(nextSelection(ids, 'c3', 'ArrowDown')).toBe('c3');
+    expect(nextSelection(ids, 'c2', 'ArrowUp')).toBe('c1');
+    expect(nextSelection(ids, 'c1', 'ArrowUp')).toBe('c1');
+    expect(nextSelection(ids, null, 'ArrowUp')).toBe('c3');
+  });
+  it('lets go on Escape and ignores a selection that is not in the rail', () => {
+    expect(nextSelection(ids, 'c2', 'Escape')).toBeNull();
+    expect(nextSelection(ids, 'gone', 'ArrowDown')).toBe('c1');
+    expect(nextSelection([], null, 'ArrowDown')).toBeNull();
+  });
+});
+
+describe('closed card height', () => {
+  it('is a number the CSS and the layout share (a closed card has exactly this height)', () => {
+    expect(CLOSED_CARD_HEIGHT).toBeGreaterThanOrEqual(120);
   });
 });
 
