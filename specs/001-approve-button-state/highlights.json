@@ -44,6 +44,23 @@
           "text": "tôi không tin"
         }
       ]
+    },
+    {
+      "id": "h_h59zgp02nn28",
+      "phase": "specify",
+      "doc": "spec.md",
+      "quote": "Hiện nay nút Approve vẫn còn và",
+      "prefix": " người duyệt không thể bấm lại. ",
+      "suffix": " bấm được sau khi duyệt thành cô",
+      "startHint": 651,
+      "docSha": "556cf2e9eb2d1fed3707b7f939fb444f227193f3",
+      "color": "o",
+      "note": "kinh nghiệm kinh nghiệm",
+      "author": {
+        "login": "phungrk"
+      },
+      "createdAt": "2026-10-22T14:22:58.215Z",
+      "updatedAt": "2026-10-22T14:22:58.215Z"
     }
   ]
 }
