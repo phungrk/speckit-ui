@@ -156,6 +156,11 @@ export interface Project {
   branchPrefixes: string[];
   /** `ref` was chosen in Settings or GITHUB_REF, so feat/ branches are not read (FR-010). */
   pinned: boolean;
+  /**
+   * Whether GitHub says the signed-in user may write to the repository (`permissions.push`); null when it does not say,
+   * or when a branch is pinned (specs/012 FR-016). Kept out of the cached project: see `getProject`.
+   */
+  canWrite?: boolean | null;
   /** Steps after an unapproved gate are locked unless the repo sets "approvalGates": "off" (specs/004). */
   approvalGates: 'block' | 'off';
   /** Whether the repo has the Claude Code gate check (.claude/hooks/speckit-gate.mjs) installed; `outdated` when it lacks the PR-link hook (specs/004 R7, specs/005 R5). */

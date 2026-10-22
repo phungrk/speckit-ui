@@ -93,5 +93,5 @@ giữ bản cục bộ, và `selectedId`, `Draft` không bị đụng.
 - Một bước có tối đa một `Draft` mỗi đoạn chữ; nhiều `Draft` ở các đoạn khác nhau cùng tồn tại.
 - `Project.canWrite: boolean | null` (research R16): `false` khi GitHub báo không có quyền ghi vào repo,
   `true` khi có, `null` khi không biết (nhánh đã ghim, hoặc phản hồi không có trường quyền). Chỉ ở bộ nhớ,
-  tính khi tải lần đầu và khi làm mới, nằm ngoài `Project` được cache theo commit (research R16); quyết định `hlReadOnly` cùng `pinned`, lỗi file và `refused`.
+  tính khi tải lần đầu và, nếu đang là `false`, khi làm mới, nằm ngoài `Project` được cache theo commit (research R16); quyết định `hlReadOnly` cùng `pinned`, lỗi file và `refused`.
 

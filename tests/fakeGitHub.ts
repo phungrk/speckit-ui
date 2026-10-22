@@ -24,6 +24,8 @@ export interface FakeRepo {
   beforePut?: (files: Record<string, Record<string, string>>) => void;
   /** Commits made through PUT …/contents: branch, path, message. */
   commits?: { branch: string; path: string; message: string }[];
+  /** What GET /repos/{o}/{r} says the token's user may do (specs/012); a function answers per token. Left out: no `permissions` field. */
+  permissions?: { push: boolean } | ((auth: string | null) => { push: boolean });
 }
 
 let blobN = 0;
@@ -57,7 +59,7 @@ export function fakeGitHub(repos: Record<string, FakeRepo>, extra?: (u: URL, met
     for (const i of issues) i.updated_at ??= tick();
     const snapshot = ((r as { snapshot?: FakeIssue[] }).snapshot ??= issues.map(i => ({ ...i })));
     const wrote = () => { if (!r.staleIssueList) (r as { snapshot?: FakeIssue[] }).snapshot = undefined; };
-    if (rest === '') return ok({ default_branch: 'main' });
+    if (rest === '') { const perm = typeof r.permissions === 'function' ? r.permissions(headers.Authorization ?? null) : r.permissions; return ok({ default_branch: 'main', ...(perm ? { permissions: { pull: true, push: perm.push } } : {}) }); }
     if (rest === '/commits/main') return ok({ sha: `sha-${name}`, commit: { committer: { date: '2026-10-01T00:00:00Z' } } });
     if (rest.startsWith('/git/trees/')) {
       if (r.delay) await sleep(r.delay);

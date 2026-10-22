@@ -12,7 +12,7 @@ import { prefsFor, type LastViewed, type PrefsStorage } from './prefs';
 import { Annotator } from '../annotations/Annotator';
 import { HighlightsPanel } from '../annotations/HighlightsPanel';
 import { gitHubStore } from '../annotations/store';
-import { briefNotes } from '../annotations/brief';
+import { briefNotes, readOnlyReason } from '../annotations/brief';
 import { PHASE_DOC } from '../annotations/colors';
 import type { Highlight } from './types';
 import { ReaderMenu, SidebarToggle } from '../reader/ReaderControls';
@@ -140,7 +140,8 @@ export function LiveWorkspace({ project, backend, user, storage, refreshing, onR
   const hlBranch = f ? f.branch ?? project.ref : null;
   const hlKey = f ? `${f.slug}@${hlBranch}` : '';
   const hls = f ? savedHls[hlKey] ?? f.highlights?.items ?? [] : [];
-  const hlReadOnly = !f ? null : project.pinned ? `Highlights are read-only while the app is pinned to ${project.ref}.` : f.highlights?.error ?? refused;
+  // Why saving is off: pinned, a broken file, an account GitHub says is read-only, or a save that was refused (specs/012 FR-016).
+  const hlReadOnly = !f ? null : readOnlyReason(project, f.highlights?.error, refused);
   const hlStore = gitHubStore(backend, project.repo, hlReadOnly);
   const locks = f ? locksOf(status, f.slug) : status.map(() => null);
   const lockedBy = locks[pi];

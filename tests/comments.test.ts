@@ -2,7 +2,8 @@
 // drafts, selection, save states and the freshness helpers. Synthetic data only.
 import { describe, expect, it } from 'vitest';
 import { HL_COLORS, HL_NONE, meaningOf } from '../src/annotations/colors';
-import { briefNotes } from '../src/annotations/brief';
+import { briefNotes, readOnlyReason } from '../src/annotations/brief';
+import { toCards, CLOSED_CARD_HEIGHT, draftKey, draftsElsewhere, draftsHere, type CommentDraft } from '../src/annotations/comments';
 import type { Highlight } from '../src/project/types';
 
 export const H = (id: string, over: Partial<Highlight> = {}): Highlight => ({
@@ -36,8 +37,6 @@ describe('briefNotes order (spec 012 FR-003, extends 010 FR-022)', () => {
     ]);
   });
 });
-
-import { toCards, CLOSED_CARD_HEIGHT } from '../src/annotations/comments';
 
 describe('toCards (data-model: CommentCard)', () => {
   const me = { login: 'mai' };
@@ -85,3 +84,57 @@ describe('toCards (data-model: CommentCard)', () => {
     expect(cards[0].highlight.note).toBe(evil);
   });
 });
+
+describe('comment drafts (spec 012 FR-005, research R5)', () => {
+  const t = { slug: '003-x', branch: 'feat/003-x' as string | null, doc: 'spec.md' };
+  const D = (startHint: number, text: string, over: Partial<CommentDraft> = {}): CommentDraft => ({
+    key: draftKey(t, startHint), ...t, phase: 'specify', anchor: { quote: 'q', prefix: '', suffix: '', startHint }, text, ...over
+  });
+
+  it('keys a draft by spec, branch, document and where the text starts', () => {
+    expect(draftKey(t, 120)).toBe('003-x|feat/003-x|spec.md|120');
+    expect(draftKey({ ...t, branch: null }, 120)).toBe('003-x||spec.md|120');
+    expect(draftKey(t, 120)).not.toBe(draftKey(t, 121));
+  });
+
+  it('shows the drafts of this document in place order, whatever the step, and keeps the rest', () => {
+    const all = Object.fromEntries([D(300, 'b'), D(100, 'a'), D(50, 'x', { ...t, doc: 'plan.md', key: draftKey({ ...t, doc: 'plan.md' }, 50) }), D(70, 'y', { slug: '004-y', key: draftKey({ ...t, slug: '004-y' }, 70) })].map(d => [d.key, d]));
+    expect(draftsHere(all, t).map(d => d.text)).toEqual(['a', 'b']);
+    // A draft for another step of the same document is the same draft: the step is not part of the key.
+    expect(draftsHere(all, { ...t }).length).toBe(2);
+    expect(Object.keys(all)).toHaveLength(4);
+  });
+
+  it('counts the unsent drafts that are not on screen, ignoring empty ones, so the reader is told (edge case)', () => {
+    const other = { ...t, doc: 'plan.md' };
+    const all = Object.fromEntries([D(100, 'a'), D(50, 'x', { ...other, key: draftKey(other, 50) }), D(60, '   ', { ...other, key: draftKey(other, 60) })].map(d => [d.key, d]));
+    expect(draftsElsewhere(all, t)).toBe(1);
+    expect(draftsElsewhere(all, other)).toBe(1);
+  });
+
+  it('keeps a branch\'s drafts apart from the same spec on another branch', () => {
+    const main = { ...t, branch: 'main' as string | null };
+    const all = Object.fromEntries([D(100, 'on feat')].map(d => [d.key, d]));
+    expect(draftsHere(all, main)).toEqual([]);
+    expect(draftsElsewhere(all, main)).toBe(1);
+  });
+});
+
+describe('why saving is off (spec 012 FR-016, research R16)', () => {
+  const base = { pinned: false, ref: 'main', repo: 'o/a', canWrite: null as boolean | null };
+  it('says nothing when nothing stops the user', () => {
+    expect(readOnlyReason(base, null, null)).toBeNull();
+    expect(readOnlyReason({ ...base, canWrite: true }, null, null)).toBeNull();
+  });
+  it('explains a read-only account before any write is tried, and how to fix it', () => {
+    expect(readOnlyReason({ ...base, canWrite: false }, null, null)).toBe('Your GitHub account has read-only access to o/a. Ask for write access to comment.');
+  });
+  it('keeps the order: pinned, then a broken file, then a read-only account, then a refused save', () => {
+    const all = { ...base, pinned: true, canWrite: false };
+    expect(readOnlyReason(all, 'highlights.json cannot be read', 'refused')).toMatch(/pinned to main/);
+    expect(readOnlyReason({ ...all, pinned: false }, 'highlights.json cannot be read', 'refused')).toBe('highlights.json cannot be read');
+    expect(readOnlyReason({ ...all, pinned: false }, null, 'refused')).toMatch(/read-only access/);
+    expect(readOnlyReason(base, null, 'Your token cannot commit to main.')).toBe('Your token cannot commit to main.');
+  });
+});
+

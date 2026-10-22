@@ -182,15 +182,17 @@ Nền là code của 010 trên `main` (`Annotator`, `Toolbar`, `useHighlights`, 
   nhánh đã ghim nên không gọi, hoặc phản hồi không có trường quyền). **Không lưu trong `Project` được cache**:
   `getProject` dùng lại `hit.main` khi commit mặc định không đổi và không gọi lại `loadMain`, nên một giá trị
   nằm trong đó sẽ cũ khi người dùng được cấp quyền ghi giữa chừng. `canWrite` nằm trong một map riêng theo
-  `projectKey` (đã gồm `identity`, nên không rò giữa người dùng), được đọc lại khi tải lần đầu và khi
-  `refresh === true`, rồi gắn vào bản trả về của `getProject` (`{ ...project, canWrite }`). `hlReadOnly` ở shell (hiện chỉ có
+  `projectKey` (đã gồm `identity`, nên không rò giữa người dùng), được đọc khi tải lần đầu, và đọc lại khi
+  `refresh === true` **chỉ khi giá trị hiện tại là `false`** (người dùng đang bị coi là chỉ đọc và có thể vừa được cấp
+  quyền; ai khác không cần gọi, nên một lần làm mới yên tĩnh vẫn chỉ gọi commits và branches, spec 003 SC-001),
+  rồi gắn vào bản trả về của `getProject` (`{ ...project, canWrite }`). `hlReadOnly` ở shell (hiện chỉ có
   `pinned`, lỗi file, hoặc `refused` sau một lần ghi bị từ chối) thêm một lý do: `canWrite === false` thì
   "Your GitHub account has read-only access to {repo}. Ask for write access to comment." Trường hợp `null`
   hoặc token fine-grained thiếu Contents: write mà vai trò vẫn là ghi: như 010, học sau lần bị từ chối
   đầu tiên (`refused`) và ghi nhớ trong phiên.
 - **Rationale**: Khớp spec FR-016 (a)/(b): tắt ngay khi GitHub báo, không thăm dò bằng ghi thử. Không thêm
-  điểm đến mạng và không thêm quyền token; thêm tối đa một lời gọi `GET /repos/{o}/{r}` mỗi lần tải lần đầu
-  hoặc làm mới (lần tải lần đầu đã gọi sẵn khi chưa ghim).
+  điểm đến mạng và không thêm quyền token; thêm tối đa một lời gọi `GET /repos/{o}/{r}` mỗi lần làm mới, và chỉ cho người dùng đang bị coi là chỉ đọc (lần
+  tải lần đầu đã gọi sẵn khi chưa ghim).
 - **Alternatives**: Gọi `GET /repos/{o}/{r}/collaborators/{user}/permission` (thêm một lời gọi, cần quyền
   rộng hơn); ghi thử rồi hoàn tác (vi phạm "không dò bằng ghi", để lại commit).
 - **Giới hạn**: token fine-grained không có Contents: write dù người dùng có vai trò ghi sẽ chỉ bị tắt nút

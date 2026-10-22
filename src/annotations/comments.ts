@@ -1,6 +1,7 @@
 // View model of the comment rail (specs/012-docs-style-comment-flow, data-model.md). Pure: no DOM, so the
 // four modes and the tests share it (constitution III).
 import type { Highlight, HighlightAuthor } from '../project/types';
+import type { Anchor } from './anchor';
 import { sameAuthor } from './brief';
 
 /** Height of a closed card in the rail: fixed, so the layout needs no measuring (research R2). */
@@ -50,3 +51,30 @@ export function toCards(items: Highlight[], anchored: Record<string, number>, pe
     outdated: commented.filter(c => c.outdated).sort(byPlace)
   };
 }
+
+/** A comment being written and not sent yet. It lives in the page only (spec FR-005, research R5). */
+export interface CommentDraft {
+  key: string;
+  slug: string;
+  branch: string | null;
+  phase: string;
+  doc: string;
+  anchor: Anchor;
+  text: string;
+}
+
+type DraftPlace = { slug: string; branch: string | null; doc: string };
+
+/** One draft per spec, branch, document and place in the text; the step is not part of it, a document is. */
+export const draftKey = (t: DraftPlace, startHint: number) => `${t.slug}|${t.branch ?? ''}|${t.doc}|${startHint}`;
+
+const same = (d: DraftPlace, t: DraftPlace) => d.slug === t.slug && d.branch === t.branch && d.doc === t.doc;
+
+/** The drafts of the document on screen, in the order of the text. */
+export const draftsHere = (drafts: Record<string, CommentDraft>, t: DraftPlace): CommentDraft[] =>
+  Object.values(drafts).filter(d => same(d, t)).sort((a, b) => a.anchor.startHint - b.anchor.startHint);
+
+/** How many unsent drafts with some text live in other documents, so the reader is told they are kept. */
+export const draftsElsewhere = (drafts: Record<string, CommentDraft>, t: DraftPlace): number =>
+  Object.values(drafts).filter(d => !same(d, t) && d.text.trim()).length;
+
