@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "highlights": [
+    {
+      "id": "h_0xwokh5ed1qc",
+      "phase": "specify",
+      "doc": "spec.md",
+      "quote": "Ngay khi việc duyệt",
+      "prefix": "đã đủ điều kiện và bấm Approve. ",
+      "suffix": " được ghi nhận thành công, khu v",
+      "startHint": 431,
+      "docSha": "556cf2e9eb2d1fed3707b7f939fb444f227193f3",
+      "color": "n",
+      "note": "hello",
+      "author": {
+        "login": "phungrk"
+      },
+      "createdAt": "2026-10-22T11:57:07.427Z",
+      "updatedAt": "2026-10-22T11:57:07.427Z"
+    }
+  ]
+}
