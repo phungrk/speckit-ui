@@ -284,16 +284,17 @@ See `specs/010-reader-highlights/`.
 
 ## Highlights
 
-Select text in any step's document to highlight it in one of four colours (Key, Issue, Question, Change) or leave a note for the team. Notes show a pin in the margin, are listed in the **Highlights** tab and appear in **Before you approve** for that step. Highlights never block or approve a gate.
+Select text in any step's document and choose **Add comment**: the comment appears in a rail beside the text, next to the passage it is about, like in a shared document. You can also just highlight in one of four colours (Key, Issue, Question, Change) with no comment, or add a note to a coloured highlight. Notes show a pin in the margin, are listed in the **Highlights** tab and appear in **Before you approve** for that step. Highlights never block or approve a gate.
 
 - **Stored with the spec** in `specs/NNN-name/highlights.json`, on the branch you are viewing. Anyone who can read the spec sees its highlights.
 - **GitHub and Pages:** every save is one commit by you, ending in `[skip ci]` so CI does not run. The first save in a repository asks once to confirm (switch it back on under the Highlights tab). It needs Contents: Read and write; without it, or on a pinned commit, highlights are read-only.
 - **Local:** saves write the file in the folder, with no commit and no network; the first save asks for your name.
 - **Demo:** highlights are kept in this browser only.
+- **Comments from other people** are checked about once a minute (GitHub and Pages) or when the window regains focus (local). A **New comments (n)** bar appears; nothing moves until you click it. Only people with write access to the repository can comment; others read.
 - **Only the author** can recolour, edit or remove a highlight; others can copy it or ask Copilot about it.
 - When the text under a highlight changes, it stays in the list marked **Outdated, text changed**.
 
-See `specs/010-spec-annotations/`.
+See `specs/010-spec-annotations/` and `specs/012-docs-style-comment-flow/`.
 
 ## Demo mode
 

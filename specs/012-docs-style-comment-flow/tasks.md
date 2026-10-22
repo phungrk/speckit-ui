@@ -160,8 +160,8 @@ description: "Task list for 012 docs-style comment flow"
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T055 [P] Cập nhật `README.md` mục Highlights: nút Add comment và phím tắt, rail, nhận xét không màu, trạng thái lưu, kiểm tra nhận xét mới định kỳ (và ở local khi cửa sổ được focus), người chỉ có quyền đọc xem được nhưng không nhận xét được, không có quyền hay điểm đến mạng mới.
-- [ ] T056 Chạy cả bốn cổng chất lượng: `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages`; sửa mọi lỗi. Không test nào được ghi GitHub thật.
+- [X] T055 [P] Cập nhật `README.md` mục Highlights: nút Add comment và phím tắt, rail, nhận xét không màu, trạng thái lưu, kiểm tra nhận xét mới định kỳ (và ở local khi cửa sổ được focus), người chỉ có quyền đọc xem được nhưng không nhận xét được, không có quyền hay điểm đến mạng mới.
+- [X] T056 Chạy cả bốn cổng chất lượng: `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages`; sửa mọi lỗi. Không test nào được ghi GitHub thật.
 - [ ] T057 **[BLOCKED bởi bản thiết kế]** So ảnh giao diện (constitution IV): demo ở 1440×900 và 924×540, màn hình chính và hộp thoại New spec. Demo mở sẵn feature `003` có nhận xét mẫu, nên phải khớp bản `Speckit Workspace.html` **cập nhật có rail do người dùng cung cấp** từng pixel (SC-008, điều kiện merge, plan mục Constitution Check IV); xoá `sk.demo.highlights` thì không có rail và phải khớp thiết kế gốc. Kiểm tra màu `n`, `sk-sel`, `sk-draft` đọc được trên cả bốn nền chế độ đọc và không có mã màu cứng mới.
 - [ ] T058 **[BLOCKED bởi bản thiết kế]** Nếu bản thiết kế mới khác `contracts/comment-rail-ui.md` thì bản thiết kế thắng: sửa contract và code theo, ghi lại trong `specs/012-docs-style-comment-flow/research.md`.
 - [ ] T059 Chạy toàn bộ quickstart (kịch bản 1–17, gồm thử người dùng mới bấm giờ ở kịch bản 17 cho SC-002) ở bốn chế độ, ghi kết quả vào `specs/012-docs-style-comment-flow/quickstart.md` (mục kết quả); chụp ảnh ở 390px.
