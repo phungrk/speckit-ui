@@ -17,6 +17,23 @@
       },
       "createdAt": "2026-10-22T11:57:07.427Z",
       "updatedAt": "2026-10-22T12:02:31.358Z"
+    },
+    {
+      "id": "h_eidka8dseh1e",
+      "phase": "specify",
+      "doc": "spec.md",
+      "quote": "ại toàn bộ trang, then",
+      "prefix": "hành công, when người dùng tải l",
+      "suffix": " cổng vẫn hiển thị đã duyệt với ",
+      "startHint": 1358,
+      "docSha": "556cf2e9eb2d1fed3707b7f939fb444f227193f3",
+      "color": "n",
+      "note": "why you know my name",
+      "author": {
+        "login": "phungrk"
+      },
+      "createdAt": "2026-10-22T12:13:17.911Z",
+      "updatedAt": "2026-10-22T12:13:17.911Z"
     }
   ]
 }
