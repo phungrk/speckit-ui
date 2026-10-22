@@ -29,6 +29,31 @@ describe('parseHighlights', () => {
   });
 });
 
+describe('plain comments, colour n (specs/012)', () => {
+  it('reads and writes a comment without a category, and still reads files that have none', () => {
+    const r = parseHighlights(JSON.stringify({ version: 1, highlights: [H('h1', { color: 'n', note: 'Why?' }), H('h2')] }));
+    expect(r.error).toBeNull();
+    expect(r.items.map(h => h.color)).toEqual(['n', 'y']);
+    expect(parseHighlights(serializeHighlights([H('h1', { color: 'n' })])).items[0].color).toBe('n');
+    expect(parseHighlights(JSON.stringify({ version: 1, highlights: [H('h1', { color: 'z' as never })] })).error).toMatch(/^1 highlight/);
+  });
+
+  it('recolours to and from n like any other colour', () => {
+    let items = applyChange([], { type: 'add', highlight: H('h1', { color: 'n', note: 'Why?' }) }, mai);
+    items = applyChange(items, { type: 'update', id: 'h1', color: 'p' }, mai);
+    expect(items[0].color).toBe('p');
+    items = applyChange(items, { type: 'update', id: 'h1', color: 'n' }, mai);
+    expect(items[0].color).toBe('n');
+    expect(() => applyChange(items, { type: 'update', id: 'h1', color: 'x' as never }, mai)).toThrow(/Unknown colour/);
+  });
+
+  it('says "commented" for a plain comment and still ends with [skip ci]', () => {
+    expect(commitMessage({ type: 'add', highlight: H('h1', { color: 'n', note: 'Why?' }) }, [], 'mai')).toBe('mai commented on Specify: "the cap applies daily" [skip ci]');
+    expect(commitMessage({ type: 'update', id: 'h1', note: 'More' }, [H('h1', { color: 'n' })], 'mai')).toMatch(/^mai commented on Specify.*\[skip ci\]$/);
+    expect(commitMessage({ type: 'add', highlight: H('h1', { color: 'y', note: 'n' }) }, [], 'mai')).toMatch(/^mai noted on/);
+  });
+});
+
 describe('applyChange', () => {
   it('adds, recolours, edits notes and removes by id', () => {
     let items = applyChange([], { type: 'add', highlight: H('h1') }, mai);

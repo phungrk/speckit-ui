@@ -5,7 +5,7 @@ import type { Highlight, HighlightAuthor, HighlightChange, HighlightColor, Highl
 export const HIGHLIGHTS_FILE = 'highlights.json';
 export const MAX_BYTES = 512 * 1024;
 export const MAX_NOTE = 2000;
-const COLORS: readonly HighlightColor[] = ['y', 'b', 'p', 'o'];
+const COLORS: readonly HighlightColor[] = ['y', 'b', 'p', 'o', 'n'];
 const PHASE_NAMES: Record<string, string> = { constitution: 'Constitution', specify: 'Specify', clarify: 'Clarify', plan: 'Plan', tasks: 'Tasks', analyze: 'Analyze', implement: 'Implement' };
 
 /** A refused change: the message is shown to the user as is. */
@@ -72,9 +72,11 @@ export function applyChange(items: Highlight[], change: HighlightChange, by: Hig
 /** The commit message (research R16); it always ends with [skip ci] (FR-010). */
 export function commitMessage(change: HighlightChange, items: Highlight[], who: string): string {
   const h = change.type === 'add' ? change.highlight : items.find(x => x.id === change.id);
-  const verb = change.type === 'add' ? (change.highlight.note ? 'noted' : 'highlighted')
+  // A plain comment (colour n, specs/012) is "commented"; the other colours keep "noted".
+  const note = h?.color === 'n' ? 'commented' : 'noted';
+  const verb = change.type === 'add' ? (change.highlight.note ? note : 'highlighted')
     : change.type === 'remove' ? 'removed a highlight'
-      : change.note !== undefined ? 'noted' : 'recoloured';
+      : change.note !== undefined ? note : 'recoloured';
   const quote = (h?.quote ?? '').replace(/\s+/g, ' ').slice(0, 60);
   return `${who} ${verb} on ${PHASE_NAMES[h?.phase ?? ''] ?? h?.phase ?? 'spec'}: "${quote}" [skip ci]`;
 }

@@ -6,6 +6,8 @@ import { authorLabel, pendingTarget, sameAuthor } from './brief';
 import type { HighlightStore } from './store';
 import { HlToolbar, type ToolbarState } from './Toolbar';
 import { useHighlights } from './useHighlights';
+import { CommentRail, useDocViewport, useRailRoom } from './CommentRail';
+import { toCards } from './comments';
 
 // The reading column with highlights (specs/010-spec-annotations): selection → toolbar → save
 // through a HighlightStore; pins in the margin; one-time commit consent and the saved toast.
@@ -37,6 +39,11 @@ export interface AnnotatorProps {
   /** A save was refused for good (no permission, protected or missing branch): stay read-only. */
   onRefused?: (reason: string) => void;
   onAsk: (text: string) => void;
+  /** The selected comment (specs/012 FR-008); the shell owns it so the sidebar's Highlights tab shares it. */
+  selectedId?: string | null;
+  onSelect?: (id: string | null, opts?: { jump?: boolean }) => void;
+  /** Display name of an author, for the cards of the rail. */
+  person?: (a: HighlightAuthor) => { name: string };
   /** Extra attributes of the .sk-doc element (role, id, aria). */
   docProps?: HTMLAttributes<HTMLDivElement>;
   /** The document shown in the reading column. */
@@ -45,11 +52,16 @@ export interface AnnotatorProps {
 
 const newId = () => 'h_' + Array.from({ length: 12 }, () => '0123456789abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 36)]).join('');
 
-export function Annotator({ items, target, store, author, askAuthor, consent, focusId, clearFocus, onItems, onOutdated, onRefused, onAsk, docProps, children }: AnnotatorProps) {
+export function Annotator({ items, target, store, author, askAuthor, consent, focusId, clearFocus, onItems, onOutdated, onRefused, onAsk, selectedId = null, onSelect, person, docProps, children }: AnnotatorProps) {
   const colRef = useRef<HTMLDivElement>(null);
   const docRef = useRef<HTMLDivElement>(null);
   const shown = items.filter(h => h.phase === target.phase);
-  const { anchors, markers, outdated, unsupported } = useHighlights(colRef, docRef, shown, focusId, clearFocus);
+  const { anchors, markers, outdated, tops, unsupported } = useHighlights(colRef, docRef, shown, focusId, clearFocus, { selectedId });
+  // The rail: cards beside the text, when `.sk-doc` is wide enough and there is a comment (specs/012 FR-007).
+  const { room, left: railLeft } = useRailRoom(docRef, colRef);
+  const viewport = useDocViewport(docRef);
+  const cards = tops ? toCards(shown, tops, {}, author) : { cards: [], outdated: [] };
+  const showRail = room && cards.cards.length + cards.outdated.length > 0;
   useEffect(() => { onOutdated?.(outdated); }, [outdated.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
   const [tb, setTb] = useState<Draft | null>(null);
   const [busy, setBusy] = useState(false);
@@ -149,7 +161,7 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
   const canEdit = tb?.mode === 'new' || (!!editing && sameAuthor(author, editing.author));
 
   return <>
-    <div className="sk-doc" ref={docRef} {...docProps}
+    <div ref={docRef} {...docProps} className={'sk-doc' + (showRail ? ' has-rail' : '')}
       onMouseUp={e => onUp(e.clientX, e.clientY, e.target)}
       onTouchEnd={e => { const t = e.changedTouches[0]; setTimeout(() => onUp(t.clientX, t.clientY, e.target), 300); }}
       onKeyUp={e => { if (e.shiftKey || e.key === 'Shift' || e.key === 'Enter') onUp(-1, -1, e.target); }}
@@ -161,7 +173,9 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
       onScroll={() => tb && !tb.noting && close()}>
       {unsupported && items.length > 0 && <p className="sk-hlp-empty" role="note">This browser cannot draw highlights in the text; they are listed in the Highlights tab.</p>}
       <div className="sk-col" ref={colRef}>{children}</div>
-      {markers.map(m => <button type="button" key={m.id} className={'sk-hl-pin hl-' + m.color + '-solid'} style={{ top: m.top, left: m.left }}
+      {showRail && <CommentRail cards={cards} selectedId={selectedId} onSelect={(id, o) => onSelect?.(id, o)} branch={target.branch} left={railLeft} viewport={viewport} person={person} />}
+      {/* Where the rail is shown its cards take the place of the pins (spec FR-012). */}
+      {!showRail && markers.map(m => <button type="button" key={m.id} className={'sk-hl-pin hl-' + m.color + '-solid'} style={{ top: m.top, left: m.left }}
         aria-label={`Note by ${authorLabel(m.author)}`} onClick={() => openFor(m.id, true)}><Icon n="note" s={12} /></button>)}
     </div>
     {tb && <HlToolbar key={(tb.id ?? '') + tb.text} tb={tb} canEdit={canEdit} readOnly={store.readOnly} busy={busy} error={error} stale={stale}

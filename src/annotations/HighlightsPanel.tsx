@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Label } from '../ui';
 import type { Highlight, HighlightAuthor, HighlightColor } from '../project/types';
 import { authorLabel, relTime } from './brief';
+import { initials } from './Avatar';
 import { HL_COLORS, meaningOf } from './colors';
 
 // The Highlights tab of the right sidebar (contracts/annotations-ui.md), from the design prototype.
@@ -24,7 +25,6 @@ export interface HighlightsPanelProps {
   now?: number;
 }
 
-const initials = (name: string) => name.split(/[\s._-]+/).filter(Boolean).slice(0, 2).map(w => w[0]!.toUpperCase()).join('') || '?';
 const defaultPerson = (a: HighlightAuthor) => { const name = authorLabel(a); return { name, ini: initials(name) }; };
 
 export function HighlightsPanel({ items, phases, outdated, onOpen, person = defaultPerson, ask, readOnly, now }: HighlightsPanelProps) {

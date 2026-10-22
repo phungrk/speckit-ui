@@ -27,8 +27,10 @@ aside.sk-cm-rail[role=complementary][aria-label="Comments"]   (con của .sk-doc
 └── section.sk-cm-out      "Outdated, text changed"   (thẻ không có neo, cuối rail)
 ```
 
-- Rail chỉ dựng khi `.sk-doc.clientWidth ≥ var(--rd-measure) + 300px + 2 × var(--space-4)` (đo bằng
-  `ResizeObserver`); `.sk-doc` thêm class `has-rail` để chừa chỗ, thay cho 28px lề phải của 010. Khi rail hiện,
+- Rail chỉ dựng khi `.sk-doc.clientWidth ≥ var(--rd-measure) + 32px + 364px` (32px lề đầu, 300px rail và 2 × 32px
+  lề cuối; đo bằng `ResizeObserver`, hàm `railPlacement`): cột đọc giữ bề rộng người đọc chọn, rail không bóp nó.
+  Ví dụ với cột 700px cần `.sk-doc` ≥ 1096px, tức cửa sổ ≥ 1680px khi cả hai sidebar mở, hoặc ≥ 1410px khi
+  ẩn sidebar trái (`[`). Rail đặt cách cột đọc 24px; `.sk-doc` thêm class `has-rail` để chừa chỗ, thay cho 28px lề phải của 010. Khi rail hiện,
   thẻ trong rail thay vai trò của ghim nên **ghim ẩn**; ghim chỉ hiện ở bố cục hẹp (spec FR-012).
 - Không dựng rail khi không có thẻ nào, không có nháp và không có gì để cập nhật (tài liệu trống nhận xét
   trông như bản thiết kế).

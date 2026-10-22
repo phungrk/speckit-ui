@@ -72,8 +72,8 @@ export interface ParsedAnalysis { findings: AnalysisFinding[]; raw: string }
 
 export interface ChecklistSummary { name: string; done: number; total: number }
 
-/** Highlight colours (specs/010-spec-annotations): y Key, b Question, p Issue, o Change. */
-export type HighlightColor = 'y' | 'b' | 'p' | 'o';
+/** Highlight colours (specs/010-spec-annotations): y Key, b Question, p Issue, o Change; n is a plain comment with no category (specs/012). */
+export type HighlightColor = 'y' | 'b' | 'p' | 'o' | 'n';
 
 /** GitHub login (server, Pages), a typed name (local) or a sample person (demo). */
 export type HighlightAuthor = { login: string } | { name: string; local: true } | { name: string; demo: true };

@@ -90,6 +90,10 @@
   --hl-y: #FFE36B; --hl-b: #9FCFF2; --hl-p: #F5A9C6; --hl-o: #FFC27A;
   --hl-y-solid: #E8C200; --hl-b-solid: #3D97DB; --hl-p-solid: #E0508A; --hl-o-solid: #F08A1C;
   --hl-y-text: rgba(255, 212, 0, .45); --hl-b-text: rgba(70, 160, 235, .32); --hl-p-text: rgba(240, 90, 150, .32); --hl-o-text: rgba(255, 150, 40, .4);
+  /* Plain comment (specs/012): no category, so it follows the page text colour on every theme. */
+  --hl-n: color-mix(in srgb, var(--color-text) 14%, transparent);
+  --hl-n-solid: color-mix(in srgb, var(--color-text) 45%, transparent);
+  --hl-n-text: color-mix(in srgb, var(--color-text) 14%, transparent);
   --hl-selection: rgba(70, 160, 235, .35);
   --hl-ink: #1A1A1A; --hl-paper: #FFFFFF;
   --hl-paper-75: rgba(255, 255, 255, .75); --hl-paper-60: rgba(255, 255, 255, .6); --hl-paper-50: rgba(255, 255, 255, .5);
@@ -99,10 +103,20 @@
 ::highlight(sk-b) { background-color: var(--hl-b-text); }
 ::highlight(sk-p) { background-color: var(--hl-p-text); }
 ::highlight(sk-o) { background-color: var(--hl-o-text); }
+::highlight(sk-n) { background-color: var(--hl-n-text); }
+/* The comment that is selected (specs/012 FR-008): a stronger fill of its own colour, and an underline so it
+   still reads where the browser has no highlight priority. One name per colour; only one is registered. */
+::highlight(sk-sel-y) { background-color: var(--hl-y-solid); text-decoration: underline 2px var(--color-text); }
+::highlight(sk-sel-b) { background-color: var(--hl-b-solid); text-decoration: underline 2px var(--color-text); }
+::highlight(sk-sel-p) { background-color: var(--hl-p-solid); text-decoration: underline 2px var(--color-text); }
+::highlight(sk-sel-o) { background-color: var(--hl-o-solid); text-decoration: underline 2px var(--color-text); }
+::highlight(sk-sel-n) { background-color: var(--hl-n-solid); text-decoration: underline 2px var(--color-text); }
+/* The text a comment is being written on. */
+::highlight(sk-draft) { background-color: var(--hl-n-text); text-decoration: underline dashed 2px var(--color-text); }
 ::highlight(sk-focus) { text-decoration: underline 3px var(--color-accent); text-underline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) { ::highlight(sk-focus) { text-decoration: none; } }
-.hl-y { background: var(--hl-y); } .hl-b { background: var(--hl-b); } .hl-p { background: var(--hl-p); } .hl-o { background: var(--hl-o); }
-.hl-y-solid { background: var(--hl-y-solid); } .hl-b-solid { background: var(--hl-b-solid); } .hl-p-solid { background: var(--hl-p-solid); } .hl-o-solid { background: var(--hl-o-solid); }
+.hl-y { background: var(--hl-y); } .hl-b { background: var(--hl-b); } .hl-p { background: var(--hl-p); } .hl-o { background: var(--hl-o); } .hl-n { background: var(--hl-n); }
+.hl-y-solid { background: var(--hl-y-solid); } .hl-b-solid { background: var(--hl-b-solid); } .hl-p-solid { background: var(--hl-p-solid); } .hl-o-solid { background: var(--hl-o-solid); } .hl-n-solid { background: var(--hl-n-solid); }
 
 /* Selection toolbar: always dark, on every theme. The swatch and button rules are scoped under .sk-tb so
    they beat the reset on `.sk-tb button:not(.btn)` (in the design they lose to it and the swatches collapse). */
@@ -153,3 +167,52 @@
 .sk-hlp-item q { display: block; font-family: "Literata", Georgia, serif; font-size: var(--fs-14); line-height: 1.5; quotes: none; }
 .sk-hlp-item p { font-size: var(--fs-13); margin: 6px 0 0; padding: 6px 8px; background: var(--color-surface); }
 .sk-hlp-meta { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: var(--fs-11); color: color-mix(in srgb, var(--color-text) 60%, transparent); }
+
+/* Comment rail (specs/012-docs-style-comment-flow, contracts/comment-rail-ui.md). Cards sit inside .sk-doc, the
+   scroll container, at a computed `top`, so they scroll with the text. Tokens and Modernist classes only. */
+.sk-doc { --sk-cm-w: 300px; }
+/* The column keeps the reader's width and is centred in the space the rail leaves; the rail starts after it
+   (`left` comes from railPlacement in src/annotations/layout.ts, which uses the same 32 / 300 / 64 numbers). */
+.sk-main .sk-doc.has-rail { padding-inline: var(--space-8) calc(var(--sk-cm-w) + 2 * var(--space-8)); }
+.sk-cm-rail { position: absolute; top: 0; width: var(--sk-cm-w); font-family: var(--font-body); }
+.sk-cm-head { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 10px; background: var(--color-bg); border-bottom: 1px solid var(--color-divider); font-size: var(--fs-12); }
+.sk-cm-head b { font-weight: 700; }
+.sk-cm-head .sk-cm-branch { margin-left: auto; color: color-mix(in srgb, var(--color-text) 60%, transparent); }
+.sk-cm-head button, .sk-cm-new { all: unset; cursor: pointer; box-sizing: border-box; font-size: var(--fs-12); font-weight: 600; padding: 3px 7px; border: 1px solid var(--color-text); }
+.sk-cm-new { background: var(--color-text); color: var(--color-bg); }
+.sk-cm-card { position: absolute; left: 0; right: 0; box-sizing: border-box; padding: 10px 12px; background: var(--color-surface); border: 1px solid var(--color-divider); border-left: 4px solid var(--hl-n-solid); font-size: var(--fs-13); }
+.sk-cm-card[data-color="y"] { border-left-color: var(--hl-y-solid); } .sk-cm-card[data-color="b"] { border-left-color: var(--hl-b-solid); }
+.sk-cm-card[data-color="p"] { border-left-color: var(--hl-p-solid); } .sk-cm-card[data-color="o"] { border-left-color: var(--hl-o-solid); }
+.sk-cm-card.on { border-color: var(--color-text); outline: 2px solid var(--color-text); outline-offset: -1px; z-index: 1; }
+.sk-cm-card:focus-visible, .sk-cm-rail button:focus-visible, .sk-cm-sheet button:focus-visible, .sk-cm-card textarea:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+.sk-cm-who { display: flex; align-items: center; gap: 8px; }
+.sk-cm-who .sk-cm-time { margin-left: auto; font-size: var(--fs-11); color: color-mix(in srgb, var(--color-text) 60%, transparent); }
+.sk-cm-quote { display: block; margin: 8px 0 0; font-family: "Literata", Georgia, serif; font-size: var(--fs-13); font-style: italic; quotes: none; color: color-mix(in srgb, var(--color-text) 75%, transparent); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
+.sk-cm-card.on .sk-cm-quote { -webkit-line-clamp: unset; display: block; }
+.sk-cm-note { margin: 6px 0 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; white-space: pre-wrap; overflow-wrap: anywhere; }
+.sk-cm-card.on .sk-cm-note { -webkit-line-clamp: unset; display: block; }
+.sk-cm-meta { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: var(--fs-11); }
+.sk-cm-meta i { width: 12px; height: 12px; display: block; }
+.sk-cm-state { margin-top: 8px; font-size: var(--fs-11); font-weight: 600; }
+.sk-cm-state[data-state="failed"] { color: var(--color-accent-700); }
+.sk-cm-state a { color: inherit; }
+.sk-cm-state button { all: unset; cursor: pointer; margin-left: 6px; text-decoration: underline; }
+.sk-cm-draft textarea { box-sizing: border-box; width: 100%; margin-top: 8px; font: inherit; font-size: var(--fs-14); background: var(--color-bg); color: var(--color-text); border: 1px solid var(--color-text); padding: 8px; resize: vertical; }
+.sk-cm-draft textarea[aria-invalid="true"] { border-color: var(--color-accent-700); }
+.sk-cm-err { margin: 4px 0 0; font-size: var(--fs-11); color: var(--color-accent-700); }
+.sk-cm-acts { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; }
+.sk-cm-acts .btn { padding: 6px 10px; font-size: var(--fs-12); }
+.sk-cm-out { position: absolute; left: 0; right: 0; }
+.sk-cm-out > .sk-cm-card { position: static; margin-top: 6px; }
+.sk-cm-out > h3 { margin: 0; font-size: var(--fs-11); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.sk-tb button.sk-tb-b.sk-tb-primary { background: var(--hl-paper); color: var(--hl-ink); font-weight: 700; }
+.sk-tb button.sk-tb-b.sk-tb-primary:hover { background: var(--hl-paper-75); }
+.sk-tb button[aria-disabled="true"] { opacity: .5; cursor: default; }
+
+/* Narrow layout: no room for the rail, so the selected comment or the composer opens in a sheet. */
+.sk-cm-sheet { position: sticky; bottom: 0; z-index: 25; box-sizing: border-box; max-height: 60vh; overflow: auto; margin-top: var(--space-4); padding: 10px 12px; background: var(--color-bg); border-top: 2px solid var(--color-text); }
+.sk-cm-sheet .sk-cm-card { position: static; }
+.sk-cm-sheet-close { all: unset; cursor: pointer; float: right; min-width: 44px; min-height: 44px; display: grid; place-items: center; }
+@media (pointer: coarse) { .sk-cm-card .sk-cm-who button, .sk-cm-acts .btn, .sk-cm-new, .sk-cm-head button { min-height: 44px; } }
+@media (prefers-reduced-motion: no-preference) { .sk-cm-card { transition: top .12s ease-out; } }
+

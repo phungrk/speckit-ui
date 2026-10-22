@@ -47,28 +47,28 @@ description: "Task list for 012 docs-style comment flow"
 
 ### Màu `n` (research R6)
 
-- [ ] T003 Thêm `'n'` vào `HighlightColor` trong `src/project/types.ts` (chú thích: n = nhận xét thường, "Comment").
-- [ ] T004 [P] Viết test trước trong `tests/highlights.test.ts`: `parseHighlights` chấp nhận phần tử có `color: 'n'`; `applyChange` `update` đổi màu sang và từ `n`; file không có `n` đọc như cũ; `commitMessage` cho `add` có ghi chú màu `n` dùng "commented" và vẫn kết thúc `[skip ci]`. Phải fail.
-- [ ] T005 Trong `server/highlightsFile.ts`: thêm `'n'` vào `COLORS`, `commitMessage` có động từ "commented" cho `n`. Làm T004 pass.
-- [ ] T006 [P] Viết test trước trong `tests/comments.test.ts` (file mới): `briefNotes` sắp Issue (`p`), rồi `n`, rồi `y`/`b`/`o`, trong mỗi nhóm theo `createdAt`; `meaningOf('n')` là "Comment"; `HL_COLORS` vẫn đúng bốn màu của thanh công cụ. Phải fail.
-- [ ] T007 Trong `src/annotations/colors.ts` thêm `HL_NONE = { key: 'n', meaning: 'Comment' }` và cho `meaningOf` nhận `n`; trong `src/annotations/brief.ts` đổi thứ tự `briefNotes` theo T006. Làm T006 pass.
-- [ ] T008 [P] Trong `src/styles/reader.css`: thêm `.hl-n`, `.hl-n-solid`, `::highlight(sk-n)`, `::highlight(sk-sel)` (nền đậm hơn cộng gạch chân, dùng được khi không có `priority`), `::highlight(sk-draft)` (trung tính, gạch chân đứt); tất cả bằng `color-mix(in srgb, var(--color-text) N%, transparent)` hoặc token `--hl-*` sẵn có; không mã màu cứng. Thêm `:focus-visible` theo hệ thống cho mọi nút, thẻ và ô nhập `.sk-cm-*` (constitution IV; thẻ đang chọn không chỉ dựa vào màu). Chạy test chặn màu cứng hiện có (`tests/typescale.test.ts` hoặc test tương đương) và sửa nếu fail.
+- [X] T003 Thêm `'n'` vào `HighlightColor` trong `src/project/types.ts` (chú thích: n = nhận xét thường, "Comment").
+- [X] T004 [P] Viết test trước trong `tests/highlights.test.ts`: `parseHighlights` chấp nhận phần tử có `color: 'n'`; `applyChange` `update` đổi màu sang và từ `n`; file không có `n` đọc như cũ; `commitMessage` cho `add` có ghi chú màu `n` dùng "commented" và vẫn kết thúc `[skip ci]`. Phải fail.
+- [X] T005 Trong `server/highlightsFile.ts`: thêm `'n'` vào `COLORS`, `commitMessage` có động từ "commented" cho `n`. Làm T004 pass.
+- [X] T006 [P] Viết test trước trong `tests/comments.test.ts` (file mới): `briefNotes` sắp Issue (`p`), rồi `n`, rồi `y`/`b`/`o`, trong mỗi nhóm theo `createdAt`; `meaningOf('n')` là "Comment"; `HL_COLORS` vẫn đúng bốn màu của thanh công cụ. Phải fail.
+- [X] T007 Trong `src/annotations/colors.ts` thêm `HL_NONE = { key: 'n', meaning: 'Comment' }` và cho `meaningOf` nhận `n`; trong `src/annotations/brief.ts` đổi thứ tự `briefNotes` theo T006. Làm T006 pass.
+- [X] T008 [P] Trong `src/styles/reader.css`: thêm `.hl-n`, `.hl-n-solid`, `::highlight(sk-n)`, `::highlight(sk-sel)` (nền đậm hơn cộng gạch chân, dùng được khi không có `priority`), `::highlight(sk-draft)` (trung tính, gạch chân đứt); tất cả bằng `color-mix(in srgb, var(--color-text) N%, transparent)` hoặc token `--hl-*` sẵn có; không mã màu cứng. Thêm `:focus-visible` theo hệ thống cho mọi nút, thẻ và ô nhập `.sk-cm-*` (constitution IV; thẻ đang chọn không chỉ dựa vào màu). Chạy test chặn màu cứng hiện có (`tests/typescale.test.ts` hoặc test tương đương) và sửa nếu fail.
 
 ### Bố trí và view model (research R2)
 
-- [ ] T009 [P] Viết test trước `tests/layout.test.ts`: `layoutCards(items, selectedId, heights, gap)` — không đè nhau, thẻ không chen chỗ nằm đúng `anchorTop`, chen chỗ thì đẩy xuống, cùng `top` xếp theo `createdAt`, thẻ đang chọn giữ đúng `anchorTop` và các thẻ phía trên bị đẩy lên rồi phía dưới chạy lại, 200 thẻ ngẫu nhiên vẫn không đè và chạy O(n). Phải fail.
-- [ ] T010 Tạo `src/annotations/layout.ts` (thuần, không đụng DOM) với `layoutCards`. Làm T009 pass.
-- [ ] T011 Viết test trước trong `tests/comments.test.ts`: `toCards(highlights, anchored, pending, me)` tạo thẻ cho mỗi highlight có `note` (data-model: CommentCard), đặt `anchorTop`, nhóm thẻ không còn neo thành `outdated` (không `top`), `mine` đúng theo tác giả. Phải fail.
-- [ ] T012 Tạo `src/annotations/comments.ts` với kiểu `CommentCard`, `SaveState` và `toCards`. Làm T011 pass.
-- [ ] T013 [P] Tạo `src/annotations/Avatar.tsx`: avatar chữ cái đầu dùng lại `.sk-avatar`, hàm `initials` chuyển từ `src/annotations/HighlightsPanel.tsx` sang đây (và HighlightsPanel import lại); prop `src?` tuỳ chọn, hiện không ai truyền (research R10, không đổi CSP).
+- [X] T009 [P] Viết test trước `tests/layout.test.ts`: `layoutCards(items, selectedId, heights, gap)` — không đè nhau, thẻ không chen chỗ nằm đúng `anchorTop`, chen chỗ thì đẩy xuống, cùng `top` xếp theo `createdAt`, thẻ đang chọn giữ đúng `anchorTop` và các thẻ phía trên bị đẩy lên rồi phía dưới chạy lại, 200 thẻ ngẫu nhiên vẫn không đè và chạy O(n). Phải fail.
+- [X] T010 Tạo `src/annotations/layout.ts` (thuần, không đụng DOM) với `layoutCards`. Làm T009 pass.
+- [X] T011 Viết test trước trong `tests/comments.test.ts`: `toCards(highlights, anchored, pending, me)` tạo thẻ cho mỗi highlight có `note` (data-model: CommentCard), đặt `anchorTop`, nhóm thẻ không còn neo thành `outdated` (không `top`), `mine` đúng theo tác giả. Phải fail.
+- [X] T012 Tạo `src/annotations/comments.ts` với kiểu `CommentCard`, `SaveState` và `toCards`. Làm T011 pass.
+- [X] T013 [P] Tạo `src/annotations/Avatar.tsx`: avatar chữ cái đầu dùng lại `.sk-avatar`, hàm `initials` chuyển từ `src/annotations/HighlightsPanel.tsx` sang đây (và HighlightsPanel import lại); prop `src?` tuỳ chọn, hiện không ai truyền (research R10, không đổi CSP).
 
 ### Khung rail (research R1, R9)
 
-- [ ] T014 Mở rộng `src/annotations/useHighlights.ts`: đăng ký `sk-n` cùng bốn màu; xuất vị trí `top` của neo cho từng highlight trong `.sk-doc` (dùng lại tính toán ghim); chừa chỗ cho `sk-sel` và `sk-draft` (đăng ký ở US1, US2). Giữ nguyên hành vi 010 (ghim, focus, Outdated).
-- [ ] T015 [P] Viết test trước `tests/commentRailMarkup.test.tsx` (render tĩnh): rail `aside.sk-cm-rail[role=complementary][aria-label="Comments"]`, header "Comments · n" và nhãn nhánh, thẻ đóng theo contract (avatar, tên, thời gian, `q`, `p` cắt hai dòng, `role=group` và `aria-label` đúng), nhóm "Outdated, text changed", rail không dựng khi không có thẻ, nháp hay gì để cập nhật; ghi chú chứa `<script>` hoặc HTML hiển thị như chữ thuần (constitution II); nhãn nhánh chỉ hiện khi có nhánh (không hiện ở local và demo, FR-015). Phải fail.
-- [ ] T016 Tạo `src/annotations/CommentRail.tsx`: rail, `Card` ở trạng thái đóng, header; đo bề rộng `.sk-doc` bằng `ResizeObserver` để chỉ dựng khi đủ chỗ (research R1); chỉ dựng thẻ trong `[scrollTop − 1 màn hình, scrollTop + 2 màn hình]`; gọi `layoutCards`. Làm T015 pass.
-- [ ] T017 Trong `src/annotations/Annotator.tsx`: dựng `CommentRail` trong `.sk-doc` với `items`, `anchors`, `target.branch`; thêm class `has-rail` khi rail hiện (CSS thay lề phải 28px của 010, ghim ẩn khi rail hiện); props mới đều tuỳ chọn để ba shell chưa phải đổi. Nối CSS `.sk-cm-*` từ T008.
-- [ ] T018 Sau T017: cập nhật test cũ của 010 nếu T017 làm chúng fail (`tests/annotationsMarkup.test.tsx`): chỉ đổi kỳ vọng liên quan tới ghim khi rail hiện, không đổi hành vi khác.
+- [X] T014 Mở rộng `src/annotations/useHighlights.ts`: đăng ký `sk-n` cùng bốn màu; xuất vị trí `top` của neo cho từng highlight trong `.sk-doc` (dùng lại tính toán ghim); chừa chỗ cho `sk-sel` và `sk-draft` (đăng ký ở US1, US2). Giữ nguyên hành vi 010 (ghim, focus, Outdated).
+- [X] T015 [P] Viết test trước `tests/commentRailMarkup.test.tsx` (render tĩnh): rail `aside.sk-cm-rail[role=complementary][aria-label="Comments"]`, header "Comments · n" và nhãn nhánh, thẻ đóng theo contract (avatar, tên, thời gian, `q`, `p` cắt hai dòng, `role=group` và `aria-label` đúng), nhóm "Outdated, text changed", rail không dựng khi không có thẻ, nháp hay gì để cập nhật; ghi chú chứa `<script>` hoặc HTML hiển thị như chữ thuần (constitution II); nhãn nhánh chỉ hiện khi có nhánh (không hiện ở local và demo, FR-015). Phải fail.
+- [X] T016 Tạo `src/annotations/CommentRail.tsx`: rail, `Card` ở trạng thái đóng, header; đo bề rộng `.sk-doc` bằng `ResizeObserver` để chỉ dựng khi đủ chỗ (research R1); chỉ dựng thẻ trong `[scrollTop − 1 màn hình, scrollTop + 2 màn hình]`; gọi `layoutCards`. Làm T015 pass.
+- [X] T017 Trong `src/annotations/Annotator.tsx`: dựng `CommentRail` trong `.sk-doc` với `items`, `anchors`, `target.branch`; thêm class `has-rail` khi rail hiện (CSS thay lề phải 28px của 010, ghim ẩn khi rail hiện); props mới đều tuỳ chọn để ba shell chưa phải đổi. Nối CSS `.sk-cm-*` từ T008.
+- [X] T018 Sau T017: cập nhật test cũ của 010 nếu T017 làm chúng fail (`tests/annotationsMarkup.test.tsx`): chỉ đổi kỳ vọng liên quan tới ghim khi rail hiện, không đổi hành vi khác.
 
 **Checkpoint**: các nhận xét có sẵn hiện thành thẻ thẳng hàng trong rail ở server, Pages, local và demo; không thẻ nào đè nhau; ghim vẫn có khi hẹp.
 
