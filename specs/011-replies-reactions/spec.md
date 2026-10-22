@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-22
 
-**Status**: Draft
+**Status**: Clarified
 
 **Input**: User description: "mọi người trả lời và thả emoji". Tham chiếu: 4 ảnh chụp luồng nhận xét kiểu Google Docs (Ảnh 4: chuỗi trả lời có emoji); `specs/012-docs-style-comment-flow` (rail và thẻ nhận xét, đã merge); `specs/013-comment-button-popup` (hộp một nút "Comment", đã merge). Bản nháp cũ `011-annotation-threads` (trả lời, emoji, giải quyết) nằm trên nhánh chưa merge `claude/bold-hawking-k3ffwk`; spec này lấy lại phần trả lời và emoji của nó.
 
@@ -18,7 +18,7 @@ Hiện mỗi nhận xét là một thẻ một chiều: người khác đọc đ
 
 - Q: "Mọi người" gồm những ai? → A: Mọi người **có quyền lưu chú thích** trong spec đó, không riêng tác giả nhận xét gốc. Trả lời và emoji được lưu trong `highlights.json` như nhận xét, nên cần cùng quyền ghi nội dung repo mà 012 đã chọn (012 Q1, phương án C). Người chỉ có quyền đọc xem được mọi trả lời và emoji nhưng không thêm được; nút bị tắt kèm lý do. Không có đường lưu thứ hai.
 - Q: Spec này quan hệ thế nào với 010, 012, 013? → A: Dựng trên cả ba, không đổi cơ chế lưu của 010 (một file `highlights.json` mỗi spec, commit vào nhánh đang xem, `[skip ci]`, xác nhận một lần mỗi repo). Phần trả lời và emoji hiện trong khe `.sk-cm-thread` của thẻ (012). Nút trong hộp chọn chữ vẫn chỉ là "Comment" (013).
-- Q: Có "giải quyết và ẩn" không? → A: [NEEDS CLARIFICATION: Bản nháp cũ có thêm nút dấu tick "Đánh dấu là đã giải quyết và ẩn cuộc thảo luận" (Ảnh 3–4). Mô tả lần này chỉ nêu trả lời và emoji. (A) chỉ trả lời và emoji; giải quyết/ẩn để spec riêng sau; (B) làm luôn trong spec này.]
+- Q: Có "giải quyết và ẩn" không? → A: Phương án A. Spec này chỉ có trả lời và emoji. Nút dấu tick "Đánh dấu là đã giải quyết và ẩn cuộc thảo luận" (Ảnh 3–4 của spec 012) để một spec riêng sau; bản nháp cũ `011-annotation-threads` trên nhánh `claude/bold-hawking-k3ffwk` giữ phần đó làm tham chiếu.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -130,7 +130,7 @@ Dưới nhận xét và dưới mỗi trả lời, người dùng thả một em
 
 ## Non-Goals
 
-- Không "giải quyết/ẩn cuộc thảo luận" (tick) trong spec này, trừ khi câu hỏi trong Clarifications chọn (B).
+- Không "giải quyết/ẩn cuộc thảo luận" (tick): để spec riêng sau (Clarifications, phương án A).
 - Không @mention, thông báo email hay đẩy, giao việc.
 - Không đính kèm ảnh hay tệp; chỉ chữ thuần. Không bộ chọn emoji đầy đủ.
 - Không lưu thảo luận bằng comment trên issue theo dõi hay review comment của PR; không database hay dịch vụ riêng.
