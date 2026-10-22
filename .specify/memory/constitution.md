@@ -1,17 +1,16 @@
 <!--
 Sync Impact Report
-- Version change: 1.4.0 → 1.4.1 (PATCH: sửa câu chữ nguyên tắc IV)
-- Modified principles: IV. Trung thành với thiết kế. Bảng màu highlight chỉ còn "màu tô, màu đặc";
-  bỏ cụm "thanh công cụ luôn tối". Hộp chọn chữ nay là một nút "Comment" trên bề mặt sáng dùng token
-  Modernist (`--color-bg`, `--color-text`, `--shadow-md`) và đi theo nền đọc. Token `--hl-*` giữ
-  nguyên ở mọi nền; các token độ trong suốt riêng của thanh tối (`--hl-paper-75/60/50/25/12`) bị xoá vì
-  không còn nơi dùng (`--hl-ink`, `--hl-paper` vẫn dùng cho ghim và thông báo).
+- Version change: 1.4.1 → 1.4.2 (PATCH: một ngoại lệ có chủ đích trong nguyên tắc IV)
+- Modified principles: IV. Trung thành với thiết kế. Vẫn "không bo góc", thêm đúng một ngoại lệ: nút
+  emoji nổi của thẻ nhận xét (specs/015-comment-hover) hình tròn, chỉ dùng token (`--color-bg`,
+  `--color-divider`, `--shadow-md`). Các chỉ báo radio có sẵn của design system (`border-radius: 50%`
+  trong `modernist.css`) không đổi; mọi phần tử khác vẫn vuông.
 - Added sections: none
 - Removed sections: none
-- Lý do: specs/013-comment-button-popup (plan.md, Complexity Tracking), người dùng duyệt 2026-10-22.
-  Bản trước: 1.4.0 (ghi highlights.json).
+- Lý do: người dùng chọn phương án A cho câu hỏi 2 của specs/015 (nút tròn như ảnh tham chiếu Google
+  Docs), 2026-10-22. Bản trước: 1.4.1 (hộp "Comment" sáng, bỏ "thanh luôn tối").
 - Templates: không cần sửa ✅
-- Follow-up: CLAUDE.md ghi version 1.4.1 ✅
+- Follow-up: CLAUDE.md ghi version 1.4.2 ✅
 -->
 
 # speckit-ui Constitution
@@ -81,7 +80,10 @@ khó thấy nhất vì người viết thường chỉ thử một chế độ.
 ### IV. Trung thành với thiết kế
 
 - UI dùng design system Modernist: lấy màu, khoảng cách, viền từ token và class trong
-  `src/styles/modernist.css`. Không thêm màu mới, không bo góc, không dùng component ngoài hệ thống.
+  `src/styles/modernist.css`. Không thêm màu mới, không bo góc, không dùng component ngoài hệ thống. Ngoại lệ duy nhất về
+  bo góc: nút emoji nổi của thẻ nhận xét (specs/015-comment-hover) hình tròn, chỉ qua token
+  (`--color-bg`, `--color-divider`, `--shadow-md`); các chỉ báo radio có sẵn của `modernist.css` không
+  đổi và mọi phần tử khác vẫn vuông.
 - Hai ngoại lệ về màu, mỗi bảng khai báo đúng một nơi và chỉ dùng qua token:
   - bảng nền của chế độ đọc (White, Sepia, Green, Dark; specs/010), trong `src/reader/settings.ts`,
     áp bằng cách ghi đè token ở `:root`. Thêm nền hoặc màu vào bảng PHẢI qua spec và PHẢI đạt tương
@@ -173,4 +175,4 @@ thứ phải bảo trì và bảo mật.
 - Gate "Constitution Check" trong `/speckit-plan` PHẢI pass. Vi phạm có chủ đích phải ghi vào
   Complexity Tracking kèm lý do; `/speckit-analyze` coi vi phạm không được biện minh là CRITICAL.
 
-**Version**: 1.4.1 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-10-22
+**Version**: 1.4.2 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-10-22

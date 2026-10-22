@@ -10,11 +10,11 @@
 
 ## Phase 1: Setup
 
-- [ ] T001 Baseline: `npm ci`; `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages` đều qua. Chụp ảnh "trước" (scratchpad, ngoài repo): demo 1440×900 và 924×540 (màn hình chính, hộp thoại New spec), thẻ đang mở có một nhận xét và một trả lời lúc nghỉ và lúc hover ở 1440×900 và 390; đo và ghi chiều cao thẻ.
+- [X] T001 Baseline: `npm ci`; `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages` đều qua. Chụp ảnh "trước" (scratchpad, ngoài repo): demo 1440×900 và 924×540 (màn hình chính, hộp thoại New spec), thẻ đang mở có một nhận xét và một trả lời lúc nghỉ và lúc hover ở 1440×900 và 390; đo và ghi chiều cao thẻ.
 
 ## Phase 2: Foundational — luật và popover dùng chung (chặn US2)
 
-- [ ] T002 Sửa constitution lên 1.4.2 (patch) bằng `/speckit-constitution` (nhật ký sửa đổi, Sync Impact Report, Last Amended): nguyên tắc IV giữ "không bo góc" và thêm ngoại lệ duy nhất: nút emoji nổi của thẻ nhận xét (specs/015) hình tròn, qua token; các chỉ báo radio có sẵn của design system (`border-radius: 50%` trong `modernist.css`) không đổi; cập nhật `CLAUDE.md` (v1.4.1 → v1.4.2). Cùng PR với nút tròn.
+- [X] T002 Sửa constitution lên 1.4.2 (patch) bằng `/speckit-constitution` (nhật ký sửa đổi, Sync Impact Report, Last Amended): nguyên tắc IV giữ "không bo góc" và thêm ngoại lệ duy nhất: nút emoji nổi của thẻ nhận xét (specs/015) hình tròn, qua token; các chỉ báo radio có sẵn của design system (`border-radius: 50%` trong `modernist.css`) không đổi; cập nhật `CLAUDE.md` (v1.4.1 → v1.4.2). Cùng PR với nút tròn.
 - [ ] T003 Tạo `src/annotations/usePopover.ts`: hàm thuần `placePopover(button: DOMRect, size: {width, height}, viewport, align)` (dưới nút, canh mép phải, lật lên khi hết chỗ, kẹp 8 px) và hook `usePopover(open, buttonRef, size)` trả `{ style, listRef }` (đặt vị trí cố định theo nút; đóng khi bấm ngoài, đổi cỡ, cuộn sau 400 ms đầu; sự kiện `sk-more-menu-opened` để một popover mở một lúc, đổi tên thành `sk-popover-opened`). Đổi `src/annotations/MoreMenu.tsx` sang dùng hook này, hành vi bàn phím giữ nguyên; `tests/moreMenu.test.tsx` vẫn qua.
 - [ ] T004 [P] Test `tests/placePopover.test.ts`: dưới nút khi đủ chỗ, lật lên khi hết chỗ, kẹp trái/phải ở 320 px, canh mép phải của nút, bề rộng lớn hơn màn hình.
 
