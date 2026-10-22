@@ -6,7 +6,7 @@
 
 **Status**: Clarified
 
-**Input**: User description: "UI sau khi comment và reply on comment như hình đính kèm. Mặc định dùng highlight color là màu Change (`--hl-o`). Các options còn lại như Key, Comment, Question, Issue thì bỏ đi. Gom nút Edit, Delete vào menu ba chấm dọc như hình thứ hai. Bỏ nút Copy, Ask." Hai ảnh tham chiếu là thẻ nhận xét của Google Docs: tên người, giờ, nội dung, nút ba chấm ở góc phải mỗi mục (nhận xét và mỗi trả lời); menu mở ra có "Chỉnh sửa", "Xóa" (và vài mục khác); ô trả lời bo tròn với "Hủy" và "Trả lời".
+**Input**: User description: "UI sau khi comment và reply on comment như hình đính kèm. Mặc định dùng highlight color là màu Change (`--hl-o`). Các options còn lại như Key, Comment, Question, Issue thì bỏ đi. Gom nút Edit, Delete vào menu ba chấm dọc như hình thứ hai. Bỏ nút Copy, Ask." Hai ảnh tham chiếu là thẻ nhận xét của Google Docs: tên người, giờ, nội dung, nút ba chấm ở góc phải mỗi mục (nhận xét và mỗi trả lời); menu mở ra có "Chỉnh sửa", "Xóa" (và vài mục khác); ô trả lời bo tròn với "Hủy" và "Trả lời" (ở đây giữ góc vuông vì constitution IV cấm bo góc).
 
 ## Bối cảnh
 
@@ -48,7 +48,7 @@ Người dùng viết nhận xét và gửi. Đoạn chữ được tô màu **C
 
 **Acceptance Scenarios**:
 
-1. **Given** nhận xét hoặc trả lời do chính mình viết, **When** nhìn tiêu đề, **Then** có nút ba chấm dọc có nhãn "More actions"; bấm mở menu gồm Edit và Delete.
+1. **Given** thẻ đang mở và nhận xét hoặc trả lời do chính mình viết, **When** nhìn tiêu đề, **Then** có nút ba chấm dọc có nhãn "More actions"; bấm mở menu gồm Edit và Delete.
 2. **Given** nhận xét hoặc trả lời của người khác, **When** nhìn tiêu đề, **Then** không có nút ba chấm.
 3. **Given** menu đang mở, **When** chọn Edit, **Then** mục chuyển sang soạn tại chỗ như hiện nay (Save/Cancel); chọn Delete thì hỏi xác nhận (nêu số trả lời nếu là nhận xét gốc) rồi mới xoá.
 4. **Given** menu đang mở, **When** bấm ra ngoài hoặc nhấn Escape, **Then** menu đóng và tiêu điểm về nút ba chấm.
@@ -75,7 +75,7 @@ Thẻ nhận xét và mục chỉ có màu ở tab Highlights không còn nút C
 
 ### User Story 4 - Thẻ trông như thẻ Google Docs (Priority: P2)
 
-Mỗi mục (nhận xét và từng trả lời) có dòng tiêu đề: ảnh đại diện chữ cái, tên, giờ, nút ba chấm ở bên phải; nội dung ngay dưới. Ô trả lời là một ô nhập bo tròn có nút "Cancel" và "Reply" ở dưới bên phải; cuối thẻ không còn hàng nút nào khác ngoài emoji.
+Mỗi mục (nhận xét và từng trả lời) có dòng tiêu đề: ảnh đại diện chữ cái, tên, giờ, nút ba chấm ở bên phải; nội dung ngay dưới. Ô trả lời là một ô nhập **góc vuông** (constitution IV cấm bo góc, khác ảnh tham chiếu) có nút "Cancel" và "Reply" ở dưới bên phải; cuối thẻ không còn hàng nút nào khác ngoài emoji.
 
 **Why this priority**: Khớp hai ảnh tham chiếu; không đổi chức năng.
 
@@ -108,16 +108,16 @@ Mỗi mục (nhận xét và từng trả lời) có dòng tiêu đề: ảnh đ
 - **FR-001**: Nhận xét mới MUST được lưu và tô bằng màu Change (`--hl-o`, qua token); người dùng MUST NOT thấy nơi chọn hay đổi màu (không hàng ô màu, không nhãn Key/Issue/Question/Comment trên thẻ).
 - **FR-002**: Việc thêm ghi chú vào highlight chỉ có màu của chính mình (013) MUST cho ra nhận xét hiển thị như nhận xét mới.
 - **FR-003**: Nhận xét hoặc highlight đã lưu với màu khác MUST đọc được và giữ nguyên màu đã lưu trên đoạn chữ (không bị đổi sang Change); MUST NOT bị mất hay sửa chỉ vì mở tài liệu. Màu cũ không còn có chỗ đổi (câu hỏi 1).
-- **FR-004**: Mỗi nhận xét và mỗi trả lời do người dùng viết MUST có nút ba chấm dọc ở cuối tiêu đề, nhãn "More actions", mở menu gồm Edit và Delete; mục của người khác MUST NOT có nút này.
+- **FR-004**: Trên thẻ đang mở, mỗi nhận xét và mỗi trả lời do người dùng viết MUST có nút ba chấm dọc ở cuối tiêu đề, nhãn "More actions", mở menu gồm Edit và Delete; mục của người khác và thẻ đang đóng MUST NOT có nút này.
 - **FR-005**: Không còn hàng nút Edit/Delete nằm sẵn trong thẻ.
 - **FR-006**: Menu MUST đóng khi bấm ra ngoài, nhấn Escape (tiêu điểm về nút), hoặc chọn một mục; một lúc chỉ một menu mở; dùng được bằng bàn phím (mở, mũi tên, Enter, Escape) và có nhãn cho trình đọc màn hình.
 - **FR-007**: Edit MUST chuyển mục sang soạn tại chỗ như hiện nay; Delete MUST hỏi xác nhận trước khi xoá, và với nhận xét có trả lời MUST nêu số trả lời bị xoá (011 FR-004).
 - **FR-008**: Khi không lưu được, Edit và Delete MUST tắt kèm lý do (cùng lý do của 012).
 - **FR-009**: Thẻ và mục ở tab Highlights MUST NOT có nút Copy và Ask.
-- **FR-010**: Bố cục thẻ MUST theo thứ tự: tiêu đề (avatar chữ cái, tên, giờ, ba chấm), nội dung, emoji, các trả lời cùng kiểu, ô trả lời. Cancel và Reply MUST chỉ hiện khi ô trả lời được chọn hoặc có chữ.
+- **FR-010**: Bố cục thẻ MUST theo thứ tự: tiêu đề (avatar chữ cái, tên, giờ, ba chấm), nội dung, emoji, các trả lời cùng kiểu, ô trả lời. Ô trả lời MUST có góc vuông (constitution IV). Cancel và Reply MUST chỉ hiện khi ô trả lời được chọn hoặc có chữ.
 - **FR-011**: Mọi thay đổi MUST giữ nguyên cách lưu của 010/012/011 (một file `highlights.json` mỗi spec, một commit `[skip ci]` mỗi lần lưu, xác nhận một lần mỗi repo) và áp dụng cả bốn chế độ (constitution III).
 - **FR-012**: Giao diện MUST dùng token Modernist và token `--hl-*` có sẵn (không thêm màu); dùng được bằng bàn phím, có `:focus-visible` theo hệ thống, dùng được ở bề rộng điện thoại (constitution IV). Menu dùng bề mặt sáng như hộp "Comment" của 013.
-- **FR-013**: Tab Highlights MUST NOT có ô lọc theo màu và nhãn màu bằng chữ; mỗi mục MAY có dải màu nhỏ không chữ cạnh mục theo màu đã lưu. "Before you approve" MUST xếp ghi chú theo thời gian, không theo màu.
+- **FR-013**: Tab Highlights MUST NOT có ô lọc theo màu và nhãn màu bằng chữ; mỗi mục MUST giữ dải màu nhỏ không chữ cạnh mục theo màu đã lưu. "Before you approve" MUST xếp ghi chú theo thời gian, không theo màu.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -128,7 +128,7 @@ Mỗi mục (nhận xét và từng trả lời) có dòng tiêu đề: ảnh đ
 ### Measurable Outcomes
 
 - **SC-001**: Một nhận xét mới trải qua "chọn chữ → Comment → gõ → gửi" mà người dùng không phải chọn màu nào, và 100% nhận xét mới được lưu với màu Change.
-- **SC-002**: Thẻ nhận xét đang chọn có ít nhất 4 nút ít hơn so với trước (bỏ 5 ô màu, Edit, Delete, Copy, Ask khỏi hàng cố định; thay bằng một nút ba chấm ở mỗi mục của mình).
+- **SC-002**: Thẻ nhận xét đang chọn không còn ô màu, Edit, Delete, Copy, Ask nào ở hàng cố định (trước đây 9 nút); mỗi mục của mình chỉ có đúng một nút ba chấm.
 - **SC-003**: Sửa và xoá một trả lời của mình làm được chỉ qua menu ba chấm, bằng chuột và bằng bàn phím.
 - **SC-004**: File `highlights.json` tạo bởi các bản trước đọc được 100%; 0 nhận xét bị mất hoặc bị ghi đè khi chỉ mở tài liệu.
 - **SC-005**: Ở 390 px, thẻ và menu dùng được, không cuộn ngang, nút ba chấm đạt vùng chạm tối thiểu 44 px ở màn hình cảm ứng.
