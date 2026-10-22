@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain (1 open: Q1, header layout of the three dots on a closed card)
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,4 +31,4 @@
 
 ## Notes
 
-- Q1 phải được trả lời trước `/speckit-plan`.
+- Q1 đã trả lời (A, ngoài cùng bên phải). Sẵn sàng cho `/speckit-plan`.

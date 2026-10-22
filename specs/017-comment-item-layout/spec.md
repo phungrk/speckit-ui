@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-22
 
-**Status**: Draft
+**Status**: Clarified
 
 **Input**: User description: "update UI comment item: đặt emoji bên dưới đoạn text comment (giống google docs); khi hover item ba chấm sẽ hiển thị cùng emoji (hiện tại thì chỉ những item nào được click vào mới hiển thị được ba chấm khi hover)"
 
@@ -21,7 +21,7 @@ Spec này làm hai việc: emoji luôn nằm ngay dưới nội dung của mục
 
 ### Session 2026-10-22
 
-- Q1: Ở thẻ đóng, nút ba chấm hiện ở tiêu đề, nơi đã có giờ và số trả lời. Hiện thế nào? → [NEEDS CLARIFICATION: A) chừa chỗ cho nút ở thẻ đóng của mình ngay cả lúc nghỉ, giờ dịch trái khoảng 32 px (khớp thẻ mở, nhưng ảnh demo của thẻ đóng thay đổi), hay B) khi hover, nút hiện đè lên chỗ của giờ (giờ ẩn trong lúc hover), không có gì dịch, ảnh demo lúc nghỉ giữ nguyên?]
+- Q1: Ba chấm trên thẻ đóng hiện thế nào? → A: Phương án A, và đặt ở **ngoài cùng bên phải** của tiêu đề (sau giờ), cùng vị trí với thẻ đang mở. Thẻ đóng của mình chừa sẵn chỗ cho nút ngay cả lúc nghỉ, nên giờ dịch sang trái khoảng 32 px. Ảnh demo của thẻ đóng của mình đổi vì điều này, ghi là ngoại lệ trong PR (phần tiêu đề thẻ nhận xét thuộc spec này). Người dùng nhắc lại yêu cầu gốc: emoji đã thả dời xuống dưới đoạn text của nhận xét (US1).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -86,12 +86,12 @@ Rê chuột (hoặc đưa tiêu điểm) vào một mục của chính mình, �
 - **FR-005**: Khi hover hoặc có tiêu điểm vào một mục do chính người dùng viết, ở thẻ đóng cũng như thẻ mở, nút ba chấm MUST hiện cùng nút emoji; mục của người khác MUST chỉ có nút emoji.
 - **FR-006**: Trên thẻ đóng, chọn Edit MUST mở thẻ và vào soạn tại chỗ; chọn Delete MUST mở thẻ và hiện câu hỏi xác nhận như ở thẻ mở (Keep, Delete); không thao tác nào ghi gì trước khi người dùng xác nhận.
 - **FR-007**: Nút ba chấm và nút emoji trên thẻ đóng MUST không làm đổi thẻ đang chọn khi chỉ mở menu hoặc bộ emoji, ngoại trừ việc Edit hoặc Delete (FR-006) mở thẻ đó.
-- **FR-008**: Cách hiện của ba chấm trên thẻ đóng MUST theo quyết định ở Clarifications Q1, và MUST NOT che nội dung hay tên người viết.
+- **FR-008**: Nút ba chấm MUST nằm ở ngoài cùng bên phải của tiêu đề mục, sau giờ, ở thẻ đóng cũng như thẻ mở, cùng một vị trí. Thẻ đóng của mình MUST chừa sẵn chỗ cho nút cả lúc nghỉ (giờ và số trả lời dịch sang trái cho vừa), để khi hover không có gì dịch chuyển; thẻ đóng của người khác MUST giữ tiêu đề như hiện nay.
 - **FR-009**: Trên thiết bị không có hover, nút ba chấm (mục của mình) và nút emoji MUST hiện sẵn ở thẻ đóng và thẻ mở, vùng chạm tối thiểu 44 px; bấm chúng MUST NOT bị tính là chọn thẻ.
 - **FR-010**: Các nút ẩn lúc nghỉ MUST vẫn truy cập được bằng bàn phím và trình đọc màn hình (có tên); thẻ đóng MUST giữ thứ tự Tab ngắn: các nút của mục vào được sau khi thẻ có tiêu điểm hoặc được mở.
 - **FR-011**: Quyền và điều kiện ghi MUST giữ như 012, 014, 015 (chỉ đọc, nhánh bảo vệ, ghim commit: nút tắt kèm lý do).
 - **FR-012**: Chỉ dùng token Modernist, không màu cứng; nút emoji vẫn là phần tử tròn duy nhất (constitution 1.4.2); viên emoji, ba chấm, menu giữ hình vuông.
-- **FR-013**: Không đổi dữ liệu, `highlights.json`, cách lưu hay quyền; áp dụng cả bốn chế độ (constitution III). Ảnh demo ở trạng thái nghỉ MUST giữ nguyên so với trước spec này, trừ phần Clarifications Q1 nếu chọn A (ghi rõ trong PR).
+- **FR-013**: Không đổi dữ liệu, `highlights.json`, cách lưu hay quyền; áp dụng cả bốn chế độ (constitution III). Ảnh demo ở trạng thái nghỉ MUST giữ nguyên so với trước spec này, trừ tiêu đề thẻ đóng của mình (giờ dịch trái vì chỗ chừa cho ba chấm, Clarifications Q1) và hàng emoji dưới nội dung; hai chỗ này được ghi là ngoại lệ trong PR.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -113,6 +113,7 @@ Không có thực thể hay trường dữ liệu mới. Đây là thay đổi b
 
 - **Dựa trên 010–015 và PR #41 (đã merge vào `main`).** Spec 016 (lưu theo hai cách) độc lập và chưa merge.
 - **Chế độ bị ảnh hưởng** (constitution III): cả bốn; thành phần dùng chung.
+- **Nút emoji tròn** (015) vẫn ở mép phải của dòng nội dung khi hover; các viên emoji đã thả là hàng dưới nội dung (US1). Nếu ý là dời cả nút tròn xuống dưới nội dung thì cần nói lại.
 - **Số trả lời** vẫn ở tiêu đề thẻ đóng; chỉ chuỗi emoji chuyển xuống dưới nội dung.
 - **Hàng emoji của trả lời** vẫn dưới nội dung của trả lời như hiện nay; thay đổi chính là thẻ đóng và vị trí nhất quán.
 - **Chỉnh sửa tại chỗ và xoá từ thẻ đóng** dùng đúng luồng của thẻ mở; thẻ mở ra như khi người dùng bấm vào thẻ.
