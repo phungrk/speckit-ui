@@ -21,6 +21,7 @@
 - Q: Ghim ở lề làm gì khi rail hiện? (analyze I2) → A: Ghim ẩn ở bố cục rộng vì thẻ trong rail thay vai trò đó; ghim chỉ hiện ở bố cục hẹp (FR-012).
 - Q: Highlight chỉ có màu (không ghi chú) có thẻ và có được chọn không? (analyze I3) → A: Không. Nhận xét là highlight có ghi chú; highlight chỉ có màu giữ hành vi của 010, bấm vào mở thanh công cụ (FR-008).
 - Q: Demo mở sẵn feature nào, và SC-008 so với gì? (analyze A1) → A: Feature 003 với nhận xét mẫu, nên so với bản thiết kế đã cập nhật có rail; khi xoá dữ liệu mẫu thì so với thiết kế gốc (SC-008).
+- Q: Phiên hết hạn có là lý do tắt nút Thêm nhận xét không? (analyze lần 2, N2) → A: Không. Ứng dụng đã có màn hình đăng nhập riêng cho phiên hết hạn; lỗi lưu giữ nguyên nội dung đang soạn (010 FR-015). FR-016 chỉ gồm chỉ có quyền đọc, nhánh bị bảo vệ hoặc đã xoá.
 - Q: Số spec? → A: 012, vì 011 đã dùng cho `011-annotation-threads` trên cùng nhánh này.
 - Q1: Người duyệt chỉ có quyền đọc repo thì có nhận xét được không? → A: Không. Chỉ người có quyền ghi nội dung repo mới nhận xét được, và nhận xét lưu vào file `highlights.json` như 010. Người chỉ có quyền đọc xem được mọi nhận xét nhưng không thêm được; nút Thêm nhận xét bị tắt kèm lý do (FR-016). Không có đường lưu thứ hai: không dùng comment trên issue theo dõi, không dùng review comment của PR. (Chọn phương án C ngày 2026-10-21. Câu trả lời đầu "bất kỳ ai cũng comment được" từng dẫn tới dự kiến dự phòng bằng comment trên issue; phương án đó đã bị bỏ, và "bất kỳ ai" nay nghĩa là bất kỳ ai có quyền ghi nội dung repo.)
 - Q2: Nhận xét không chọn màu thì được coi là gì? → A: Thêm giá trị thứ năm "không màu": nhận xét thường, tô trung tính, không mặc định Key. Vẫn vào "Before you approve", xếp sau Issue (FR-003).
@@ -64,7 +65,7 @@ Người duyệt bôi chọn một đoạn chữ trong tài liệu. Cạnh đo�
 5. **Given** hộp soạn để trống, **When** người dùng bấm Nhận xét, **Then** không gửi gì và ô nhập nhắc cần nhập nội dung.
 6. **Given** người dùng đang soạn nhận xét chưa gửi, **When** họ chọn một đoạn chữ khác, **Then** nội dung đang soạn không mất âm thầm: giữ lại hoặc hỏi trước khi bỏ.
 7. **Given** nhận xét đã tạo mà không chọn màu, **When** người dùng xem nó, **Then** nó hiện với kiểu mặc định theo Q2 và vẫn gán màu phân loại sau được.
-8. **Given** người dùng chỉ có quyền đọc (hoặc nhánh bị bảo vệ, hoặc phiên hết hạn), **When** họ chọn một đoạn chữ, **Then** nút Thêm nhận xét hiện ở trạng thái tắt kèm lý do cụ thể và cách khắc phục; họ vẫn xem và chọn được mọi nhận xét.
+8. **Given** người dùng chỉ có quyền đọc (hoặc nhánh bị bảo vệ), **When** họ chọn một đoạn chữ, **Then** nút Thêm nhận xét hiện ở trạng thái tắt kèm lý do cụ thể và cách khắc phục; họ vẫn xem và chọn được mọi nhận xét.
 
 ---
 
@@ -110,7 +111,7 @@ Mỗi nhận xét cho biết trạng thái: đang gửi, đã lưu (kèm liên k
 
 ### Edge Cases
 
-- **Nút Thêm nhận xét khi không đọc được spec hoặc phiên hết hạn:** hiện ở trạng thái tắt kèm lý do, không biến mất lặng lẽ.
+- **Phiên hết hạn khi đang soạn hoặc đang lưu:** lỗi lưu hiện thông báo và giữ nguyên nội dung đang soạn (010 FR-015); đăng nhập lại theo màn hình đăng nhập hiện có của ứng dụng. Nút Thêm nhận xét không có trạng thái tắt riêng cho trường hợp này.
 - **Nhánh bị bảo vệ hoặc đã xoá:** không commit được (010 FR-009); nút Thêm nhận xét tắt kèm lý do, nhận xét đang soạn giữ nguyên.
 - **Người dùng được cấp quyền ghi giữa chừng:** nút Thêm nhận xét bật lên ở lần làm mới kế tiếp, không cần đăng nhập lại nếu phiên còn hạn.
 - **Thử lại sau lỗi lưu:** không bao giờ tạo hai nhận xét giống nhau.
@@ -153,7 +154,7 @@ Mỗi nhận xét cho biết trạng thái: đang gửi, đã lưu (kèm liên k
 
 **Quyền và chế độ**
 
-- **FR-016**: Người dùng không lưu được nhận xét MUST thấy nút Thêm nhận xét ở trạng thái tắt, không biến mất, kèm lý do cụ thể và cách khắc phục. Các lý do: chỉ có quyền đọc (cần quyền ghi nội dung repo, Contents: write), nhánh bị bảo vệ hoặc đã xoá, phiên hết hạn. Họ MUST vẫn xem và chọn được mọi nhận xét. Khi nào ứng dụng biết: (a) nếu GitHub báo tài khoản không có quyền ghi vào repo (đọc cùng lúc tải project), nút MUST tắt ngay, trước mọi yêu cầu ghi; (b) nếu GitHub không báo được (ví dụ token fine-grained thiếu Contents: write), nút MUST tắt ngay sau lần lưu đầu tiên bị từ chối và ghi nhớ trong phiên, không thử lại; (c) nhánh bị bảo vệ hoặc đã xoá, phiên hết hạn: theo lỗi của lần lưu bị từ chối. Ứng dụng MUST NOT có đường lưu thứ hai (không comment trên issue, không review PR) và MUST NOT dò quyền bằng cách thử ghi (lần lưu bị từ chối ở (b) là lần lưu thật của người dùng, không phải thăm dò).
+- **FR-016**: Người dùng không lưu được nhận xét MUST thấy nút Thêm nhận xét ở trạng thái tắt, không biến mất, kèm lý do cụ thể và cách khắc phục. Các lý do: chỉ có quyền đọc (cần quyền ghi nội dung repo, Contents: write), nhánh bị bảo vệ hoặc đã xoá. Họ MUST vẫn xem và chọn được mọi nhận xét. Khi nào ứng dụng biết: (a) nếu GitHub báo tài khoản không có quyền ghi vào repo (đọc cùng lúc tải project), nút MUST tắt ngay, trước mọi yêu cầu ghi; (b) nếu GitHub không báo được (ví dụ token fine-grained thiếu Contents: write), nút MUST tắt ngay sau lần lưu đầu tiên bị từ chối và ghi nhớ trong phiên, không thử lại; (c) nhánh bị bảo vệ hoặc đã xoá: theo lỗi của lần lưu bị từ chối. Phiên hết hạn không thuộc FR-016 (xem edge case). Ứng dụng MUST NOT có đường lưu thứ hai (không comment trên issue, không review PR) và MUST NOT dò quyền bằng cách thử ghi (lần lưu bị từ chối ở (b) là lần lưu thật của người dùng, không phải thăm dò).
 
 - **FR-017**: Cả ba chế độ MUST có luồng như nhau: server, Pages, local và demo cùng bố cục, thao tác và trạng thái; khác biệt chỉ ở nơi lưu (constitution III).
 - **FR-018**: Giao diện MUST dùng token và class Modernist (`src/styles/modernist.css`, `src/styles/reader.css`), không bo góc, không thêm màu. Màn hình demo MUST giữ giống thiết kế khi chưa có nhận xét nào. Mọi thao tác MUST dùng được bằng bàn phím và có nhãn cho trình đọc màn hình (constitution IV).

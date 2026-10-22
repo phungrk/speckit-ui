@@ -38,3 +38,4 @@
 - Open follow-up for `/speckit-clarify`: none that block planning. Spec 011 is unaffected by the removal (only one storage file).
 - The spec names the highlight file and commits only because 010 defines them as product behaviour; no framework or library is named.
 - Analyze (2026-10-21): 19 findings (0 critical, 3 high, 10 medium, 6 low) all addressed in spec, plan, research, data-model, contracts, quickstart and tasks; see `analysis.md`. Spec changes: FR-008, FR-012, FR-014, FR-015, FR-016, SC-006, SC-008, SC-009 and glossary (rail vs sidebar, comment vs highlight).
+- Analyze re-run (2026-10-22): 7 further findings (0 high, 4 medium, 3 low) addressed. Spec change: "session expired" is no longer a reason for the disabled Add-comment button (FR-016, US1 scenario 8, new edge case, Clarifications). Details in `analysis.md`.

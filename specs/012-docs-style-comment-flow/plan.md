@@ -78,7 +78,7 @@ Trạng thái nền là `main` sau khi 010 merge (PR #30); đường dẫn dư�
 ```text
 server/
 ├── highlightsFile.ts    # sửa: COLORS thêm 'n'; commitMessage cho 'n' ("commented")
-├── github.ts            # sửa: gh() nhận header thêm (If-None-Match) và trả 304; loadMain đọc permissions.push → Project.canWrite (R16)
+├── github.ts            # sửa: gh() nhận header thêm (If-None-Match) và trả 304; getProject đọc permissions.push (map riêng, đọc lại khi làm mới) → Project.canWrite (R16)
 ├── highlights.ts        # sửa: readHighlights(src, {slug, branch, etag}) → items | 'unchanged'
 └── routes.ts            # sửa: GET /api/highlights (cùng origin), thêm vào ROUTES
 src/

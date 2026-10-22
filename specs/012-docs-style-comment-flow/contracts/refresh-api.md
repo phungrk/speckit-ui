@@ -11,7 +11,7 @@ Cùng origin, đọc, không có tác dụng phụ. Token ở server (constituti
 | 200 | `{ "items": Highlight[], "error": string \| null, "etag": string }` |
 | 304 | không thân: file chưa đổi từ `etag` |
 | 404 | file hoặc nhánh không có: trả `{ items: [], error: null, etag: null }` (spec chưa có highlight) |
-| 401 | phiên hết hạn (cùng dạng với các route khác) |
+| 401 | phiên hết hạn (cùng dạng với các route khác; app dùng màn hình đăng nhập hiện có) |
 | 403 | không có quyền đọc repo |
 | 429/5xx | lỗi tạm; client lùi lại |
 

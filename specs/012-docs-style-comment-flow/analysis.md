@@ -2,14 +2,14 @@
 
 **Ngày**: 2026-10-21 | **Đối chiếu**: `spec.md`, `plan.md`, `tasks.md`, constitution v1.4.0, và code thật trên `main` (`src/project/LiveWorkspace.tsx:143` cho `hlReadOnly`, `src/App.tsx:37` cho feature mặc định của demo, `server/github.ts` cho `gh()` và `loadMain`).
 
-**Kết quả lần chạy đầu**: 0 CRITICAL, 3 HIGH, 10 MEDIUM, 6 LOW (19 phát hiện). **Sau khi sửa**: cả 19 đã xử lý (xem cột Trạng thái); không còn phát hiện mở. Báo cáo dưới đây giữ nguyên số task của lần chạy đầu; bảng ánh xạ ID mới ở cuối.
+**Lần chạy 1**: 0 CRITICAL, 3 HIGH, 10 MEDIUM, 6 LOW (19 phát hiện), đã xử lý hết. **Lần chạy 2** (chạy lại sau khi sửa): thêm 7 phát hiện (0 HIGH, 4 MEDIUM, 3 LOW), cũng đã xử lý hết (mục "Lần chạy 2" ở cuối). Phần bảng của lần chạy 1 giữ nguyên số task lúc đó; bảng ánh xạ ID ở cuối cho biết số hiện tại.
 
 ## Findings
 
 | ID | Category | Severity | Location(s) | Summary | Recommendation | Trạng thái |
 |----|----------|----------|-------------|---------|----------------|------------|
 | C1 | Coverage | **HIGH** | spec FR-016, SC-009; T019, T022, T024 | Spec đòi nút Add comment tắt kèm lý do cho người chỉ có quyền đọc trong 100% trường hợp, và "không dò quyền bằng cách thử ghi". Nhưng `store.readOnly` chỉ khác null khi app đang ghim, file hỏng, hoặc sau khi một lần ghi đã bị từ chối (`refused`, `LiveWorkspace.tsx:143`). Không task nào kiểm tra quyền trước. | Thêm task xác định quyền ghi khi tải project; nới SC-009 cho token fine-grained; sửa FR-016. | ✅ FR-016 chia (a) GitHub báo → tắt ngay, (b) không báo → tắt sau lần bị từ chối đầu; SC-009 hai vế; research R16; tasks mới T022 (test), T023 (`loadMain` đọc `permissions.push` → `Project.canWrite`) |
-| I1 | Inconsistency | **HIGH** | T022 vs T033 | T022 (US1) bỏ nút Note và trình sửa ghi chú nổi, còn sửa/xoá trong thẻ chỉ có ở T033 (US2). Làm riêng US1 thì mất khả năng sửa ghi chú, bấm ghim không mở gì; T022 còn làm Toolbar/Annotator không biên dịch cho tới T024. | Giữ luồng Note của 010 tới khi thẻ có Edit/Delete; gộp T022 và T024. | ✅ T024 (cũ T022) giữ trình sửa ghi chú cho highlight có sẵn và bố cục hẹp, làm cùng commit với T026; task mới T036 bỏ trình sửa nổi sau khi thẻ có Edit/Delete (T035) |
+| I1 | Inconsistency | **HIGH** | T022 vs T033 | T022 (US1) bỏ nút Note và trình sửa ghi chú nổi, còn sửa/xoá trong thẻ chỉ có ở T033 (US2). Làm riêng US1 thì mất khả năng sửa ghi chú, bấm ghim không mở gì; T022 còn làm Toolbar/Annotator không biên dịch cho tới T024. | Giữ luồng Note của 010 tới khi thẻ có Edit/Delete; gộp T022 và T024. | ✅ T024 (cũ T022) giữ trình sửa ghi chú cho highlight có sẵn và bố cục hẹp, làm cùng commit với T026; task mới T038 bỏ trình sửa nổi sau khi thẻ có Edit/Delete (T035) |
 | A1 | Ambiguity | **HIGH** | spec SC-008, T054; `src/App.tsx:37`, `demoSeed.ts` | SC-008 đòi demo "khi chưa có nhận xét" khớp thiết kế, nhưng demo mở sẵn feature `003` có ghi chú mẫu nên màn hình chính luôn có rail. Không kiểm được ở màn hình constitution IV bắt so. | Viết lại SC-008 và T054. | ✅ SC-008: khớp bản thiết kế cập nhật có rail (nhận xét mẫu của 003); xoá dữ liệu mẫu thì khớp thiết kế gốc. T057 và quickstart cập nhật |
 | C2 | Coverage | MEDIUM | spec FR-004, edge "HTML hoặc script"; constitution II | Không task nào kiểm thử ghi chú chứa HTML hoặc script hiển thị như chữ thuần trong thẻ, Composer, rail. | Thêm ca test. | ✅ Thêm vào T015 và T020 |
 | C3 | Coverage | MEDIUM | spec edge "nhắc khi quay lại"; research R5 | Spec và R5 nêu nhắc khi quay lại và chấm "Draft"; không task nào làm. | Thêm vào task Annotator và test nháp. | ✅ Thêm vào T021 (test) và T026 (cài đặt) |
@@ -72,7 +72,7 @@ Không có vi phạm MUST.
 | | Lần chạy đầu | Sau khi sửa |
 |---|---|---|
 | Total Requirements | 26 (18 FR + 8 SC) | 26 |
-| Total Tasks | 57 | **60** (thêm T022, T023, T036) |
+| Total Tasks | 57 | **60** (thêm T022, T023, T038) |
 | Coverage (≥ 1 task) | 26/26, 2 chưa đủ ý (FR-016, SC-009) | 26/26, đủ ý |
 | Ambiguity Count | 4 | 0 |
 | Duplication Count | 0 | 0 |
@@ -80,7 +80,23 @@ Không có vi phạm MUST.
 
 ## Ánh xạ số task (cũ → mới)
 
-Task T001–T021 giữ số; T022–T033 thành T024–T035 (+2); T034–T057 thành T037–T060 (+3). Ba task mới: **T022** (test `Project.canWrite`), **T023** (`loadMain` đọc `permissions.push`, `hlReadOnly`), **T036** (bỏ trình sửa ghi chú nổi sau khi thẻ có Edit/Delete).
+Task T001–T021 giữ số; T022–T033 thành T024–T035 (+2); T034–T057 thành T037–T060 (+3). Ba task mới: **T022** (test `Project.canWrite`), **T023** (`loadMain` đọc `permissions.push`, `hlReadOnly`), **T038** (bỏ trình sửa ghi chú nổi sau khi thẻ có Edit/Delete và sheet). Lần chạy 2 đổi thứ tự trong US2: T036 = `HighlightsPanel` (trước là T037), T037 = bố cục hẹp và sheet (trước là T038), T038 = bỏ trình sửa nổi (trước là T036).
+
+## Lần chạy 2 (2026-10-22)
+
+Chạy lại sau khi sửa lần 1: cây sạch, `main` không đổi, không có `[NEEDS CLARIFICATION]`. Kiểm thêm code thật: `projectKey` và `getProject` trong `server/github.ts`, `onRefused` trong `src/annotations/Annotator.tsx`. 0 CRITICAL, 0 HIGH, 4 MEDIUM, 3 LOW.
+
+| ID | Category | Severity | Summary | Trạng thái |
+|----|----------|----------|---------|------------|
+| N1 | Coverage | MEDIUM | `Project.canWrite` nằm trong `Project` được cache; `getProject` dùng lại `hit.main` khi commit không đổi và không gọi lại `loadMain`, nên người được cấp quyền ghi giữa chừng vẫn bị tắt nút. (Cache khoá theo `identity` nên không rò giữa người dùng.) | ✅ `canWrite` nằm trong map riêng theo `projectKey`, đọc lại khi tải lần đầu và khi `refresh === true`, gắn vào bản `getProject` trả về. Research R16, data-model, plan, T022 (test: đổi quyền khi commit không đổi), T023 |
+| N2 | Coverage | MEDIUM | Spec liệt kê "phiên hết hạn" là lý do tắt nút nhưng 010 chỉ đặt `refused` cho lỗi `cannot commit to`, `no longer exists`, `read-only`; 401 khi lưu không tắt nút. | ✅ Quyết (bạn đồng ý đề xuất): bỏ "phiên hết hạn" khỏi FR-016 và US1 AC8; thêm edge case (lỗi lưu giữ nội dung, đăng nhập lại theo màn hình có sẵn); Clarifications; T019, T026 |
+| I1 | Inconsistency | MEDIUM | T019 khẳng định không còn `.sk-tb-note` nhưng T024 giữ nó cho chế độ sửa tới khi bỏ. | ✅ T019 chỉ áp cho vùng chọn mới |
+| U1 | Underspec | MEDIUM | Ở bố cục hẹp sau US1 và trước sheet, Composer không có chỗ hiện. | ✅ T026: dùng trình sửa ghi chú nổi của 010 làm hộp soạn tạm tới T037 |
+| C3 | Coverage | LOW | Constitution IV đòi `:focus-visible`; không task hay contract nhắc. | ✅ T008 và contract comment-rail-ui.md |
+| I2 | Inconsistency | LOW | Task bỏ trình sửa nổi cần sheet nhưng đứng trước task dựng sheet. | ✅ Đổi thứ tự: bỏ trình sửa nổi thành T038, sau sheet T037 |
+| D1 | Duplication | LOW | T033 và `HighlightsPanel` cùng nói "mục tab Highlights gọi `onSelect`". | ✅ Chỉ còn ở T036 |
+
+**Metrics sau lần chạy 2**: 26 yêu cầu, 60 task, coverage 26/26 đủ ý (FR-016 và SC-009 nay có đường cho cả hai vế và cho đổi quyền giữa chừng), Ambiguity 0, Duplication 0, Critical 0, phát hiện mở 0.
 
 ## Việc còn lại
 

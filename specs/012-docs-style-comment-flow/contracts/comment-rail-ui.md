@@ -90,6 +90,7 @@ Luôn một `selectedId` (shell giữ). `focusId` của 010 (gạch chân 1,6 gi
   cao tối đa 60% khung nhìn, có nút đóng; không cuộn ngang.
 - Tab Highlights (sidebar phải) vẫn là danh sách theo bước, có dấu "New comments" và nút làm mới.
 - Vùng bấm tối thiểu 44px trên cảm ứng.
+- Mọi nút và thẻ trong rail, sheet và Composer có `:focus-visible` theo hệ thống (constitution IV), thẻ đang chọn không dựa vào màu một mình.
 
 ## Dấu "New comments" và làm mới (FR-014)
 
