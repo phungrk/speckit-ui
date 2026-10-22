@@ -90,3 +90,43 @@ describe('gate writes go to the repo that is open', () => {
     expect(writes(calls)).toEqual(['PATCH /repos/o/b/issues/1', 'POST /repos/o/b/issues/1/comments']);
   });
 });
+
+describe('write access of the user, kept apart from the cached project (specs/012 FR-016, research R16)', () => {
+  beforeEach(() => { clearProjectCache(); clearTrackingCache(); });
+  afterEach(() => vi.unstubAllGlobals());
+  const repoCalls = (calls: { path: string }[], repo: string) => calls.filter(c => c.path === `/repos/o/${repo}`).length;
+
+  it('is false, true or null as GitHub says, and null when it does not say', async () => {
+    fakeGitHub({ 'o/ro': { permissions: { push: false } }, 'o/rw': { permissions: { push: true } }, 'o/unknown': {} });
+    expect((await getProject(src('ro'))).canWrite).toBe(false);
+    expect((await getProject(src('rw'))).canWrite).toBe(true);
+    expect((await getProject(src('unknown'))).canWrite).toBeNull();
+  });
+
+  it('is null for a pinned branch, which does not read the repository at all', async () => {
+    const calls = fakeGitHub({ 'o/a': { permissions: { push: false } } });
+    expect((await getProject({ ...src('a'), ref: 'main' })).canWrite).toBeNull();
+    expect(repoCalls(calls, 'a')).toBe(0);
+  });
+
+  it('follows a change of role when the commit has not changed, on refresh only', async () => {
+    const repo = { permissions: { push: false } };
+    const calls = fakeGitHub({ 'o/a': repo });
+    expect((await getProject(src('a'))).canWrite).toBe(false);
+    repo.permissions = { push: true };
+    // Served from the cache: nothing is asked again, so the old answer stands until a refresh.
+    expect((await getProject(src('a'))).canWrite).toBe(false);
+    expect((await getProject(src('a'), true)).canWrite).toBe(true);
+    // The load itself came from the cached commit: the tree was read once.
+    expect(trees(calls, 'a')).toBe(1);
+  });
+
+  it('is not shared between two users of the same repository', async () => {
+    fakeGitHub({ 'o/a': { permissions: auth => ({ push: auth === 'Bearer writer' }) } });
+    const as = (identity: string, token: string): Source => ({ owner: 'o', repo: 'a', token, identity });
+    expect((await getProject(as('u1', 'writer'))).canWrite).toBe(true);
+    expect((await getProject(as('u2', 'reader'))).canWrite).toBe(false);
+    expect((await getProject(as('u1', 'writer'))).canWrite).toBe(true);
+  });
+});
+

@@ -7,7 +7,7 @@ import { handleCopilot } from './copilot.ts';
 import { GitHubError, detectSpeckit, getProject, getSpecVariant, identityFor, json, listRepos, type Source } from './github.ts';
 import { appConfig, destroySession, getSession, handleCallback, handleLogin, handleLogout, sessionToken } from './session.ts';
 import { GateRefused, decideGate, getTracking, type GateAction } from './tracking.ts';
-import { HighlightError, saveHighlight } from './highlights.ts';
+import { HighlightError, readHighlights, saveHighlight } from './highlights.ts';
 import type { HighlightChange } from '../src/project/types.ts';
 
 type Env = Record<string, string | undefined>;
@@ -186,6 +186,22 @@ async function handleHighlight(req: IncomingMessage, res: ServerResponse, access
   return send(res, 200, await saveHighlight(src, { slug, branch, change: c, user }));
 }
 
+/**
+ * The items and etag of the viewed spec's highlights.json, for the page's check for new comments (specs/012 FR-014,
+ * contracts/refresh-api.md). A read like the others: same access, nothing written. With If-None-Match it answers 304
+ * when the file has not changed, which GitHub does not count against the rate limit.
+ */
+async function handleHighlightRead(req: IncomingMessage, res: ServerResponse, access: Access, env: Env, url: URL) {
+  const q = url.searchParams;
+  const slug = q.get('slug'), branch = q.get('branch');
+  if (!slug || !/^\d{3,}-[^/]+$/.test(slug) || !branch) throw new HttpError(400, 'Expected ?repo=owner/name&slug=NNN-slug&branch=…');
+  const src = sourceFor(access, q.get('repo'), undefined, env);
+  const etag = typeof req.headers['if-none-match'] === 'string' ? req.headers['if-none-match'] : null;
+  const r = await readHighlights(src, { slug, branch, etag });
+  if (r.status === 'unchanged') { res.statusCode = 304; res.setHeader('Cache-Control', 'no-store'); return res.end(); }
+  return send(res, 200, { items: r.items, error: r.error, etag: r.etag });
+}
+
 /** The version of a spec on `branch`, or the shown one; 400 for a branch outside branchPrefixes (contracts/branches.md). */
 async function specVersion(src: Source, project: Awaited<ReturnType<typeof getProject>>, slug: string, branch?: string | null) {
   if (branch && branch !== project.ref && !project.branchPrefixes.some(p => branch.startsWith(p))) {
@@ -210,9 +226,11 @@ export function handleApi(req: IncomingMessage, res: ServerResponse, env: Env = 
 
 export async function route(req: IncomingMessage, res: ServerResponse, url: URL, env: Env = process.env) {
   const path = url.pathname;
-  if ((req.method || 'GET') !== (POSTS.has(path) ? 'POST' : 'GET')) return send(res, 405, { error: 'Method not allowed.' });
+  const method = req.method || 'GET';
+  // /api/highlights takes a GET (the check for new comments) and a POST (the save); the other paths one method each.
+  if (path === '/api/highlights' ? method !== 'GET' && method !== 'POST' : method !== (POSTS.has(path) ? 'POST' : 'GET')) return send(res, 405, { error: 'Method not allowed.' });
   // JSON writes must come from our own pages; checked before the body is read.
-  if (JSON_WRITES.has(path) && !isJsonWrite(req)) return send(res, 403, { error: 'Forbidden.' });
+  if (JSON_WRITES.has(path) && method === 'POST' && !isJsonWrite(req)) return send(res, 403, { error: 'Forbidden.' });
 
   if (path.startsWith('/auth/')) {
     const cfg = appConfig(env);
@@ -241,7 +259,7 @@ export async function route(req: IncomingMessage, res: ServerResponse, url: URL,
     if (path === '/api/repos') return send(res, 200, await listRepos(access));
     if (path === '/api/repos/detect') return send(res, 200, await detectSpeckit(access, detectTargets(await readJson(req))));
     if (path === '/api/gates') return await handleGate(req, res, access, env);
-    if (path === '/api/highlights') return await handleHighlight(req, res, access, env);
+    if (path === '/api/highlights') return await (method === 'GET' ? handleHighlightRead(req, res, access, env, url) : handleHighlight(req, res, access, env));
     const src = sourceFor(access, q.get('repo'), q.get('ref'), env);
     const refresh = q.has('refresh');
     const project = await getProject(src, refresh);
