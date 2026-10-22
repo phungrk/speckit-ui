@@ -9,10 +9,10 @@ Chuẩn bị: `npm run dev` (demo: `http://localhost:5173/?demo`); với server 
 5. **Chỉ đọc.** Với tài khoản không có quyền ghi (hoặc ghim commit): nút bị tắt kèm lý do; chọn thẻ vẫn Copy, Ask được. (US1-5, US3-4)
 6. **Bàn phím.** Chọn bằng Shift+mũi tên, Tab tới nút, Enter; Ctrl/Cmd+Alt+M vẫn mở hộp soạn. (US1-6)
 7. **Giao diện trang.** Ở White, Sepia, Green, Dark: hộp đọc được, tách khỏi nền. (US2-1, SC-004)
-8. **Mép màn hình.** Chọn dòng sát mép trên: hộp xuống dưới vùng chọn. (US2-2)
+8. **Mép màn hình và xoay.** Chọn dòng sát mép trên: hộp xuống dưới vùng chọn. Đổi cỡ cửa sổ hoặc xoay khi hộp đang hiện: hộp đặt lại hoặc đóng, không lọt khỏi màn hình. (US2-2, Edge Cases)
 9. **Thẻ.** Chọn một nhận xét của mình: có ô màu, Edit, Delete, Copy, Ask; đổi màu lưu được. Chọn nhận xét của người khác: chỉ Copy, Ask. (US3-1, US3-3)
-10. **Tab Highlights, highlight chỉ có màu** (dữ liệu cũ: seed demo có sẵn): bấm mục → hàng ô màu, Copy, Ask, Delete; xoá hỏi xác nhận. (US3-2)
-11. **Bấm highlight chỉ-màu của mình trong văn bản:** hộp chỉ có "Comment"; gửi thì highlight giữ màu và có thẻ. Của người khác: không có hộp. (FR-009)
+10. **Tab Highlights, highlight chỉ có màu** (dữ liệu cũ: seed demo `h1`, tác giả Director; đổi vai trò demo sang Director để là highlight của mình, ở vai khác chỉ có Copy, Ask): bấm mục → hàng ô màu, Copy, Ask, Delete; xoá hỏi xác nhận. (US3-2)
+11. **Bấm highlight chỉ-màu của mình trong văn bản** (demo: vai Director, `h1`): hộp chỉ có "Comment"; gửi thì highlight giữ màu và có thẻ. Của người khác: không có hộp. (FR-009)
 12. **Không còn highlight chỉ-màu mới:** mọi highlight tạo mới là nhận xét; không có đường tạo chỉ-màu từ vùng chọn. (FR-010)
 13. **Dữ liệu.** `npm test` qua các test lưu/đọc/commit cũ (SC-005); ở chế độ GitHub vẫn một commit `[skip ci]` mỗi lần lưu.
 14. **Bốn chế độ.** Lặp 1–3, 9 ở demo, server, static (build:pages), local. (FR-011)

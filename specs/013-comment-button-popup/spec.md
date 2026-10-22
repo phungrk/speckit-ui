@@ -66,7 +66,7 @@ Người dùng chọn một thẻ nhận xét (hoặc một mục trong tab High
 **Acceptance Scenarios**:
 
 1. **Given** một nhận xét của mình đang chọn, **When** đổi màu, **Then** màu đổi và được lưu như spec 012.
-2. **Given** một highlight chỉ có màu của mình trong tab Highlights, **When** chọn mục đó, **Then** có đổi màu, Copy, Ask, xoá; xoá hỏi xác nhận như hiện nay.
+2. **Given** một highlight chỉ có màu của mình trong tab Highlights, **When** chọn mục đó (mục không có ghi chú; mục có ghi chú dùng thẻ của nó), **Then** có đổi màu, Copy, Ask, xoá; xoá hỏi xác nhận như hiện nay.
 3. **Given** nhận xét của người khác, **When** chọn, **Then** chỉ có Copy và Ask.
 4. **Given** quyền đọc hoặc nhánh bảo vệ, **When** chọn, **Then** hành động ghi bị tắt kèm lý do; Copy và Ask vẫn dùng được.
 
@@ -90,7 +90,7 @@ Người dùng chọn một thẻ nhận xét (hoặc một mục trong tab High
 - **FR-005**: Hộp MUST có kiểu sáng gọn kiểu Google Docs (bề mặt sáng, bóng nhẹ, biểu tượng bong bóng chat cạnh nhãn), dùng token Modernist và token `--hl-*` hiện có; không thêm màu mới.
 - **FR-006**: Tên truy cập (accessible name) của nút MUST là "Comment"; nút MUST dùng được bằng bàn phím.
 - **FR-007**: Các nhãn "Add comment" còn lại trong giao diện và tài liệu (README, spec 012 contracts) MUST được đổi thành "Comment" ở chỗ nói về nút này.
-- **FR-008**: Đổi màu, Copy, Ask (hỏi AI về đoạn chữ), sửa và xoá MUST dùng được từ thẻ nhận xét đang chọn; cùng các hành động (trừ sửa lời, vì chưa có lời) MUST dùng được từ mục đang chọn trong tab Highlights, để highlight chỉ có màu không mất cách đổi màu, xoá, Copy, Ask. Không còn ô màu, Copy, Ask trong hộp chọn chữ.
+- **FR-008**: Đổi màu, Copy, Ask (hỏi AI về đoạn chữ), sửa và xoá MUST dùng được từ thẻ nhận xét đang chọn; với **mục chỉ có màu** (không có ghi chú) trong tab Highlights, cùng các hành động đó (trừ sửa lời, vì chưa có lời) MUST dùng được khi mục được chọn, để highlight chỉ có màu không mất cách đổi màu, xoá, Copy, Ask. Không còn ô màu, Copy, Ask trong hộp chọn chữ.
 - **FR-009**: Bấm vào highlight chỉ có màu của chính mình trong văn bản MUST hiện hộp chỉ có "Comment"; bấm "Comment" mở hộp soạn gắn vào highlight đó (giữ màu hiện có). Highlight của người khác MUST không hiện hộp (chọn thẻ của nó nếu có).
 - **FR-010**: Tạo highlight chỉ có màu mới từ vùng chọn không còn là thao tác riêng: mọi highlight mới đều là nhận xét; người dùng đặt màu sau, trên thẻ (FR-008).
 - **FR-011**: Thay đổi áp dụng cho cả bốn chế độ (demo, server, static, local) vì dùng chung một thành phần; không đổi định dạng `highlights.json` hay cách ghi.

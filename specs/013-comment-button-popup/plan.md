@@ -80,11 +80,13 @@ specs/012-…/contracts/comment-rail-ui.md  # nhãn "Add comment" → "Comment" 
 tests/annotationsMarkup.test.tsx, tests/commentRailMarkup.test.tsx  # cập nhật; thêm test hành động của thẻ và của tab
 ```
 
+**Tên giữ nguyên**: component vẫn là `HlToolbar`, class `.sk-tb`, để không đổi hàng loạt test; "hộp" trong spec và "popup" trong plan là cùng một thứ.
+
 **Structure Decision**: Giữ cấu trúc 010/012. Chỉ thêm một file kiểu nhỏ (`highlightActions.ts`) để ba nơi dùng cùng một chữ ký hành động.
 
 ## Complexity Tracking
 
 | Việc | Vì sao cần | Cách đơn giản hơn đã bỏ |
 |---|---|---|
-| Sửa nguyên tắc IV (patch 1.4.1): bỏ cụm "thanh công cụ luôn tối", giữ bảng `--hl-*` | Hộp mới dùng token Modernist nên đi theo nền đọc, không còn là thanh luôn tối; để nguyên câu sẽ sai với code | Giữ hộp tối: trái yêu cầu "kiểu Google Docs" (bề mặt sáng) |
+| Sửa nguyên tắc IV (patch 1.4.1, bằng `/speckit-constitution`, làm trước hộp sáng, cùng PR): bỏ cụm "thanh công cụ luôn tối", giữ bảng `--hl-*` | Hộp mới dùng token Modernist nên đi theo nền đọc, không còn là thanh luôn tối; để nguyên câu sẽ sai với code | Giữ hộp tối: trái yêu cầu "kiểu Google Docs" (bề mặt sáng) |
 | Cầu nối `onActions` Annotator → shell → tab | Tab ở sidebar ngoài `Annotator`, còn lưu và Ask nằm trong `Annotator` | Chuyển logic lưu lên shell: đổi nhiều hơn mà không có lợi (R5) |
