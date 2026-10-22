@@ -6,6 +6,8 @@ import { LOCAL_OWNER, useReader, useSidebarKeys } from '../reader/useReader';
 import { Annotator } from '../annotations/Annotator';
 import { HighlightsPanel } from '../annotations/HighlightsPanel';
 import { localFileStore } from '../annotations/store';
+import type { FreshProps } from '../annotations/FreshBar';
+import { useFreshness } from '../annotations/useFreshness';
 import { PHASE_DOC } from '../annotations/colors';
 import { contentHash } from '../annotations/anchor';
 import { prefsFor } from './prefs';
@@ -70,6 +72,9 @@ export function LocalWorkspace({ onExit }: Props) {
   const [rtab, setRtab] = useState<'local' | 'hl'>('local');
   const [savedHls, setSavedHls] = useState<Record<string, Highlight[]>>({});
   const [focusId, setFocusId] = useState<string | null>(null);
+  // The selected comment, shared by the reading column, its rail and the Highlights tab (specs/012 FR-008, FR-012).
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selectHl = (id: string | null, o?: { jump?: boolean }) => { setSelectedId(id); if (id && o?.jump) setFocusId(id); };
   const [outdated, setOutdated] = useState<string[]>([]);
   const localPrefs = prefsFor(LOCAL_OWNER, 'local');
   const [authorName, setAuthorName] = useState(() => localPrefs.getAuthorName());
@@ -294,6 +299,19 @@ export function LocalWorkspace({ onExit }: Props) {
   };
 
   const activeFeature = ready && (selectedSpec ?? ready.project.specs[0]);
+  // A folder is changed by git outside the app: it is looked at again when the window is focused, and on the button
+  // (no timer), and the new comments wait for a click like on GitHub (specs/012 FR-014).
+  const localStore = ready ? localFileStore(ready.handle ?? null) : null;
+  const localHls = activeFeature ? savedHls[activeFeature.slug] ?? activeFeature.highlights?.items ?? [] : [];
+  const freshCtl = useFreshness({
+    enabled: !!activeFeature && !!localStore?.refresh && !localStore.readOnly,
+    poll: false,
+    read: etag => localStore!.refresh!({ slug: activeFeature!.slug, branch: null }, etag),
+    current: () => localHls,
+    resetKey: activeFeature ? activeFeature.slug : ''
+  });
+  const showFresh = (items: Highlight[] | null) => { if (items && activeFeature) setSavedHls(x => ({ ...x, [activeFeature.slug]: items })); };
+  const fresh: FreshProps | undefined = activeFeature && localStore?.refresh ? { newCount: freshCtl.newCount, checkedAt: freshCtl.checkedAt, onApply: () => showFresh(freshCtl.apply()), onRefresh: () => { void freshCtl.refresh().then(showFresh); } } : undefined;
   const activePhase = PHASES[selectedStep] ?? PHASES[1];
   const headingPath = ready && activeFeature
     ? selectedDocument ?? stageFile(activePhase.k, activeFeature.slug)
@@ -387,7 +405,7 @@ export function LocalWorkspace({ onExit }: Props) {
                   return <Annotator items={savedHls[activeFeature.slug] ?? activeFeature.highlights?.items ?? []}
                     target={{ slug: activeFeature.slug, branch: null, phase: k, doc, docSha: text ? contentHash(text) : null }}
                     store={localFileStore(ready.handle ?? null)} author={authorName ? { name: authorName, local: true } : null} askAuthor={askAuthor}
-                    focusId={focusId} clearFocus={() => setFocusId(null)} onOutdated={setOutdated}
+                    focusId={focusId} clearFocus={() => setFocusId(null)} selectedId={selectedId} onSelect={selectHl} fresh={fresh} onOutdated={setOutdated}
                     onItems={items => setSavedHls(x => ({ ...x, [activeFeature.slug]: items }))}
                     onAsk={text => { void navigator.clipboard?.writeText(text); }}
                     docProps={docProps}>{body}</Annotator>;
@@ -396,10 +414,10 @@ export function LocalWorkspace({ onExit }: Props) {
           {rd.layout.right && <aside className="sk-right">
             <div className="sk-rtabs" role="tablist">
               <button role="tab" aria-selected={rtab === 'local'} onClick={() => setRtab('local')}>Local mode</button>
-              <button role="tab" aria-selected={rtab === 'hl'} onClick={() => setRtab('hl')}>Highlights{(() => { const n = (savedHls[activeFeature.slug] ?? activeFeature.highlights?.items ?? []).length; return n > 0 && <span className="sk-rtab-n">{n}</span>; })()}</button>
+              <button role="tab" aria-selected={rtab === 'hl'} onClick={() => setRtab('hl')}>Highlights{(() => { const n = (savedHls[activeFeature.slug] ?? activeFeature.highlights?.items ?? []).length; return n > 0 && <span className="sk-rtab-n">{n}</span>; })()}{freshCtl.newCount > 0 && <span className="sk-rtab-new" aria-label={`${freshCtl.newCount} new comments`}>+{freshCtl.newCount}</span>}</button>
             </div>
             {rtab === 'hl' ? <HighlightsPanel items={savedHls[activeFeature.slug] ?? activeFeature.highlights?.items ?? []} phases={PHASES.map(p => ({ key: p.k, name: p.n }))} outdated={outdated}
-              onOpen={h => { const i = PHASES.findIndex(p => p.k === h.phase); if (i >= 0) selectStep(i); setFocusId(h.id); }}
+              selectedId={selectedId} fresh={fresh} onOpen={h => { const i = PHASES.findIndex(p => p.k === h.phase); if (i >= 0) selectStep(i); selectHl(h.id, { jump: true }); }}
               readOnly={activeFeature.highlights?.error ?? localFileStore(ready.handle ?? null).readOnly} /> : <>
             <div className="sk-pad"><Label>Local mode</Label>
               <div className="sk-warn" role="status"><Icon n="lock" s={14} /><span>Read-only, except highlights.json</span></div>

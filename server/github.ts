@@ -36,7 +36,10 @@ export class GitHubError extends Error {
   constructor(message: string, status: number) { super(message); this.status = status; }
 }
 
-export async function gh(src: Source, path: string, raw = false, write?: { method: 'POST' | 'PATCH' | 'PUT'; body: unknown }): Promise<Response> {
+/** Extra for a read: more request headers (If-None-Match), and whether a 304 is an answer, not an error (specs/012 research R15). */
+export interface GhExtra { headers?: Record<string, string>; allow304?: boolean }
+
+export async function gh(src: Source, path: string, raw = false, write?: { method: 'POST' | 'PATCH' | 'PUT'; body: unknown }, extra?: GhExtra): Promise<Response> {
   const res = await fetch(API + path, {
     // Reads revalidate with GitHub (ETag): a browser would otherwise serve GitHub's
     // max-age=60 copy, which is how an approval used to "come back" (specs/001 R1).
@@ -47,10 +50,11 @@ export async function gh(src: Source, path: string, raw = false, write?: { metho
       // Browsers set their own User-Agent; sending one from a page breaks GitHub's CORS preflight.
       ...(typeof window === 'undefined' ? { 'User-Agent': 'speckit-ui' } : {}),
       ...(write ? { 'Content-Type': 'application/json' } : {}),
-      ...(src.token ? { Authorization: `Bearer ${src.token}` } : {})
+      ...(src.token ? { Authorization: `Bearer ${src.token}` } : {}),
+      ...extra?.headers
     }
   });
-  if (res.ok) return res;
+  if (res.ok || (extra?.allow304 && res.status === 304)) return res;
   const name = path.match(/^\/repos\/([^/]+\/[^/?]+)/)?.[1] ?? `${src.owner}/${src.repo}`;
   if (res.status === 404) throw new GitHubError(`GitHub returned 404 for ${name}${path.includes('/contents/') ? ' ' + decodeURIComponent(path.split('/contents/')[1].split('?')[0]) : ''}. The repository or branch may not exist, or your token cannot read it.`, 404);
   if (res.status === 401) throw new GitHubError('GitHub rejected the token (401).', 401);
@@ -86,9 +90,21 @@ export async function loadProject(src: Source): Promise<Project> {
   return src.ref ? main : withBranches(src, main, await listBranches(src, main.branchPrefixes).catch(branchListFailed));
 }
 
+// Whether the user may write, by project key (user and repository). It is NOT part of the cached Project: getProject
+// reuses a loaded commit while the default branch has not moved, so a value kept there would stay stale when the user is
+// given write access in between (specs/012 research R16). Read with the repository, and again on a refresh.
+const writeAccess = new Map<string, boolean | null>();
+const pushOf = (r: { permissions?: { push?: boolean } }) => typeof r.permissions?.push === 'boolean' ? r.permissions.push : null;
+
 async function loadMain(src: Source): Promise<Project> {
   const base = `/repos/${src.owner}/${src.repo}`;
-  const ref = src.ref || (await json<{ default_branch: string }>(src, base)).default_branch;
+  let ref = src.ref;
+  if (ref) writeAccess.set(projectKey(src), null);
+  else {
+    const repo = await json<{ default_branch: string; permissions?: { push?: boolean } }>(src, base);
+    ref = repo.default_branch;
+    writeAccess.set(projectKey(src), pushOf(repo));
+  }
   const commit = await json<{ sha: string; commit: { committer?: { date?: string } } }>(src, `${base}/commits/${encodeURIComponent(ref)}`);
   return loadAt(src, ref, commit.sha, commit.commit.committer?.date ?? null);
 }
@@ -363,6 +379,7 @@ export function clearProjectCache() {
   projects.clear();
   inflight.clear();
   detected.clear();
+  writeAccess.clear();
   specDirs.clear();
   trees.clear();
   commitDates.clear();
@@ -376,8 +393,9 @@ const headsKey = (h: BranchHeads) => h.branches.map(b => `${b.name}@${b.sha}`).j
  */
 export async function getProject(src: Source, refresh = false): Promise<Project> {
   const key = projectKey(src);
+  const withAccess = (p: Project): Project => ({ ...p, canWrite: writeAccess.get(key) ?? null });
   const hit = projects.get(key);
-  if (hit && !refresh && Date.now() - hit.checkedAt < RECHECK_MS) return hit.project;
+  if (hit && !refresh && Date.now() - hit.checkedAt < RECHECK_MS) return withAccess(hit.project);
   const running = inflight.get(key);
   if (running) return running;
   const load = (async () => {
@@ -390,7 +408,12 @@ export async function getProject(src: Source, refresh = false): Promise<Project>
         const commit = await json<{ sha: string }>(src, `/repos/${src.owner}/${src.repo}/commits/${encodeURIComponent(hit.main.ref)}`);
         if (commit.sha === hit.main.sha) main = hit.main;
       }
-      main ??= await loadMain(src);
+      if (!main) main = await loadMain(src);
+      else if (refresh && !src.ref && writeAccess.get(key) === false) {
+        // The commit has not moved, so loadMain did not run. A user known to be read-only may have been given write
+        // access since; ask again. Nobody else needs the call, which keeps a quiet refresh to commits and branches (specs/003 SC-001).
+        await json<{ permissions?: { push?: boolean } }>(src, `/repos/${src.owner}/${src.repo}`).then(r => writeAccess.set(key, pushOf(r)), () => {});
+      }
       let project = main, heads = '';
       if (!src.ref) {
         const same = early && main.branchPrefixes.join('\n') === hit!.main.branchPrefixes.join('\n');
@@ -399,7 +422,7 @@ export async function getProject(src: Source, refresh = false): Promise<Project>
         project = hit && hit.main === main && hit.heads === heads ? hit.project : await withBranches(src, main, h);
       }
       remember(projects, key, { project, main, heads, checkedAt: Date.now() });
-      return project;
+      return withAccess(project);
     } finally {
       inflight.delete(key);
     }

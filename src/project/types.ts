@@ -72,8 +72,8 @@ export interface ParsedAnalysis { findings: AnalysisFinding[]; raw: string }
 
 export interface ChecklistSummary { name: string; done: number; total: number }
 
-/** Highlight colours (specs/010-spec-annotations): y Key, b Question, p Issue, o Change. */
-export type HighlightColor = 'y' | 'b' | 'p' | 'o';
+/** Highlight colours (specs/010-spec-annotations): y Key, b Question, p Issue, o Change; n is a plain comment with no category (specs/012). */
+export type HighlightColor = 'y' | 'b' | 'p' | 'o' | 'n';
 
 /** GitHub login (server, Pages), a typed name (local) or a sample person (demo). */
 export type HighlightAuthor = { login: string } | { name: string; local: true } | { name: string; demo: true };
@@ -156,6 +156,11 @@ export interface Project {
   branchPrefixes: string[];
   /** `ref` was chosen in Settings or GITHUB_REF, so feat/ branches are not read (FR-010). */
   pinned: boolean;
+  /**
+   * Whether GitHub says the signed-in user may write to the repository (`permissions.push`); null when it does not say,
+   * or when a branch is pinned (specs/012 FR-016). Kept out of the cached project: see `getProject`.
+   */
+  canWrite?: boolean | null;
   /** Steps after an unapproved gate are locked unless the repo sets "approvalGates": "off" (specs/004). */
   approvalGates: 'block' | 'off';
   /** Whether the repo has the Claude Code gate check (.claude/hooks/speckit-gate.mjs) installed (specs/004 R7). */
