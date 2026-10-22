@@ -10,8 +10,8 @@
 
 ## Phase 1: Setup & nền pháp lý
 
-- [ ] T001 Baseline: `npm ci`; `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages` đều qua trên nhánh trước khi sửa. Chụp ảnh "trước": hộp chọn chữ ở demo 1440×900 và 390, màn hình chính và hộp thoại New spec ở 1440×900 và 924×540 (lưu ngoài repo, scratchpad).
-- [ ] T002 Sửa constitution lên 1.4.1 (patch) bằng `/speckit-constitution` (nhật ký sửa đổi, Sync Impact Report, Last Amended): nguyên tắc IV bỏ cụm "thanh công cụ luôn tối", giữ bảng `--hl-*` (màu tô, màu đặc); cập nhật `CLAUDE.md` (v1.4.0 → v1.4.1) và nơi khác nhắc 1.4.0 (`grep -rn "1\.4\.0"`), trừ nội dung lịch sử của spec. Phải xong trước hộp sáng (T013 mới) và nằm trong cùng PR.
+- [X] T001 Baseline: `npm ci`; `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages` đều qua trên nhánh trước khi sửa. Chụp ảnh "trước": hộp chọn chữ ở demo 1440×900 và 390, màn hình chính và hộp thoại New spec ở 1440×900 và 924×540 (lưu ngoài repo, scratchpad).
+- [X] T002 Sửa constitution lên 1.4.1 (patch) bằng `/speckit-constitution` (nhật ký sửa đổi, Sync Impact Report, Last Amended): nguyên tắc IV bỏ cụm "thanh công cụ luôn tối", giữ bảng `--hl-*` (màu tô, màu đặc); cập nhật `CLAUDE.md` (v1.4.0 → v1.4.1) và nơi khác nhắc 1.4.0 (`grep -rn "1\.4\.0"`), trừ nội dung lịch sử của spec. Phải xong trước hộp sáng (T013 mới) và nằm trong cùng PR.
 
 ## Phase 2: Foundational — chỗ mới cho màu, Copy, Ask, Xoá (chặn US1)
 

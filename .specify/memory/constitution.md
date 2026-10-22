@@ -1,17 +1,16 @@
 <!--
 Sync Impact Report
-- Version change: 1.3.0 → 1.4.0 (MINOR: mở rộng nguyên tắc I cho một nơi ghi thứ hai)
-- Modified principles: I. Git là nguồn sự thật. Ngoài issue theo dõi, ứng dụng được ghi file
-  `specs/*/highlights.json` của spec đang xem: mỗi lần lưu là một commit chỉ đổi file đó, trên nhánh
-  đang xem, bằng tài khoản người dùng, thông điệp có `[skip ci]`, sau bước xác nhận một lần cho mỗi
-  repo. Vẫn cấm tạo branch, PR hay file nào khác.
+- Version change: 1.4.0 → 1.4.1 (PATCH: sửa câu chữ nguyên tắc IV)
+- Modified principles: IV. Trung thành với thiết kế. Bảng màu highlight chỉ còn "màu tô, màu đặc";
+  bỏ cụm "thanh công cụ luôn tối". Hộp chọn chữ nay là một nút "Comment" trên bề mặt sáng dùng token
+  Modernist (`--color-bg`, `--color-text`, `--shadow-md`) và đi theo nền đọc. Token `--hl-*` giữ
+  nguyên ở mọi nền; các token riêng của thanh tối (`--hl-ink`, `--hl-paper*`) bị xoá khi không còn nơi dùng.
 - Added sections: none
 - Removed sections: none
-- Lý do: specs/010-spec-annotations (plan.md, Complexity Tracking), người dùng đồng ý 2026-10-21.
-  Bản trước: 1.3.0 (màu highlight).
+- Lý do: specs/013-comment-button-popup (plan.md, Complexity Tracking), người dùng duyệt 2026-10-22.
+  Bản trước: 1.4.0 (ghi highlights.json).
 - Templates: không cần sửa ✅
-- Follow-up: CLAUDE.md ghi version 1.4.0 và nơi ghi mới ✅; README cập nhật quyền Contents: Read and
-  write trong PR implement của specs/010-spec-annotations
+- Follow-up: CLAUDE.md ghi version 1.4.1 ✅
 -->
 
 # speckit-ui Constitution
@@ -86,7 +85,7 @@ khó thấy nhất vì người viết thường chỉ thử một chế độ.
   - bảng nền của chế độ đọc (White, Sepia, Green, Dark; specs/010), trong `src/reader/settings.ts`,
     áp bằng cách ghi đè token ở `:root`. Thêm nền hoặc màu vào bảng PHẢI qua spec và PHẢI đạt tương
     phản chữ thường từ 4.5:1 trên nền và bề mặt của nền đó, có test kiểm;
-  - bảng màu highlight (màu tô, màu đặc, thanh công cụ luôn tối; specs/010-spec-annotations), là
+  - bảng màu highlight (màu tô, màu đặc; specs/010-spec-annotations), là
     token `--hl-*` trong một khối `:root` của `src/styles/reader.css`, giữ nguyên ở mọi nền.
   Component vẫn chỉ đọc token, không viết màu cứng; test chặn màu viết cứng ngoài các bảng này.
 - Chế độ demo PHẢI giữ giống bản thiết kế `Speckit Workspace.html` từng pixel, trừ những phần mà
@@ -173,4 +172,4 @@ thứ phải bảo trì và bảo mật.
 - Gate "Constitution Check" trong `/speckit-plan` PHẢI pass. Vi phạm có chủ đích phải ghi vào
   Complexity Tracking kèm lý do; `/speckit-analyze` coi vi phạm không được biện minh là CRITICAL.
 
-**Version**: 1.4.0 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-10-21
+**Version**: 1.4.1 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-10-22
