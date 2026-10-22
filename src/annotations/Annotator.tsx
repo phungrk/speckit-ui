@@ -12,6 +12,7 @@ import { Card, CommentRail, CommentSheet, useDocViewport, useRailRoom, type Card
 import { Composer } from './Composer';
 import { applyChange } from '../../server/highlightsFile';
 import { Thread } from './Thread';
+import { EmojiButton } from './EmojiButton';
 import { draftKey, draftsElsewhere, draftsHere, pickOverlap, reducePending, toCards, type CommentCard, type CommentDraft, type SaveState } from './comments';
 
 // The reading column with highlights (specs/010-spec-annotations): selection → toolbar → save
@@ -131,7 +132,7 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
   // Escape lets go of the selected comment when nothing else is open.
   useEffect(() => {
     if (!selectedId) return;
-    const k = (e: KeyboardEvent) => { if (e.key === 'Escape' && !tb && !asking && !editNote && !(document.activeElement as HTMLElement | null)?.closest?.('.sk-cm-thread, .sk-cm-more-wrap, .sk-cm-menu')) onSelect?.(null); };
+    const k = (e: KeyboardEvent) => { if (e.key === 'Escape' && !tb && !asking && !editNote && !(document.activeElement as HTMLElement | null)?.closest?.('.sk-cm-thread, .sk-cm-more-wrap, .sk-cm-menu, .sk-cm-float-wrap, .sk-cm-picker')) onSelect?.(null); };
     window.addEventListener('keydown', k);
     return () => window.removeEventListener('keydown', k);
   }, [selectedId, tb, asking, editNote]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -398,6 +399,9 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
     onDelete={replyId => save({ type: 'reply-remove', id: c.id, replyId }, () => setAnnounce('Reply deleted'))}
     onReact={(replyId, emoji, on) => react(c.id, replyId, emoji, on)} announce={announce} />;
 
+  // The emoji button on the comment's own row (specs/015); the replies carry theirs inside the thread.
+  const rowToolFor = (c: CommentCard) => <EmojiButton list={c.highlight.reactions} me={author} readOnly={store.readOnly} what="this comment" onToggle={(emoji, on) => react(c.id, undefined, emoji, on)} />;
+
   // A reply being written for a comment that was removed elsewhere is not kept silently (specs/011 U2).
   const knownIds = all.map(h => h.id).join(',');
   useEffect(() => {
@@ -425,10 +429,10 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
       {unsupported && items.length > 0 && <p className="sk-hlp-empty" role="note">This browser cannot draw highlights in the text; they are listed in the Highlights tab.</p>}
       <div className="sk-col" ref={colRef}>{children}</div>
       {showRail && <CommentRail cards={cards} selectedId={selectedId} onSelect={(id, o) => onSelect?.(id, o)} branch={target.branch} left={railLeft} viewport={viewport} docRef={docRef} person={person}
-        actions={actions} editing={cardEditing} threadFor={threadFor} onRetry={retry} fresh={fresh} drafts={railDrafts} activeDraftId={activeDraft} draftsElsewhere={draftsElsewhere(drafts, target)} />}
+        actions={actions} editing={cardEditing} threadFor={threadFor} rowToolFor={rowToolFor} onRetry={retry} fresh={fresh} drafts={railDrafts} activeDraftId={activeDraft} draftsElsewhere={draftsElsewhere(drafts, target)} />}
       {!showRail && (sheetDraft || selectedCard) && <CommentSheet label="Comment" onClose={() => { if (sheetDraft) cancelDraft(sheetDraft); else onSelect?.(null); }}>
         {sheetDraft ? composerFor(sheetDraft)
-          : <Card card={selectedCard!} selected person={person} onSelect={() => {}} actions={actions} editing={cardEditing} thread={threadFor(selectedCard!)} />}
+          : <Card card={selectedCard!} selected person={person} onSelect={() => {}} actions={actions} editing={cardEditing} thread={threadFor(selectedCard!)} rowTool={rowToolFor(selectedCard!)} />}
       </CommentSheet>}
       {/* Where the rail is shown its cards take the place of the pins (spec FR-012). */}
       {!showRail && markers.map(m => <button type="button" key={m.id} className={'sk-hl-pin hl-' + m.color + '-solid'} style={{ top: m.top, left: m.left }}

@@ -38,3 +38,42 @@ describe('the darker row (FR-001, FR-002, FR-010)', () => {
     expect(block).not.toMatch(/transition: all/);
   });
 });
+
+describe('the floating emoji button (FR-003, FR-009, FR-010, FR-011)', () => {
+  const float = css.slice(css.indexOf('The floating emoji button (specs/015)'));
+
+  it('is the one round element of the card: exactly one border-radius, on the button, and it is a circle', () => {
+    const radii = [...block.matchAll(/border-radius:\s*([^;}]+)/g)].map(m => m[1].trim());
+    expect(radii).toEqual(['50%']);
+    expect(float.match(/\.sk-cm-float \{[^}]*border-radius: 50%/)).not.toBeNull();
+  });
+
+  it('is light, shadowed and drawn from tokens', () => {
+    const rules = float.match(/\.sk-cm-float \{([^}]*)\}/)![1];
+    expect(rules).toContain('var(--color-bg)');
+    expect(rules).toContain('var(--shadow-md)');
+    expect(rules).toContain('var(--color-divider)');
+    expect(float).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
+  });
+
+  it('is hidden at rest by opacity, not removed, and shows with the pointer, the focus or an open picker', () => {
+    expect(float).toMatch(/\.sk-cm-float-wrap \{[^}]*opacity: 0; pointer-events: none/);
+    expect(float).toMatch(/\.sk-cm-item:hover \.sk-cm-float-wrap, \.sk-cm-card\.on \.sk-cm-item:focus-within \.sk-cm-float-wrap, \.sk-cm-float-wrap\.open \{[^}]*opacity: 1/);
+    expect(float).not.toMatch(/\.sk-cm-float-wrap \{[^}]*display: none/);
+  });
+
+  it('does not use a transform, which would break the fixed picker inside it', () => {
+    expect(float.match(/\.sk-cm-float-wrap \{([^}]*)\}/)![1]).not.toContain('transform');
+  });
+
+  it('shows on a screen with no hover, at 44 px', () => {
+    expect(float).toMatch(/@media \(hover: none\), \(pointer: coarse\) \{[^@]*\.sk-cm-card\.on \.sk-cm-float-wrap \{ opacity: 1; pointer-events: auto; \}[^@]*\.sk-cm-float \{ width: 44px; height: 44px; \}/);
+  });
+
+  it('places the picker with fixed position, square', () => {
+    const picker = float.match(/\.sk-cm-picker \{([^}]*)\}/)![1];
+    expect(picker).toContain('position: fixed');
+    expect(picker).not.toContain('border-radius');
+  });
+});
+

@@ -143,20 +143,26 @@ describe('emoji (FR-006, FR-007)', () => {
     expect(html.indexOf('👍')).toBeLessThan(html.indexOf('🎉'));
   });
 
-  it('has only the plus button when nothing was put, labelled by what it is for', () => {
-    const html = bar({ what: 'the reply by lan' });
-    expect(html).toContain('aria-label="Add a reaction to the reply by lan"');
-    expect(html).toContain('aria-haspopup="true"');
-    expect(html).toContain('aria-expanded="false"');
-    expect([...html.matchAll(/<button/g)]).toHaveLength(1);
+  it('draws nothing when no emoji was put: adding one is the floating button\'s job, not a plus in this bar (specs/015)', () => {
+    expect(bar({ what: 'the reply by lan' })).toBe('');
+    expect(bar({ list: [{ emoji: '👍', author: lan }] })).not.toContain('aria-haspopup');
+    expect(bar({ list: [{ emoji: '👍', author: lan }] })).not.toContain('Add a reaction');
   });
 
-  it('keeps the emoji and the numbers, and turns every button off with the reason, when saving is not possible', () => {
+  it('keeps the emoji and the numbers, and turns each chip off with the reason, when saving is not possible', () => {
     const why = 'This branch is protected.';
     const html = bar({ list: [{ emoji: '😄', author: lan }], readOnly: why });
     expect(html).toContain('<b>1</b>');
-    expect([...html.matchAll(/aria-disabled="true"/g)]).toHaveLength(2);
+    expect([...html.matchAll(/aria-disabled="true"/g)]).toHaveLength(1);
     expect(html).toContain(`title="${why}"`);
+  });
+
+  it('gives the comment and each reply one floating emoji button on their row', () => {
+    const html = thread({ h: H({ replies: [R('r_1'), R('r_2', { author: mai })] }) });
+    expect(html).toContain('aria-label="Add a reaction to the reply by lan"');
+    expect(html).toContain('aria-label="Add a reaction to the reply by mai"');
+    expect([...html.matchAll(/class="sk-cm-float"/g)]).toHaveLength(2);
+    expect(html).toMatch(/<div class="sk-cm-row"><p class="sk-cm-text">Because the cap is per day\.<\/p><span class="sk-cm-float-wrap"/);
   });
 
   it('draws the emoji of a thread on the comment and on each reply', () => {

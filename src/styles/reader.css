@@ -234,14 +234,13 @@
 .sk-cm-thr .sk-cm-acts { justify-content: flex-start; }
 .sk-cm-thr .sk-cm-reply-box > .sk-cm-acts { justify-content: flex-end; }
 .sk-cm-thr button[aria-disabled="true"] { opacity: .5; cursor: default; }
-.sk-cm-react { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 6px; }
+.sk-cm-react { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 6px; }
 .sk-cm-react:empty { display: none; }
 .sk-cm-emoji { all: unset; cursor: pointer; box-sizing: border-box; display: inline-flex; align-items: center; gap: 4px; min-width: 28px; height: 26px; padding: 0 6px; justify-content: center; font-size: var(--fs-13); background: var(--color-surface); border: 1px solid var(--color-divider); }
 .sk-cm-emoji b { font-size: var(--fs-11); font-weight: 700; }
 .sk-cm-emoji.mine, .sk-cm-emoji[aria-pressed="true"] { border-color: var(--color-text); }
 .sk-cm-emoji:hover { background: color-mix(in srgb, var(--color-text) 8%, transparent); }
 .sk-cm-emoji:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
-.sk-cm-picker { position: absolute; left: 0; top: 100%; z-index: 5; display: flex; gap: 4px; padding: 6px; background: var(--color-bg); border: 1px solid var(--color-text); box-shadow: var(--shadow-md); }
 @media (pointer: coarse) { .sk-cm-emoji { min-width: 44px; height: 44px; } }
 
 /* Three-dot button and its menu on a comment or a reply (specs/014-comment-card-menu). Tokens only, no corners. */
@@ -262,3 +261,20 @@
 .sk-cm-card.on .sk-cm-row, .sk-cm-reply .sk-cm-row { margin: 6px -8px 0; padding: 2px 40px 2px 8px; }
 .sk-cm-card.on .sk-cm-item:hover .sk-cm-row, .sk-cm-card.on .sk-cm-item:focus-within .sk-cm-row { background: color-mix(in srgb, var(--color-text) 8%, transparent); }
 @media (prefers-reduced-motion: no-preference) { .sk-cm-row { transition: background-color .12s ease-out; } }
+
+/* The floating emoji button (specs/015): round, light, with a shadow, at the right edge of the row; the one round element
+   the constitution allows (IV, 1.4.2). Hidden at rest by opacity, so it stays in the tab order and shows when it has the focus. */
+.sk-cm-card.on .sk-cm-row, .sk-cm-reply .sk-cm-row { min-height: 32px; }
+.sk-cm-float-wrap { position: absolute; right: 6px; top: 0; bottom: 0; display: flex; align-items: center; opacity: 0; pointer-events: none; }
+.sk-cm-card.on .sk-cm-item:hover .sk-cm-float-wrap, .sk-cm-card.on .sk-cm-item:focus-within .sk-cm-float-wrap, .sk-cm-float-wrap.open { opacity: 1; pointer-events: auto; }
+.sk-cm-float { all: unset; cursor: pointer; box-sizing: border-box; display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--color-bg); color: var(--color-text); border: 1px solid var(--color-divider); box-shadow: var(--shadow-md); }
+.sk-cm-float:hover { background: color-mix(in srgb, var(--color-text) 8%, var(--color-bg)); }
+.sk-cm-float:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.sk-cm-float[aria-disabled="true"] { opacity: .5; cursor: default; }
+.sk-cm-picker { position: fixed; z-index: 40; box-sizing: border-box; display: flex; gap: 4px; padding: 6px; background: var(--color-bg); border: 1px solid var(--color-text); box-shadow: var(--shadow-md); }
+@media (prefers-reduced-motion: no-preference) { .sk-cm-float-wrap { transition: opacity .12s ease-out; } }
+@media (hover: none), (pointer: coarse) {
+  .sk-cm-card.on .sk-cm-float-wrap { opacity: 1; pointer-events: auto; }
+  .sk-cm-float { width: 44px; height: 44px; }
+  .sk-cm-card.on .sk-cm-row, .sk-cm-reply .sk-cm-row { min-height: 52px; padding-right: 60px; }
+}
