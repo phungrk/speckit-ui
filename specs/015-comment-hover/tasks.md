@@ -15,8 +15,8 @@
 ## Phase 2: Foundational — luật và popover dùng chung (chặn US2)
 
 - [X] T002 Sửa constitution lên 1.4.2 (patch) bằng `/speckit-constitution` (nhật ký sửa đổi, Sync Impact Report, Last Amended): nguyên tắc IV giữ "không bo góc" và thêm ngoại lệ duy nhất: nút emoji nổi của thẻ nhận xét (specs/015) hình tròn, qua token; các chỉ báo radio có sẵn của design system (`border-radius: 50%` trong `modernist.css`) không đổi; cập nhật `CLAUDE.md` (v1.4.1 → v1.4.2). Cùng PR với nút tròn.
-- [ ] T003 Tạo `src/annotations/usePopover.ts`: hàm thuần `placePopover(button: DOMRect, size: {width, height}, viewport, align)` (dưới nút, canh mép phải, lật lên khi hết chỗ, kẹp 8 px) và hook `usePopover(open, buttonRef, size)` trả `{ style, listRef }` (đặt vị trí cố định theo nút; đóng khi bấm ngoài, đổi cỡ, cuộn sau 400 ms đầu; sự kiện `sk-more-menu-opened` để một popover mở một lúc, đổi tên thành `sk-popover-opened`). Đổi `src/annotations/MoreMenu.tsx` sang dùng hook này, hành vi bàn phím giữ nguyên; `tests/moreMenu.test.tsx` vẫn qua.
-- [ ] T004 [P] Test `tests/placePopover.test.ts`: dưới nút khi đủ chỗ, lật lên khi hết chỗ, kẹp trái/phải ở 320 px, canh mép phải của nút, bề rộng lớn hơn màn hình.
+- [X] T003 Tạo `src/annotations/usePopover.ts`: hàm thuần `placePopover(button: DOMRect, size: {width, height}, viewport, align)` (dưới nút, canh mép phải, lật lên khi hết chỗ, kẹp 8 px) và hook `usePopover(open, buttonRef, size)` trả `{ style, listRef }` (đặt vị trí cố định theo nút; đóng khi bấm ngoài, đổi cỡ, cuộn sau 400 ms đầu; sự kiện `sk-more-menu-opened` để một popover mở một lúc, đổi tên thành `sk-popover-opened`). Đổi `src/annotations/MoreMenu.tsx` sang dùng hook này, hành vi bàn phím giữ nguyên; `tests/moreMenu.test.tsx` vẫn qua.
+- [X] T004 [P] Test `tests/placePopover.test.ts`: dưới nút khi đủ chỗ, lật lên khi hết chỗ, kẹp trái/phải ở 320 px, canh mép phải của nút, bề rộng lớn hơn màn hình.
 
 **Checkpoint**: `npm test` và `npm run typecheck` qua; UI chưa đổi.
 
