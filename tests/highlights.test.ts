@@ -31,6 +31,22 @@ describe('parseHighlights', () => {
   });
 });
 
+describe('old colours stay as they were (specs/014 FR-003, SC-004)', () => {
+  it('reads and writes back, byte for byte, a file whose comments have every colour', () => {
+    const items = ['y', 'b', 'p', 'o', 'n'].map((c, i) => H('h' + i, { color: c as never, note: 'note ' + c }));
+    const text = serializeHighlights(items);
+    const read = parseHighlights(text);
+    expect(read.error).toBeNull();
+    expect(read.items.map(h => h.color)).toEqual(['y', 'b', 'p', 'o', 'n']);
+    expect(serializeHighlights(read.items)).toBe(text);
+  });
+
+  it('still lets the write path change a colour: the interface no longer offers it, the data layer is the same (R2)', () => {
+    const out = applyChange([H('h1', { color: 'p', note: 'x' })], { type: 'update', id: 'h1', color: 'o' }, { login: 'mai' });
+    expect(out[0].color).toBe('o');
+  });
+});
+
 describe('plain comments, colour n (specs/012)', () => {
   it('reads and writes a comment without a category, and still reads files that have none', () => {
     const r = parseHighlights(JSON.stringify({ version: 1, highlights: [H('h1', { color: 'n', note: 'Why?' }), H('h2')] }));

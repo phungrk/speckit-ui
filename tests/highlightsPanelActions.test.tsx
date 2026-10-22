@@ -11,7 +11,7 @@ const H = (id: string, over: Partial<Highlight> = {}): Highlight => ({
   author: { login: 'mai' }, createdAt: '2026-10-21T08:30:00.000Z', updatedAt: '2026-10-21T08:30:00.000Z', ...over
 });
 const noop = () => {};
-const acts = (over: Partial<HighlightActions> = {}): HighlightActions => ({ onCopy: noop, onAsk: noop, onColor: noop, onEdit: noop, onDelete: noop, mine: h => 'login' in h.author && h.author.login === 'mai', readOnly: null, ...over });
+const acts = (over: Partial<HighlightActions> = {}): HighlightActions => ({ onCopy: noop, onAsk: noop, onEdit: noop, onDelete: noop, mine: h => 'login' in h.author && h.author.login === 'mai', readOnly: null, ...over });
 const phases = [{ key: 'specify', name: 'Specify' }];
 const panel = (items: Highlight[], actions?: HighlightActions | null) =>
   renderToStaticMarkup(<HighlightsPanel items={items} phases={phases} outdated={[]} onOpen={noop} actions={actions} now={Date.parse('2026-10-21T09:00:00.000Z')} />);
@@ -39,10 +39,10 @@ describe('Highlights tab entries', () => {
 describe('actions under an open entry', () => {
   const row = (h: Highlight, a: HighlightActions, confirming = false) => renderToStaticMarkup(<EntryActions h={h} actions={a} confirming={confirming} onConfirm={noop} onDeleted={noop} />);
 
-  it('gives the author the colours, Copy, Ask and Delete', () => {
+  it('gives the author Copy, Ask and Delete, and no colour to choose (specs/014)', () => {
     const html = row(H('h1', { color: 'b' }), acts());
-    expect([...html.matchAll(/aria-label="Mark as (\w+)"/g)].map(m => m[1])).toEqual(['Comment', 'Key', 'Issue', 'Question', 'Change']);
-    expect(html).toMatch(/aria-label="Mark as Question"[^>]*aria-pressed="true"/);
+    expect(html).not.toContain('aria-label="Colour"');
+    expect(html).not.toContain('Mark as');
     for (const label of ['Copy', 'Ask', 'Delete']) expect(html).toContain('>' + label + '<');
     expect(html).not.toContain('Edit');
   });
@@ -65,14 +65,9 @@ describe('actions under an open entry', () => {
   it('turns the writing actions off with the reason and keeps Copy and Ask', () => {
     const why = 'This branch is protected.';
     const html = row(H('h1'), acts({ readOnly: why }));
-    expect([...html.matchAll(/aria-disabled="true"/g)]).toHaveLength(6);
+    expect([...html.matchAll(/aria-disabled="true"/g)]).toHaveLength(1);
     expect(html).toContain(`title="${why}"`);
     expect(html).toContain(`role="status">${why}<`);
     expect(html).not.toMatch(/<button[^>]*aria-disabled[^>]*>(Copy|Ask)</);
-  });
-
-  it('names every colour button and does not hide it from the keyboard', () => {
-    const html = row(H('h1'), acts());
-    expect([...html.matchAll(/<button[^>]*class="sk-cm-sw[^"]*"[^>]*>/g)].every(m => /aria-label="Mark as \w+"/.test(m[0]) && !/tabindex="-1"/.test(m[0]))).toBe(true);
   });
 });

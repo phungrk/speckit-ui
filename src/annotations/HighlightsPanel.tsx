@@ -39,10 +39,6 @@ const defaultPerson = (a: HighlightAuthor) => { const name = authorLabel(a); ret
 export function EntryActions({ h, actions, confirming, onConfirm, onDeleted }: { h: Highlight; actions: HighlightActions; confirming: boolean; onConfirm: (on: boolean) => void; onDeleted: () => void }) {
   const mine = actions.mine(h);
   return <div className="sk-hlp-acts" role="group" aria-label="Highlight actions">
-    {mine && <div className="sk-cm-colors" role="group" aria-label="Colour">
-      {[HL_NONE, ...HL_COLORS].map(c => <button type="button" key={c.key} className={'sk-cm-sw hl-' + c.key} title={actions.readOnly ?? c.meaning} aria-label={'Mark as ' + c.meaning}
-        aria-pressed={h.color === c.key} aria-disabled={actions.readOnly ? true : undefined} onClick={() => { if (!actions.readOnly && h.color !== c.key) actions.onColor(h.id, c.key); }}></button>)}
-    </div>}
     {confirming
       ? <div className="sk-cm-acts"><span>Delete this highlight?</span>
         <button type="button" className="btn btn-secondary" onClick={() => onConfirm(false)}>Keep</button>

@@ -290,8 +290,8 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
     const by = author ?? askAuthor?.() ?? null;
     if (!by) { setError('Enter your name to save highlights.'); return; }
     const now = new Date().toISOString();
-    // A plain comment has no colour (n). The id was made with the draft, so a retry is the same comment.
-    const highlight: Highlight = { id: d.id ?? newId(), phase: d.phase, doc: d.doc, ...d.anchor, docSha: d.docSha ?? null, color: 'n', note, author: by, createdAt: now, updatedAt: now };
+    // Every new comment is Change (o): there is no colour to choose (specs/014 FR-001). The id was made with the draft, so a retry is the same comment.
+    const highlight: Highlight = { id: d.id ?? newId(), phase: d.phase, doc: d.doc, ...d.anchor, docSha: d.docSha ?? null, color: 'o', note, author: by, createdAt: now, updatedAt: now };
     // The comment shows at once as Sending, in its place beside the text; the box it was written in closes.
     setOptimistic(o => ({ ...o, [highlight.id]: highlight }));
     removeDraft(d.key);
@@ -336,7 +336,6 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
   const actions: CardActions = {
     onCopy: id => { const h = byId(id); if (h) { void navigator.clipboard?.writeText(h.quote); setNotice('Copied'); } },
     onAsk: id => { const h = byId(id); if (h) onAsk(h.quote); },
-    onColor: (id, color) => save({ type: 'update', id, color }),
     onEdit: id => { const h = byId(id); if (h) { setEditNote({ id, text: h.note }); setEditErr(null); setError(null); } },
     onDelete: id => save({ type: 'remove', id }, () => onSelect?.(null)),
     mine: h => sameAuthor(author, h.author),
@@ -350,7 +349,7 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
     if (!onActions) return;
     onActions({
       onCopy: id => actionsRef.current.onCopy(id), onAsk: id => actionsRef.current.onAsk(id),
-      onColor: (id, c) => actionsRef.current.onColor(id, c), onEdit: id => actionsRef.current.onEdit(id), onDelete: id => actionsRef.current.onDelete(id),
+      onEdit: id => actionsRef.current.onEdit(id), onDelete: id => actionsRef.current.onDelete(id),
       mine: h => actionsRef.current.mine(h),
       get readOnly() { return actionsRef.current.readOnly; }
     });

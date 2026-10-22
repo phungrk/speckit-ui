@@ -1,4 +1,4 @@
-import type { Highlight, HighlightColor } from '../project/types';
+import type { Highlight } from '../project/types';
 
 /**
  * What can be done with a highlight once it is selected: on its card in the rail or the sheet, and on its entry in the
@@ -9,7 +9,6 @@ export interface HighlightActions {
   onCopy: (id: string) => void;
   /** Ask Copilot about the quoted text. Reads only, so open to everyone. */
   onAsk: (id: string) => void;
-  onColor: (id: string, color: HighlightColor) => void;
   /** Edit the note: cards only, since a colour-only highlight has none. */
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;

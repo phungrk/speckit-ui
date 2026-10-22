@@ -4,7 +4,6 @@ import type { HighlightAuthor } from '../project/types';
 import type { HighlightActions } from './highlightActions';
 import { Avatar } from './Avatar';
 import { authorLabel, relTime } from './brief';
-import { HL_COLORS, HL_NONE, meaningOf } from './colors';
 import { CLOSED_CARD_HEIGHT, nextSelection, type CommentCard, type Cards, type SaveState } from './comments';
 import { groupReactions, replyCount } from './reactions';
 import { Composer } from './Composer';
@@ -144,13 +143,8 @@ export function Card({ card, top, selected, person, now, onSelect, onRetry, acti
         ...groupReactions(h.reactions, null).map(g => `${g.emoji}${g.count}`)].filter(Boolean).join(' · ')}</span>}</div>
     <q className="sk-cm-quote">{h.quote}</q>
     <p className="sk-cm-note">{h.note}</p>
-    {selected && <div className="sk-cm-meta"><i className={'hl-' + h.color + '-solid'}></i>{meaningOf(h.color)}</div>}
     {selected && actions && <>
       {card.mine && <>
-        <div className="sk-cm-colors" role="group" aria-label="Colour">
-          {[HL_NONE, ...HL_COLORS].map(c => <button type="button" key={c.key} className={'sk-cm-sw hl-' + c.key} title={actions.readOnly ?? c.meaning} aria-label={'Mark as ' + c.meaning}
-            aria-pressed={h.color === c.key} aria-disabled={actions.readOnly ? true : undefined} onClick={e => { e.stopPropagation(); if (!actions.readOnly && h.color !== c.key) actions.onColor(card.id, c.key); }}></button>)}
-        </div>
         {confirming && <div className="sk-cm-acts"><span>{replyCount(h) > 0 ? `Delete this comment and its ${replyCount(h)} ${replyCount(h) === 1 ? 'reply' : 'replies'}?` : 'Delete this comment?'}</span>
           <button type="button" className="btn btn-secondary" onClick={e => { e.stopPropagation(); setConfirming(false); }}>Keep</button>
           <button type="button" className="btn btn-primary" onClick={e => { e.stopPropagation(); actions.onDelete(card.id); }}>Delete</button></div>}
