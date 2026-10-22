@@ -40,8 +40,8 @@
 - [X] T014 [US1] Trong `src/annotations/Annotator.tsx`: state `replyDrafts` theo mã nhận xét (giữ khi đổi thẻ, hỏi trước khi bỏ), `replyId` tạo cùng bản nháp và giữ qua Retry, hàm `sendReply`, `editReply`, `deleteReply` gọi `save(...)` với bốn loại mới; danh sách hiển thị = `applyChange(items, thayĐổiĐangChờ, tôi)` (R8): trả lời hiện ngay ở trạng thái Sending, `ok` thay bằng danh sách đã lưu, thất bại giữ nội dung và Retry; khi nhận xét biến mất sau "New comments", bản nháp trả lời được báo mất chỗ gắn thay vì bị bỏ im lặng; truyền `threadFor`; hộp xác nhận xoá nhận xét gốc nêu số trả lời bị xoá ("Delete this comment and its N replies?") trong `Card`.
 - [X] T015 [US1] Trong `src/styles/reader.css`: `.sk-cm-thread`, `.sk-cm-reply`, `.sk-cm-count`, ô trả lời; token Modernist, không bo góc, không màu mới; dùng được ở 390 px, không cuộn ngang.
 - [X] T016 [P] [US1] Test markup `tests/threadMarkup.test.tsx`: danh sách theo thời gian, tên/giờ, "edited", Edit/Delete chỉ ở trả lời của mình, ô Reply tắt khi chỉ đọc kèm lý do, chữ thuần (HTML trong trả lời bị escape), thẻ đóng "1 reply"/"N replies", không có dòng đếm khi chưa có trả lời (thẻ không đổi), hộp xoá nêu số trả lời. Cập nhật `tests/commentRailMarkup.test.tsx` nếu thay đổi chữ ký.
-- [ ] T017 [US1] Kiểm Playwright ở demo (1440×900, 390): trả lời, trống/quá dài, sửa/xoá, xác nhận xoá nhận xét gốc, bản nháp giữ khi đổi thẻ, bàn phím; ghi kết quả vào cuối `quickstart.md`.
-- [ ] T018 [US1] Kiểm server với GitHub giả (cách của 012/013): `lan` trả lời nhận xét của `mai`, `mai` thấy sau "New comments" và không sửa/xoá được; hai trả lời đồng thời; `push:false` tắt ô Reply kèm lý do; mỗi lần lưu đúng một commit `[skip ci]` chỉ đổi `highlights.json`.
+- [X] T017 [US1] Kiểm Playwright ở demo (1440×900, 390): trả lời, trống/quá dài, sửa/xoá, xác nhận xoá nhận xét gốc, bản nháp giữ khi đổi thẻ, bàn phím; ghi kết quả vào cuối `quickstart.md`.
+- [X] T018 [US1] Kiểm server với GitHub giả (cách của 012/013): `lan` trả lời nhận xét của `mai`, `mai` thấy sau "New comments" và không sửa/xoá được; hai trả lời đồng thời; `push:false` tắt ô Reply kèm lý do; mỗi lần lưu đúng một commit `[skip ci]` chỉ đổi `highlights.json`.
 
 **Checkpoint**: US1 chạy độc lập (chưa có emoji).
 
@@ -51,19 +51,19 @@
 
 **Kiểm độc lập**: quickstart 9, 10, 7 (emoji), 15.
 
-- [ ] T019 [US2] Trong `src/annotations/Thread.tsx`: dải emoji dùng `groupReactions`: nút "emoji + số" (`aria-pressed` khi của mình, tên người thả trong `title` và nhãn đọc), nút "+" mở bộ 6 emoji, ở nhận xét gốc và ở từng trả lời; `aria-live` "Reaction added/removed"; điều khiển ghi `aria-disabled` kèm lý do khi chỉ đọc (xem vẫn được).
-- [ ] T020 [US2] Trong `src/annotations/Annotator.tsx`: hàm `react(id, replyId, emoji, on)` gọi `save({ type: 'react', … })` **lạc quan** bằng cùng cơ chế `applyChange` cục bộ (đổi ngay; thất bại hoặc huỷ xác nhận commit thì bỏ thay đổi đang chờ, hoàn lại và báo lỗi; R8); không gỡ được emoji của người khác (nút của người khác chỉ thêm/gỡ phần của chính mình).
-- [ ] T021 [US2] Trong `src/styles/reader.css`: `.sk-cm-react` (nền `--color-surface`, viền `--color-divider`, "của mình" viền `--color-text`), bộ chọn emoji; token có sẵn, không màu mới.
-- [ ] T022 [P] [US2] Test markup trong `tests/threadMarkup.test.tsx`: số lượng, `aria-pressed`, tên người thả, nút "+" liệt kê đúng 6 emoji, tắt khi chỉ đọc nhưng vẫn hiện số.
-- [ ] T023 [US2] Kiểm Playwright demo và server giả: thả hai emoji khác nhau, người thứ hai thả cùng emoji (số 2), gỡ, không gỡ của người khác, hai người thả cùng lúc, thất bại thì hoàn lại; ghi kết quả vào `quickstart.md`.
+- [X] T019 [US2] Trong `src/annotations/Thread.tsx`: dải emoji dùng `groupReactions`: nút "emoji + số" (`aria-pressed` khi của mình, tên người thả trong `title` và nhãn đọc), nút "+" mở bộ 6 emoji, ở nhận xét gốc và ở từng trả lời; `aria-live` "Reaction added/removed"; điều khiển ghi `aria-disabled` kèm lý do khi chỉ đọc (xem vẫn được).
+- [X] T020 [US2] Trong `src/annotations/Annotator.tsx`: hàm `react(id, replyId, emoji, on)` gọi `save({ type: 'react', … })` **lạc quan** bằng cùng cơ chế `applyChange` cục bộ (đổi ngay; thất bại hoặc huỷ xác nhận commit thì bỏ thay đổi đang chờ, hoàn lại và báo lỗi; R8); không gỡ được emoji của người khác (nút của người khác chỉ thêm/gỡ phần của chính mình).
+- [X] T021 [US2] Trong `src/styles/reader.css`: `.sk-cm-react` (nền `--color-surface`, viền `--color-divider`, "của mình" viền `--color-text`), bộ chọn emoji; token có sẵn, không màu mới.
+- [X] T022 [P] [US2] Test markup trong `tests/threadMarkup.test.tsx`: số lượng, `aria-pressed`, tên người thả, nút "+" liệt kê đúng 6 emoji, tắt khi chỉ đọc nhưng vẫn hiện số.
+- [X] T023 [US2] Kiểm Playwright demo và server giả: thả hai emoji khác nhau, người thứ hai thả cùng emoji (số 2), gỡ, không gỡ của người khác, hai người thả cùng lúc, thất bại thì hoàn lại; ghi kết quả vào `quickstart.md`.
 
 ## Phase 5: Polish & cross-cutting
 
-- [ ] T024 [P] Cập nhật `README.md` mục Highlights (trả lời, emoji, ai làm được gì, `version: 2` và việc bản app cũ sẽ từ chối ghi file có trả lời) và liên kết `specs/011-replies-reactions/`; nói rõ build cũ đọc file `version: 2` sẽ báo "unknown format" và không hiện nhận xét của spec đó tới khi tải lại bản mới (R11).
-- [ ] T025 Hiệu năng (quickstart 14): 200 nhận xét × 3 trả lời ở demo hoặc GitHub giả: mở tài liệu dưới 1 giây, thẻ đóng không dựng danh sách trả lời, rail không chồng thẻ; ghi số đo.
-- [ ] T026 Chạy toàn bộ quickstart 1–17 ở demo và server (GitHub giả); static (`build:pages`) và local chỉ ghi rõ có chạy hay chỉ build; ghi kết quả và ảnh 390 vào `quickstart.md`.
-- [ ] T027 Chạy đủ bốn cổng: `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages`.
-- [ ] T028 So ảnh demo với ảnh T001 ở 1440×900 và 924×540 (màn hình chính, hộp thoại New spec): giống hệt khi chưa có thảo luận; thẻ có trả lời là phần ngoài thiết kế, liệt kê trong PR (constitution IV).
+- [X] T024 [P] Cập nhật `README.md` mục Highlights (trả lời, emoji, ai làm được gì, `version: 2` và việc bản app cũ sẽ từ chối ghi file có trả lời) và liên kết `specs/011-replies-reactions/`; nói rõ build cũ đọc file `version: 2` sẽ báo "unknown format" và không hiện nhận xét của spec đó tới khi tải lại bản mới (R11).
+- [X] T025 Hiệu năng (quickstart 14): 200 nhận xét × 3 trả lời ở demo hoặc GitHub giả: mở tài liệu dưới 1 giây, thẻ đóng không dựng danh sách trả lời, rail không chồng thẻ; ghi số đo.
+- [X] T026 Chạy toàn bộ quickstart 1–17 ở demo và server (GitHub giả); static (`build:pages`) và local chỉ ghi rõ có chạy hay chỉ build; ghi kết quả và ảnh 390 vào `quickstart.md`.
+- [X] T027 Chạy đủ bốn cổng: `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages`.
+- [X] T028 So ảnh demo với ảnh T001 ở 1440×900 và 924×540 (màn hình chính, hộp thoại New spec): giống hệt khi chưa có thảo luận; thẻ có trả lời là phần ngoài thiết kế, liệt kê trong PR (constitution IV).
 - [ ] T029 Mô tả PR: nêu `specs/011-replies-reactions`, `Closes #<issue theo dõi "Spec 011: …">` (tạo issue nhãn `speckit` nếu chưa có), chế độ bị ảnh hưởng (cả bốn), định dạng file `version: 2` và hệ quả với bản app cũ (không hiện nhận xét tới khi tải lại; đổi bộ emoji sau này cần tăng `version`), phần chênh thiết kế. Không tạo PR trước khi người dùng yêu cầu.
 
 ## Dependencies & Execution Order

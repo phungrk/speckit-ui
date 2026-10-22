@@ -221,7 +221,7 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
       // A comment that could not be saved is selected, so its card (or the sheet, when narrow) shows why and offers Retry.
       if (change.type === 'add') onSelect?.(id);
       // A reply that failed stays, with Retry; an emoji or an edit that failed goes back to what it was, and says why.
-      if (isThread(change) && change.type !== 'reply') { dropOverlay(id); setNotice(`Not saved: ${msg}`); setAnnounce(`Not saved: ${msg}`); }
+      if (isThread(change) && change.type !== 'reply') { dropOverlay(id); setToast(null); setNotice(`Not saved: ${msg}`); setAnnounce(`Not saved: ${msg}`); }
       if (/cannot commit to|no longer exists|read-only/.test(msg)) onRefused?.(msg);
     } finally {
       setBusy(false);

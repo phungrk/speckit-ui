@@ -272,10 +272,11 @@ Select text in any step's document and press **Comment**, the only button in the
 - **Local:** saves write the file in the folder, with no commit and no network; the first save asks for your name.
 - **Demo:** highlights are kept in this browser only.
 - **Comments from other people** are checked about once a minute (GitHub and Pages) or when the window regains focus (local). A **New comments (n)** bar appears; nothing moves until you click it. Only people with write access to the repository can comment; others read.
+- **Replies and emoji:** select a comment's card and answer in the box at the bottom (Ctrl/Cmd+Enter sends). Anyone who can save highlights replies, and puts one of six emoji (👍 ❤️ 😄 🎉 😕 👀) on a comment or a reply; the number shows how many people did, and the tooltip who. Only the writer edits or deletes their own reply; deleting a comment deletes its replies. A closed card says how many replies it has. Replies and emoji are saved in the same `highlights.json`, one `[skip ci]` commit each. Once a file holds one, it is written as `"version": 2`; an older build of the app does not know that format, shows no comments of that spec and refuses to write, until it is reloaded or updated (so it can never drop replies it does not know).
 - **Only the author** can recolour, edit or remove a highlight; others can copy it or ask Copilot about it, from its card or its entry in the tab.
 - When the text under a highlight changes, it stays in the list marked **Outdated, text changed**.
 
-See `specs/010-spec-annotations/`, `specs/012-docs-style-comment-flow/` and `specs/013-comment-button-popup/`.
+See `specs/010-spec-annotations/`, `specs/012-docs-style-comment-flow/`, `specs/013-comment-button-popup/` and `specs/011-replies-reactions/`.
 
 ## Demo mode
 
