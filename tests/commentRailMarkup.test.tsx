@@ -6,8 +6,8 @@ import { CommentRail, CommentSheet } from '../src/annotations/CommentRail';
 import { Composer } from '../src/annotations/Composer';
 import { FreshBar } from '../src/annotations/FreshBar';
 import { HighlightsPanel } from '../src/annotations/HighlightsPanel';
-import { HlToolbar, type ToolbarState } from '../src/annotations/Toolbar';
 import { toCards } from '../src/annotations/comments';
+import type { HighlightActions } from '../src/annotations/highlightActions';
 import type { Highlight } from '../src/project/types';
 
 const NOW = Date.parse('2026-10-21T09:00:00.000Z');
@@ -16,6 +16,7 @@ const H = (id: string, over: Partial<Highlight> = {}): Highlight => ({
   author: { login: 'mai' }, createdAt: '2026-10-21T08:30:00.000Z', updatedAt: '2026-10-21T08:30:00.000Z', ...over
 });
 const noop = () => {};
+const acts = (over: Partial<HighlightActions> = {}): HighlightActions => ({ onCopy: noop, onAsk: noop, onColor: noop, onEdit: noop, onDelete: noop, mine: h => 'login' in h.author && h.author.login === 'mai', readOnly: null, ...over });
 const rail = (items: Highlight[], anchored: Record<string, number>, props: Partial<Parameters<typeof CommentRail>[0]> = {}) =>
   renderToStaticMarkup(<CommentRail cards={toCards(items, anchored, {}, { login: 'mai' })} selectedId={null} onSelect={noop} branch="feat/003-x" now={NOW} {...props} />);
 
@@ -75,53 +76,6 @@ describe('comment rail (FR-007, FR-015)', () => {
   });
 });
 
-const tb = (over: Partial<ToolbarState> = {}): ToolbarState => ({ mode: 'new', text: 'the cap applies daily', x: 500, top: 300, bottom: 320, ...over });
-const bar = (props: Partial<Parameters<typeof HlToolbar>[0]> = {}) => renderToStaticMarkup(<HlToolbar tb={tb()} canEdit readOnly={null} viewport={{ width: 1440, height: 900 }}
-  onColor={noop} onComment={noop} onCopy={noop} onAsk={noop} onDelete={noop} {...props} />);
-
-describe('selection toolbar: Add comment first (FR-001, FR-006, FR-016)', () => {
-  it('leads with Add comment, then the four colours, then Copy and Ask, and has no Note for a new selection', () => {
-    const html = bar();
-    expect(html).toMatch(/<button[^>]*class="sk-tb-b sk-tb-primary"[^>]*aria-label="Add comment"[^>]*>Add comment</);
-    expect(html).not.toContain('>Note<');
-    const at = (s: string) => html.indexOf(s);
-    expect(at('Add comment')).toBeGreaterThan(-1);
-    expect(at('aria-label="Highlight Key"')).toBeGreaterThan(at('Add comment'));
-    expect(at('aria-label="Highlight Change"')).toBeGreaterThan(at('aria-label="Highlight Key"'));
-    expect(at('>Copy<')).toBeGreaterThan(at('aria-label="Highlight Change"'));
-    expect(at('Ask')).toBeGreaterThan(at('>Copy<'));
-    expect(html).not.toContain('aria-disabled');
-  });
-
-  it('lets the author of a colour-only highlight add a comment to it, and recolour or remove it', () => {
-    const own = bar({ tb: tb({ mode: 'edit', id: 'h1', color: 'p' }), canComment: true });
-    expect(own).toContain('Add comment');
-    expect(own).toContain('aria-label="Remove highlight"');
-    expect(own).not.toContain('>Note<');
-    // A highlight that already has a note is commented on its card, so the toolbar does not offer it again.
-    expect(bar({ tb: tb({ mode: 'edit', id: 'h1', color: 'p' }), canComment: false })).not.toContain('Add comment');
-    expect(own).toMatch(/class="sk-tb-c hl-p on"/);
-    // A plain comment is none of the four swatches, so none is marked.
-    expect(bar({ tb: tb({ mode: 'edit', id: 'h1', color: 'n' }) })).not.toMatch(/class="sk-tb-c hl-\w+ on"/);
-  });
-
-  it('turns Add comment off with the reason shown and keeps Copy and Ask when saving is not possible', () => {
-    const reason = 'Your GitHub account has read-only access to o/a. Ask for write access to comment.';
-    const html = bar({ readOnly: reason });
-    expect(html).toMatch(/aria-disabled="true"/);
-    expect(html).toContain(`title="${reason}"`);
-    expect(html).toMatch(/<div class="sk-tb-msg" role="status">Your GitHub account has read-only access/);
-    expect(html).toContain('>Copy<');
-    expect(html).toContain('Ask');
-    expect(html).not.toContain('aria-label="Highlight Key"');
-  });
-
-  it('gives somebody else\'s comment only Copy and Ask, with no Add comment', () => {
-    const html = bar({ tb: tb({ mode: 'edit', id: 'h1' }), canEdit: false });
-    expect(html).not.toContain('Add comment');
-    expect(html).toContain('>Copy<');
-  });
-});
 
 describe('composer (FR-002, FR-004, FR-005)', () => {
   const composer = (props: Partial<Parameters<typeof Composer>[0]> = {}) => renderToStaticMarkup(<Composer name="mai" quote="the cap applies daily" text="" onText={noop} onSubmit={noop} onCancel={noop} {...props} />);
@@ -187,21 +141,41 @@ describe('selected card, announcement and sheet (FR-008, FR-009, FR-011, FR-012)
   });
 
   it('gives the author of the selected comment colours, Edit and Delete, and nobody else', () => {
-    const mine = sel('h1', { actions: { onColor: noop, onEdit: noop, onDelete: noop } });
+    const mine = sel('h1', { actions: acts() });
     expect(mine).toContain('aria-label="Colour"');
     expect([...mine.matchAll(/aria-label="Mark as (\w+)"/g)].map(m => m[1])).toEqual(['Comment', 'Key', 'Issue', 'Question', 'Change']);
     expect(mine).toContain('aria-pressed="true"');
     expect(mine).toMatch(/>Edit</);
     expect(mine).toMatch(/>Delete</);
-    const theirs = sel('h2', { actions: { onColor: noop, onEdit: noop, onDelete: noop } });
+    const theirs = sel('h2', { actions: acts() });
     expect(theirs).not.toContain('aria-label="Colour"');
     expect(theirs).not.toMatch(/>Edit</);
     expect(theirs).not.toMatch(/>Delete</);
     expect(sel('h1')).not.toMatch(/>Edit</);
   });
 
+  it('gives everyone Copy and Ask on the selected card, including a reader of somebody else\'s comment (specs/013 FR-008)', () => {
+    for (const id of ['h1', 'h2']) {
+      const html = sel(id, { actions: acts() });
+      expect(html).toMatch(/class="sk-cm-acts sk-cm-share"/);
+      expect(html).toMatch(/>Copy</);
+      expect(html).toMatch(/>Ask</);
+    }
+    expect(sel('h1')).not.toMatch(/>Copy</);
+    expect(sel('h2', { actions: acts() })).not.toMatch(/>Delete</);
+  });
+
+  it('turns the writing actions off with the reason when saving is off, and leaves Copy and Ask on', () => {
+    const html = sel('h1', { actions: acts({ readOnly: 'Your GitHub account has read-only access.' }) });
+    expect([...html.matchAll(/aria-disabled="true"/g)].length).toBeGreaterThanOrEqual(7);
+    expect(html).toContain('title="Your GitHub account has read-only access."');
+    expect(html).toMatch(/<button[^>]*>Copy<\/button>/);
+    expect(html).not.toMatch(/<button[^>]*aria-disabled[^>]*>Copy</);
+    expect(html).not.toMatch(/<button[^>]*aria-disabled[^>]*>Ask</);
+  });
+
   it('edits the note in the card with a box that says Save', () => {
-    const html = sel('h1', { actions: { onColor: noop, onEdit: noop, onDelete: noop }, editing: { id: 'h1', text: 'Why daily?', onText: noop, onSubmit: noop, onCancel: noop } });
+    const html = sel('h1', { actions: acts(), editing: { id: 'h1', text: 'Why daily?', onText: noop, onSubmit: noop, onCancel: noop } });
     expect(html).toContain('aria-label="Edit comment"');
     expect(html).toMatch(/<textarea[^>]*>Why daily\?<\/textarea>/);
     expect(html).toMatch(/class="btn btn-primary"[^>]*>Save</);

@@ -10,6 +10,7 @@ import { buildOverview } from './overview';
 import { LIVE_CLASS, LIVE_LABEL, PHASES, blobUrl, phaseStatus, type LiveStatus } from './phases';
 import { prefsFor, type LastViewed, type PrefsStorage } from './prefs';
 import { Annotator } from '../annotations/Annotator';
+import type { HighlightActions } from '../annotations/highlightActions';
 import { HighlightsPanel } from '../annotations/HighlightsPanel';
 import { gitHubStore } from '../annotations/store';
 import type { FreshProps } from '../annotations/FreshBar';
@@ -78,6 +79,8 @@ export function LiveWorkspace({ project, backend, user, storage, refreshing, onR
   const [focusId, setFocusId] = useState<string | null>(null);
   // The selected comment, shared by the reading column, its rail and the Highlights tab (specs/012 FR-008, FR-012).
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // What can be done with a highlight, handed over by the Annotator for the Highlights tab (specs/013 FR-008).
+  const [hlActions, setHlActions] = useState<HighlightActions | null>(null);
   const selectHl = (id: string | null, o?: { jump?: boolean }) => { setSelectedId(id); if (id && o?.jump) setFocusId(id); };
   const [outdated, setOutdated] = useState<string[]>([]);
   const [refused, setRefused] = useState<string | null>(null);
@@ -270,7 +273,7 @@ export function LiveWorkspace({ project, backend, user, storage, refreshing, onR
           </button>;
         })}</div>
         {f ? <Annotator items={hls} target={{ slug: f.slug, branch: hlBranch, phase: phase.k, doc: PHASE_DOC[phase.k] ?? '', docSha: f.blobs?.[PHASE_DOC[phase.k] ?? ''] ?? null }}
-          store={hlStore} author={{ login: user.login }} focusId={focusId} clearFocus={() => setFocusId(null)} selectedId={selectedId} onSelect={selectHl} fresh={fresh} onOutdated={setOutdated}
+          store={hlStore} author={{ login: user.login }} focusId={focusId} clearFocus={() => setFocusId(null)} selectedId={selectedId} onSelect={selectHl} fresh={fresh} onOutdated={setOutdated} onActions={setHlActions}
           consent={{ needed: askConsent, branch: hlBranch ?? project.ref, login: user.login, accept: () => { prefs.setHighlightConsent(project.repo, true); setAskConsent(false); } }}
           onItems={items => setSavedHls(x => ({ ...x, [hlKey]: items }))}
           onRefused={reason => setRefused(reason)}
@@ -296,7 +299,7 @@ export function LiveWorkspace({ project, backend, user, storage, refreshing, onR
           <button role="tab" aria-selected={rtab === 'hl'} onClick={() => setRtab('hl')} disabled={!f}>Highlights{hls.length > 0 && <span className="sk-rtab-n">{hls.length}</span>}{freshCtl.newCount > 0 && <span className="sk-rtab-new" aria-label={`${freshCtl.newCount} new comments`}>+{freshCtl.newCount}</span>}</button>
           <button role="tab" aria-selected={rtab === 'ai'} onClick={() => setRtab('ai')} disabled={!f}><span className="sk-ai-badge">AI</span>Copilot{msgs.length > 0 && <span className="sk-rtab-n">{Math.ceil(msgs.length / 2)}</span>}</button>
         </div>
-        {rtab === 'hl' && f ? <HighlightsPanel items={hls} phases={PHASES.map(p => ({ key: p.k, name: p.n }))} outdated={outdated}
+        {rtab === 'hl' && f ? <HighlightsPanel actions={hlActions} items={hls} phases={PHASES.map(p => ({ key: p.k, name: p.n }))} outdated={outdated}
           selectedId={selectedId} fresh={fresh} onOpen={h => { const i = PHASES.findIndex(p => p.k === h.phase); if (i >= 0) setSel(i); selectHl(h.id, { jump: true }); }}
           ask={{ on: askConsent, set: on => { prefs.setHighlightConsent(project.repo, !on); setAskConsent(on); } }} readOnly={hlReadOnly} now={now} />
           : rtab === 'ai' && f ? <Copilot label={<>Reading <b>{f.id}</b> · {phase.n} · {project.repo}</>} tag={`${f.id} · ${phase.n}`} audience="this spec" suggestions={LIVE_SUGGEST}

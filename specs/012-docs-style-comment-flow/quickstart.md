@@ -27,8 +27,8 @@ Cả bốn phải qua trước khi merge (constitution V).
 
 | # | Làm | Kỳ vọng | Spec |
 |---|-----|---------|------|
-| 1 | Bôi chọn một câu trong spec.md | Thanh công cụ có **Add comment** nổi bật; không tô gì | FR-001 |
-| 2 | Bấm Add comment | Hộp soạn ở rail ngang câu, có avatar chữ cái và tên; ô nhập có focus; câu được đánh dấu nháp | FR-002 |
+| 1 | Bôi chọn một câu trong spec.md | Thanh công cụ có **Comment** nổi bật; không tô gì | FR-001 |
+| 2 | Bấm Comment | Hộp soạn ở rail ngang câu, có avatar chữ cái và tên; ô nhập có focus; câu được đánh dấu nháp | FR-002 |
 | 3 | Gõ rồi bấm Comment (hoặc ⌘/Ctrl+Enter) | Thẻ hiện ngay "Sending…", rồi "Saved · commit abc1234"; câu được tô trung tính; **không chọn màu nào** | SC-001, FR-003, FR-013 |
 | 4 | Mở lịch sử nhánh trên GitHub | Đúng một commit mới, chỉ đổi `specs/NNN-…/highlights.json`, thông điệp kết thúc `[skip ci]` | 010 SC-003 |
 | 5 | Bôi chọn câu khác, gõ chữ, rồi bôi chọn câu thứ ba | Nháp đầu không mất; hỏi trước khi bỏ nếu huỷ | FR-005 |
@@ -37,7 +37,7 @@ Cả bốn phải qua trước khi merge (constitution V).
 | 8 | Tắt mạng rồi gửi một nhận xét | Thẻ "Failed: …" và nút Retry, nội dung còn; bật mạng, Retry: lưu một lần, không trùng | FR-013 |
 | 9 | Ở máy khác (hoặc tài khoản khác) thêm một nhận xét | Trong vòng 2 phút máy đầu hiện "New comments (1)"; tài liệu, cuộn, thẻ đang soạn không đổi; bấm dấu thì thẻ mới hiện | FR-014, SC-010 |
 | 10 | Chuyển sang tab khác 5 phút | Không có yêu cầu mạng nền (xem tab Network); quay lại thì kiểm tra ngay | contracts/refresh-api.md |
-| 11 | Đăng nhập tài khoản chỉ có quyền đọc | Nút Add comment tắt kèm lý do và cách khắc phục **ngay khi tải spec** (GitHub báo không có quyền ghi); vẫn xem và chọn mọi nhận xét; 0 yêu cầu ghi. Với token fine-grained thiếu Contents: write: nút tắt ngay sau lần lưu đầu tiên bị từ chối và không thử lại | FR-016, SC-009 |
+| 11 | Đăng nhập tài khoản chỉ có quyền đọc | Nút Comment tắt kèm lý do và cách khắc phục **ngay khi tải spec** (GitHub báo không có quyền ghi); vẫn xem và chọn mọi nhận xét; 0 yêu cầu ghi. Với token fine-grained thiếu Contents: write: nút tắt ngay sau lần lưu đầu tiên bị từ chối và không thử lại | FR-016, SC-009 |
 | 12 | Sửa câu đã có nhận xét trong tài liệu rồi tải lại | Thẻ vào nhóm "Outdated, text changed" với nguyên văn cũ | FR-010 |
 | 13 | Mở "Before you approve" của bước có ghi chú Issue, ghi chú không màu, ghi chú Key | Thứ tự: Issue, Comment, Key | FR-003 |
 | 14 | Thu hẹp cửa sổ tới 390px | Rail ẩn, ghim hiện; chọn nhận xét mở sheet dưới; không cuộn ngang | FR-011, SC-007 |
@@ -59,5 +59,5 @@ Cả bốn phải qua trước khi merge (constitution V).
 - `parseHighlights` và `applyChange` chấp nhận `n`; file cũ không có `n` đọc như trước.
 - `briefNotes`: Issue, rồi `n`, rồi các màu còn lại.
 - `GET /api/highlights`: 200 kèm `etag`, 304 khi `If-None-Match` khớp, 404 thành danh sách rỗng, 401/403/429, không rò token.
-- Render tĩnh: rail, thẻ (đóng, chọn, nháp, đang gửi, lỗi, Outdated), nút Add comment tắt kèm lý do.
+- Render tĩnh: rail, thẻ (đóng, chọn, nháp, đang gửi, lỗi, Outdated), nút Comment tắt kèm lý do.
 - Không test nào ghi GitHub thật (constitution V).

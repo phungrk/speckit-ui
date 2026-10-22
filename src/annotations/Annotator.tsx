@@ -1,12 +1,13 @@
 import { useEffect, useReducer, useRef, useState, type HTMLAttributes, type ReactNode } from 'react';
 import { Icon } from '../ui';
-import type { Highlight, HighlightAuthor, HighlightChange, HighlightColor } from '../project/types';
+import type { Highlight, HighlightAuthor, HighlightChange } from '../project/types';
 import { anchorAt, caretOffset, offsetIn, textNodes, type Anchor } from './anchor';
 import { authorLabel, pendingTarget, sameAuthor } from './brief';
 import type { HighlightStore } from './store';
 import { HlToolbar, type ToolbarState } from './Toolbar';
 import { useHighlights } from './useHighlights';
 import type { FreshProps } from './FreshBar';
+import type { HighlightActions } from './highlightActions';
 import { Card, CommentRail, CommentSheet, useDocViewport, useRailRoom, type CardActions, type CardEditing, type RailDraft } from './CommentRail';
 import { Composer } from './Composer';
 import { draftKey, draftsElsewhere, draftsHere, pickOverlap, reducePending, toCards, type CommentDraft, type SaveState } from './comments';
@@ -41,6 +42,8 @@ export interface AnnotatorProps {
   /** A save was refused for good (no permission, protected or missing branch): stay read-only. */
   onRefused?: (reason: string) => void;
   onAsk: (text: string) => void;
+  /** Hands the shell what can be done with a selected highlight, for the Highlights tab; null when this Annotator goes away (specs/013 FR-008). */
+  onActions?: (a: HighlightActions | null) => void;
   /** The selected comment (specs/012 FR-008); the shell owns it so the sidebar's Highlights tab shares it. */
   selectedId?: string | null;
   onSelect?: (id: string | null, opts?: { jump?: boolean }) => void;
@@ -56,7 +59,7 @@ export interface AnnotatorProps {
 
 const newId = () => 'h_' + Array.from({ length: 12 }, () => '0123456789abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 36)]).join('');
 
-export function Annotator({ items, target, store, author, askAuthor, consent, focusId, clearFocus, onItems, onOutdated, onRefused, onAsk, selectedId = null, onSelect, person, fresh, docProps, children }: AnnotatorProps) {
+export function Annotator({ items, target, store, author, askAuthor, consent, focusId, clearFocus, onItems, onOutdated, onRefused, onAsk, onActions, selectedId = null, onSelect, person, fresh, docProps, children }: AnnotatorProps) {
   const colRef = useRef<HTMLDivElement>(null);
   const docRef = useRef<HTMLDivElement>(null);
   // A comment that was just sent shows at once, as Sending, and stays (as Failed, with Retry) if the save is refused:
@@ -121,13 +124,21 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
     return () => window.removeEventListener('keydown', k);
   }, [selectedId, tb, asking, editNote]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // The popup was placed for one window size: when the window is resized or turned it goes, rather than being left off screen.
+  useEffect(() => {
+    if (!tb) return;
+    window.addEventListener('resize', close);
+    window.addEventListener('orientationchange', close);
+    return () => { window.removeEventListener('resize', close); window.removeEventListener('orientationchange', close); };
+  }, [tb]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const open = (draft: Omit<Draft, 'target'>) => { setError(null); setTb({ ...draft, target }); };
 
   const openFor = (id: string) => {
     const a = anchors.current.find(x => x.h.id === id);
     if (!a) return;
     const b = a.range.getBoundingClientRect();
-    open({ mode: 'edit', id, text: a.h.quote, color: a.h.color, x: b.left + b.width / 2, top: b.top, bottom: b.bottom });
+    open({ mode: 'edit', id, text: a.h.quote, x: b.left + b.width / 2, top: b.top, bottom: b.bottom });
   };
 
   const onUp = (x: number, y: number, target_: EventTarget | null) => {
@@ -150,13 +161,14 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
       }
       // Pointer: the character under it; keyboard (x < 0): the caret.
       const o = x >= 0 ? caretOffset(root, x, y) : sel?.anchorNode && root.contains(sel.anchorNode) ? offsetIn(root, sel.anchorNode, sel.anchorOffset) : -1;
-      // A comment under the click is selected (the newest, then the next on another click); a highlight with only a
-      // colour keeps the toolbar of 010; a click elsewhere lets go of the selection (specs/012 FR-008).
+      // A comment under the click is selected (the newest, then the next on another click); a highlight of yours with
+      // only a colour opens the popup, whose Comment adds the note to it; somebody else's colour-only highlight does
+      // nothing (specs/013 FR-009); a click elsewhere lets go of the selection (specs/012 FR-008).
       const commented = anchors.current.filter(a => a.h.note.trim()).map(a => ({ id: a.h.id, start: a.start, end: a.end, createdAt: a.h.createdAt }));
       const picked = pickOverlap(commented, o, selectedId);
       if (picked) { onSelect?.(picked); return; }
       const hit = anchors.current.find(a => o >= a.start && o < a.end);
-      if (hit) { openFor(hit.h.id); return; }
+      if (hit && sameAuthor(author, hit.h.author)) { openFor(hit.h.id); return; }
       if (selectedId && o >= 0) onSelect?.(null);
     }, 0);
   };
@@ -216,13 +228,8 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
     return () => clearTimeout(t);
   }, [pending]);
 
-  const add = (color: HighlightColor, note = '') => {
-    if (!tb?.anchor) return;
-    const now = new Date().toISOString();
-    save({ type: 'add', highlight: { id: newId(), phase: tb.target.phase, doc: tb.target.doc, ...tb.anchor, docSha: tb.target.docSha, color, note, author: author ?? { name: 'You', local: true }, createdAt: now, updatedAt: now } });
-  };
 
-  // ---- Add comment (specs/012 US1) ----
+  // ---- Comment (specs/012 US1, specs/013) ----
   const me = author ? (person?.(author).name ?? authorLabel(author)) : 'You';
 
   const startDraftAt = (anchor: Anchor, tgt: AnnotatorTarget, existingId?: string) => {
@@ -300,11 +307,30 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
   const railDrafts: RailDraft[] = here.filter(d => draftTops[d.key] !== undefined).map(d => ({ id: d.key, anchorTop: draftTops[d.key], render: top => composerFor(d, top) }));
 
   // What the author of the selected comment can do on its card, and the note being edited there (specs/012 US2).
+  const byId = (id: string) => items.find(x => x.id === id);
   const actions: CardActions = {
+    onCopy: id => { const h = byId(id); if (h) { void navigator.clipboard?.writeText(h.quote); setNotice('Copied'); } },
+    onAsk: id => { const h = byId(id); if (h) onAsk(h.quote); },
     onColor: (id, color) => save({ type: 'update', id, color }),
-    onEdit: id => { const h = items.find(x => x.id === id); if (h) { setEditNote({ id, text: h.note }); setEditErr(null); setError(null); } },
-    onDelete: id => save({ type: 'remove', id }, () => onSelect?.(null))
+    onEdit: id => { const h = byId(id); if (h) { setEditNote({ id, text: h.note }); setEditErr(null); setError(null); } },
+    onDelete: id => save({ type: 'remove', id }, () => onSelect?.(null)),
+    mine: h => sameAuthor(author, h.author),
+    readOnly: store.readOnly
   };
+  // The Highlights tab sits outside this component, so it gets the same actions through a stable object that
+  // always reaches the newest ones (no stale closure), and is told when this Annotator is gone.
+  const actionsRef = useRef(actions);
+  actionsRef.current = actions;
+  useEffect(() => {
+    if (!onActions) return;
+    onActions({
+      onCopy: id => actionsRef.current.onCopy(id), onAsk: id => actionsRef.current.onAsk(id),
+      onColor: (id, c) => actionsRef.current.onColor(id, c), onEdit: id => actionsRef.current.onEdit(id), onDelete: id => actionsRef.current.onDelete(id),
+      mine: h => actionsRef.current.mine(h),
+      get readOnly() { return actionsRef.current.readOnly; }
+    });
+    return () => onActions(null);
+  }, [onActions]);
   const cardEditing: CardEditing | undefined = editNote ? {
     id: editNote.id, text: editNote.text, busy, error: editErr ?? error,
     onText: t => { setEditNote({ id: editNote.id, text: t }); setEditErr(null); },
@@ -319,9 +345,6 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
   // Without room for the rail, the selected comment or the comment being written opens in a sheet at the foot (research R9).
   const selectedCard = selectedId ? [...cards.cards, ...cards.outdated].find(c => c.id === selectedId) : undefined;
   const sheetDraft = here.find(d => d.key === activeDraft) ?? here[0];
-
-  const editing = tb?.id ? items.find(h => h.id === tb.id) : undefined;
-  const canEdit = tb?.mode === 'new' || (!!editing && sameAuthor(author, editing.author));
 
   return <>
     <div ref={docRef} {...docProps} className={'sk-doc' + (showRail ? ' has-rail' : '')}
@@ -346,12 +369,7 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
       {!showRail && markers.map(m => <button type="button" key={m.id} className={'sk-hl-pin hl-' + m.color + '-solid'} style={{ top: m.top, left: m.left }}
         aria-label={`Note by ${authorLabel(m.author)}`} onClick={() => onSelect?.(m.id, { jump: true })}><Icon n="note" s={12} /></button>)}
     </div>
-    {tb && <HlToolbar key={(tb.id ?? '') + tb.text} tb={tb} canEdit={canEdit} canComment={tb.mode === 'new' || (canEdit && !editing?.note.trim())} readOnly={store.readOnly} busy={busy} error={error}
-      onColor={c => tb.mode === 'new' ? add(c) : save({ type: 'update', id: tb.id!, color: c })}
-      onComment={startComment}
-      onCopy={() => { void navigator.clipboard?.writeText(tb.text); close(); }}
-      onAsk={() => { onAsk(tb.text); close(); }}
-      onDelete={() => save({ type: 'remove', id: tb.id! })} />}
+    {tb && <HlToolbar key={(tb.id ?? '') + tb.text} tb={tb} readOnly={store.readOnly} busy={busy} error={error} onComment={startComment} />}
     {asking && consent && <ConsentDialog branch={consent.branch} login={consent.login}
       onCancel={() => { dispatchPending({ type: 'fail', id: asking.id, error: 'Not saved: confirm that highlights are committed to this branch.' }); inFlight.current[asking.id] = { change: asking.change, by: asking.by, after: asking.after }; setAsking(null); }}
       onAccept={() => { const a = asking; consent.accept(); setAsking(null); void run(a.change, a.by, a.after); }} />}

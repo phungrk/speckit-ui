@@ -4,6 +4,7 @@ import { Markdown } from './Markdown';
 import { ReaderMenu, SidebarToggle } from '../reader/ReaderControls';
 import { LOCAL_OWNER, useReader, useSidebarKeys } from '../reader/useReader';
 import { Annotator } from '../annotations/Annotator';
+import type { HighlightActions } from '../annotations/highlightActions';
 import { HighlightsPanel } from '../annotations/HighlightsPanel';
 import { localFileStore } from '../annotations/store';
 import type { FreshProps } from '../annotations/FreshBar';
@@ -74,6 +75,8 @@ export function LocalWorkspace({ onExit }: Props) {
   const [focusId, setFocusId] = useState<string | null>(null);
   // The selected comment, shared by the reading column, its rail and the Highlights tab (specs/012 FR-008, FR-012).
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // What can be done with a highlight, handed over by the Annotator for the Highlights tab (specs/013 FR-008).
+  const [hlActions, setHlActions] = useState<HighlightActions | null>(null);
   const selectHl = (id: string | null, o?: { jump?: boolean }) => { setSelectedId(id); if (id && o?.jump) setFocusId(id); };
   const [outdated, setOutdated] = useState<string[]>([]);
   const localPrefs = prefsFor(LOCAL_OWNER, 'local');
@@ -405,7 +408,7 @@ export function LocalWorkspace({ onExit }: Props) {
                   return <Annotator items={savedHls[activeFeature.slug] ?? activeFeature.highlights?.items ?? []}
                     target={{ slug: activeFeature.slug, branch: null, phase: k, doc, docSha: text ? contentHash(text) : null }}
                     store={localFileStore(ready.handle ?? null)} author={authorName ? { name: authorName, local: true } : null} askAuthor={askAuthor}
-                    focusId={focusId} clearFocus={() => setFocusId(null)} selectedId={selectedId} onSelect={selectHl} fresh={fresh} onOutdated={setOutdated}
+                    focusId={focusId} clearFocus={() => setFocusId(null)} selectedId={selectedId} onSelect={selectHl} fresh={fresh} onOutdated={setOutdated} onActions={setHlActions}
                     onItems={items => setSavedHls(x => ({ ...x, [activeFeature.slug]: items }))}
                     onAsk={text => { void navigator.clipboard?.writeText(text); }}
                     docProps={docProps}>{body}</Annotator>;
@@ -416,7 +419,7 @@ export function LocalWorkspace({ onExit }: Props) {
               <button role="tab" aria-selected={rtab === 'local'} onClick={() => setRtab('local')}>Local mode</button>
               <button role="tab" aria-selected={rtab === 'hl'} onClick={() => setRtab('hl')}>Highlights{(() => { const n = (savedHls[activeFeature.slug] ?? activeFeature.highlights?.items ?? []).length; return n > 0 && <span className="sk-rtab-n">{n}</span>; })()}{freshCtl.newCount > 0 && <span className="sk-rtab-new" aria-label={`${freshCtl.newCount} new comments`}>+{freshCtl.newCount}</span>}</button>
             </div>
-            {rtab === 'hl' ? <HighlightsPanel items={savedHls[activeFeature.slug] ?? activeFeature.highlights?.items ?? []} phases={PHASES.map(p => ({ key: p.k, name: p.n }))} outdated={outdated}
+            {rtab === 'hl' ? <HighlightsPanel actions={hlActions} items={savedHls[activeFeature.slug] ?? activeFeature.highlights?.items ?? []} phases={PHASES.map(p => ({ key: p.k, name: p.n }))} outdated={outdated}
               selectedId={selectedId} fresh={fresh} onOpen={h => { const i = PHASES.findIndex(p => p.k === h.phase); if (i >= 0) selectStep(i); selectHl(h.id, { jump: true }); }}
               readOnly={activeFeature.highlights?.error ?? localFileStore(ready.handle ?? null).readOnly} /> : <>
             <div className="sk-pad"><Label>Local mode</Label>

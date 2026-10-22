@@ -7,12 +7,12 @@ phần thêm hoặc đổi. Nhãn bằng tiếng Anh (research R11). Class mới
 ## Thanh công cụ (FR-001, FR-006)
 
 ```text
-[ Add comment ] │ [■ Key][■ Issue][■ Question][■ Change] │ [Copy] [AI Ask] [× Remove]?
+[ Comment ] │ [■ Key][■ Issue][■ Question][■ Change] │ [Copy] [AI Ask] [× Remove]?
 ```
 
-- Nút đầu `button.sk-tb-b.sk-tb-primary` nhãn "Add comment", `aria-label="Add comment"`, bấm mở Composer.
+- Nút đầu `button.sk-tb-b.sk-tb-primary` nhãn "Comment", `aria-label="Comment"`, bấm mở Composer.
 - Ô màu như 010; chọn màu khi vùng chọn mới tạo highlight không ghi chú (không đổi so với 010).
-- Bỏ nút "Note" và `.sk-tb-note`. Người không lưu được: chỉ còn Copy, Ask và nút Add comment ở trạng thái
+- Bỏ nút "Note" và `.sk-tb-note`. Người không lưu được: chỉ còn Copy, Ask và nút Comment ở trạng thái
   tắt (`aria-disabled="true"`, `title` và dòng `.sk-tb-msg` nêu lý do, FR-016).
 - `Ctrl+Alt+M` / `Cmd+Option+M` với vùng chọn hợp lệ: mở Composer.
 

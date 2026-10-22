@@ -1,73 +1,56 @@
 import { Icon } from '../ui';
-import type { HighlightColor } from '../project/types';
-import { HL_COLORS } from './colors';
 
-// Selection toolbar (specs/010-spec-annotations contracts/annotations-ui.md, reshaped by specs/012: Add comment
-// first, colours optional, no floating note editor: comments are written in the rail or the sheet).
+// The box that appears when text is selected (specs/013-comment-button-popup, contracts/selection-popup-ui.md):
+// one button, Comment, on a light surface, like Google Docs. Colours, Copy, Ask and Delete live on the comment's card
+// and on its entry in the Highlights tab. Specs/010 had a dark bar with all of them; specs/012 put Add comment first.
 
 export interface ToolbarState {
+  /** `new`: a selection. `edit`: a highlight of yours that has only a colour, to which Comment adds the note. */
   mode: 'new' | 'edit';
-  /** Edited highlight. */
+  /** The highlight a comment is added to (mode `edit`). */
   id?: string;
   text: string;
-  color?: HighlightColor;
   /** Selection box in viewport coordinates. */
   x: number;
   top: number;
   bottom: number;
 }
 
-const WIDTH = 380;
+/** About as wide as the button: icon, gap, the word Comment, padding. */
+const BUTTON_WIDTH = 132;
+/** With a line of explanation under the button (saving is off, or a save failed). */
+const NOTE_WIDTH = 260;
+const HEIGHT = 44;
 
-/** Fixed position: 52px above the selection, below it when there is no room, clamped 8px inside the viewport. */
-export function toolbarPosition(tb: Pick<ToolbarState, 'x' | 'top' | 'bottom'>, viewport: { width: number; height: number }) {
-  const left = Math.max(8, Math.min(viewport.width - WIDTH - 8, tb.x - WIDTH / 2));
-  const top = tb.top - 52 < 8 ? tb.bottom + 10 : tb.top - 52;
-  return { left, top: Math.max(8, top), width: WIDTH };
+/** Fixed position: above the selection, below it when there is no room, kept 8px inside the viewport. */
+export function toolbarPosition(tb: Pick<ToolbarState, 'x' | 'top' | 'bottom'>, viewport: { width: number; height: number }, withNote = false) {
+  const width = Math.min(withNote ? NOTE_WIDTH : BUTTON_WIDTH, viewport.width - 16);
+  const left = Math.max(8, Math.min(viewport.width - width - 8, tb.x - width / 2));
+  const top = tb.top - HEIGHT < 8 ? tb.bottom + 10 : tb.top - HEIGHT;
+  return { left, top: Math.max(8, top), ...(withNote ? { width } : {}) };
 }
 
 export const quotePreview = (text: string) => text.length > 90 ? text.slice(0, 90) + '…' : text;
 
 export interface HlToolbarProps {
   tb: ToolbarState;
-  /** The author may recolour, comment and remove; others get Copy and Ask only (010 FR-011). */
-  canEdit: boolean;
-  /** Add comment is offered: for a new selection, and for a highlight of yours that has no note yet. */
-  canComment?: boolean;
-  /** The store cannot save (read-only token or account, protected branch, read-only folder). */
+  /** The store cannot save (read-only token or account, protected branch, read-only folder): the button is off and says why. */
   readOnly: string | null;
   busy?: boolean;
   error?: string | null;
   viewport?: { width: number; height: number };
-  onColor: (c: HighlightColor) => void;
-  /** "Add comment": opens the composer in the rail or the sheet (specs/012 FR-001, FR-002). */
+  /** Opens the composer in the rail, or in the sheet when narrow (specs/012 FR-001, FR-002). */
   onComment: () => void;
-  onCopy: () => void;
-  onAsk: () => void;
-  onDelete: () => void;
 }
 
-export function HlToolbar({ tb, canEdit, canComment = tb.mode === 'new', readOnly, busy, error, viewport, onColor, onComment, onCopy, onAsk, onDelete }: HlToolbarProps) {
+export function HlToolbar({ tb, readOnly, busy, error, viewport, onComment }: HlToolbarProps) {
   const vp = viewport ?? (typeof window !== 'undefined' ? { width: window.innerWidth, height: window.innerHeight } : { width: 1440, height: 900 });
-  const pos = toolbarPosition(tb, vp);
-  const writable = canEdit && !readOnly;
-  return <div className="sk-tb" role="dialog" aria-label="Highlight" style={pos}
+  const msg = error ?? readOnly;
+  const pos = toolbarPosition(tb, vp, !!msg);
+  return <div className="sk-tb" role="dialog" aria-label="Comment" style={pos}
     onMouseDown={e => e.preventDefault()}>
-    <div className="sk-tb-row">
-      {canComment && canEdit && <>
-        {/* The first thing in the bar: a comment needs no colour. Off, with the reason, when saving is not possible. */}
-        <button type="button" className="sk-tb-b sk-tb-primary" aria-label="Add comment" aria-disabled={readOnly ? true : undefined} title={readOnly ?? undefined} disabled={busy}
-          onClick={() => { if (!readOnly) onComment(); }}>Add comment</button>
-        {writable && <span className="sk-tb-sep"></span>}
-      </>}
-      {writable && <>
-        {HL_COLORS.map(c => <button type="button" key={c.key} className={'sk-tb-c hl-' + c.key + (tb.color === c.key ? ' on' : '')} title={c.meaning} aria-label={'Highlight ' + c.meaning} disabled={busy} onClick={() => onColor(c.key)}></button>)}
-        <span className="sk-tb-sep"></span>
-      </>}
-      <button type="button" className="sk-tb-b" onClick={onCopy}>Copy</button>
-      <button type="button" className="sk-tb-b sk-tb-ai" onClick={onAsk}><span className="sk-ai-badge">AI</span>Ask</button>
-      {tb.mode === 'edit' && writable && <button type="button" className="sk-tb-b" aria-label="Remove highlight" disabled={busy} onClick={onDelete}><Icon n="x" s={14} /></button>}
-    </div>
-    {readOnly || error ? <div className="sk-tb-msg" role="status">{error ?? readOnly}</div> : null}
+    <button type="button" className="sk-tb-b" aria-label="Comment" aria-disabled={readOnly ? true : undefined} title={readOnly ?? undefined} disabled={busy}
+      onClick={() => { if (!readOnly) onComment(); }}><Icon n="note" s={14} />Comment</button>
+    {msg ? <div className="sk-tb-msg" role="status">{msg}</div> : null}
   </div>;
 }

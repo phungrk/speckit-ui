@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { Icon } from '../ui';
-import type { HighlightAuthor, HighlightColor } from '../project/types';
+import type { HighlightAuthor } from '../project/types';
+import type { HighlightActions } from './highlightActions';
 import { Avatar } from './Avatar';
 import { authorLabel, relTime } from './brief';
 import { HL_COLORS, HL_NONE, meaningOf } from './colors';
@@ -59,12 +60,8 @@ export function useDocViewport(docRef: RefObject<HTMLElement | null>): { top: nu
   return vp;
 }
 
-/** What the author of the selected comment can do with it (specs/012 US2, 010 FR-011). */
-export interface CardActions {
-  onColor: (id: string, color: HighlightColor) => void;
-  onEdit: (id: string) => void;
-  onDelete: (id: string) => void;
-}
+/** What can be done on a selected card: the author recolours, edits, deletes; everyone copies and asks (specs/013 FR-008). */
+export type CardActions = HighlightActions;
 
 /** The note of one card being edited in place: the box takes the card's place (research R5). */
 export interface CardEditing {
@@ -136,18 +133,25 @@ export function Card({ card, top, selected, person, now, onSelect, onRetry, acti
     <q className="sk-cm-quote">{h.quote}</q>
     <p className="sk-cm-note">{h.note}</p>
     {selected && <div className="sk-cm-meta"><i className={'hl-' + h.color + '-solid'}></i>{meaningOf(h.color)}</div>}
-    {selected && card.mine && actions && <>
-      <div className="sk-cm-colors" role="group" aria-label="Colour">
-        {[HL_NONE, ...HL_COLORS].map(c => <button type="button" key={c.key} className={'sk-cm-sw hl-' + c.key} title={c.meaning} aria-label={'Mark as ' + c.meaning}
-          aria-pressed={h.color === c.key} onClick={e => { e.stopPropagation(); if (h.color !== c.key) actions.onColor(card.id, c.key); }}></button>)}
+    {selected && actions && <>
+      {card.mine && <>
+        <div className="sk-cm-colors" role="group" aria-label="Colour">
+          {[HL_NONE, ...HL_COLORS].map(c => <button type="button" key={c.key} className={'sk-cm-sw hl-' + c.key} title={actions.readOnly ?? c.meaning} aria-label={'Mark as ' + c.meaning}
+            aria-pressed={h.color === c.key} aria-disabled={actions.readOnly ? true : undefined} onClick={e => { e.stopPropagation(); if (!actions.readOnly && h.color !== c.key) actions.onColor(card.id, c.key); }}></button>)}
+        </div>
+        {confirming
+          ? <div className="sk-cm-acts"><span>Delete this comment?</span>
+            <button type="button" className="btn btn-secondary" onClick={e => { e.stopPropagation(); setConfirming(false); }}>Keep</button>
+            <button type="button" className="btn btn-primary" onClick={e => { e.stopPropagation(); actions.onDelete(card.id); }}>Delete</button></div>
+          : <div className="sk-cm-acts sk-cm-own">
+            <button type="button" className="btn btn-secondary" title={actions.readOnly ?? undefined} aria-disabled={actions.readOnly ? true : undefined} onClick={e => { e.stopPropagation(); if (!actions.readOnly) actions.onEdit(card.id); }}>Edit</button>
+            <button type="button" className="btn btn-secondary" title={actions.readOnly ?? undefined} aria-disabled={actions.readOnly ? true : undefined} onClick={e => { e.stopPropagation(); if (!actions.readOnly) setConfirming(true); }}>Delete</button></div>}
+      </>}
+      {/* Reading only, so for everyone, including a reader without write access (specs/013 FR-008). */}
+      <div className="sk-cm-acts sk-cm-share">
+        <button type="button" className="btn btn-secondary" onClick={e => { e.stopPropagation(); actions.onCopy(card.id); }}>Copy</button>
+        <button type="button" className="btn btn-secondary" onClick={e => { e.stopPropagation(); actions.onAsk(card.id); }}>Ask</button>
       </div>
-      {confirming
-        ? <div className="sk-cm-acts"><span>Delete this comment?</span>
-          <button type="button" className="btn btn-secondary" onClick={e => { e.stopPropagation(); setConfirming(false); }}>Keep</button>
-          <button type="button" className="btn btn-primary" onClick={e => { e.stopPropagation(); actions.onDelete(card.id); }}>Delete</button></div>
-        : <div className="sk-cm-acts sk-cm-own">
-          <button type="button" className="btn btn-secondary" onClick={e => { e.stopPropagation(); actions.onEdit(card.id); }}>Edit</button>
-          <button type="button" className="btn btn-secondary" onClick={e => { e.stopPropagation(); setConfirming(true); }}>Delete</button></div>}
     </>}
     <SaveLine card={card} onRetry={onRetry} />
     {thread && <div className="sk-cm-thread">{thread}</div>}
