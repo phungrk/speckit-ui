@@ -228,6 +228,8 @@
 .sk-cm-reply-box textarea, .sk-cm-reply-edit textarea { box-sizing: border-box; width: 100%; margin-top: 8px; font: inherit; font-size: var(--fs-14); background: var(--color-bg); color: var(--color-text); border: 1px solid var(--color-divider); padding: 6px 8px; resize: vertical; }
 .sk-cm-reply-box textarea[aria-invalid="true"] { border-color: var(--color-accent-700); }
 .sk-cm-reply-box textarea:disabled { opacity: .6; }
+.sk-cm-reply-box:not(.active) textarea { resize: none; }
+.sk-cm-reply-box.active textarea { border-color: var(--color-text); }
 .sk-cm-why { margin: 6px 0 0; font-size: var(--fs-12); color: color-mix(in srgb, var(--color-text) 70%, transparent); }
 .sk-cm-thr .sk-cm-acts { justify-content: flex-start; }
 .sk-cm-thr .sk-cm-reply-box > .sk-cm-acts { justify-content: flex-end; }

@@ -97,10 +97,33 @@ describe('the box to answer (FR-001, FR-005, FR-010)', () => {
     expect(html).toMatch(/<textarea[^>]*disabled/);
     expect(html).toContain(`title="${why}"`);
     expect(html).toContain(`<p class="sk-cm-why" role="status">${why}</p>`);
-    expect(html).toMatch(/aria-disabled="true"[^>]*>Reply</);
     expect(html).toContain('Because the cap is per day.');
     // The menu of the reply you wrote is still there; its items are off, with the reason, once it is opened.
     expect(html).toContain('class="sk-cm-more"');
+    // A box nobody can use has no Cancel and Reply buttons.
+    expect(html).not.toMatch(/>Reply<\/button>/);
+  });
+
+  it('shows Cancel and Reply only while the box is used: not at rest, there when it holds words (specs/014 FR-010)', () => {
+    const rest = thread({ draft: '' });
+    expect(rest).toContain('class="sk-cm-reply-box"');
+    expect(rest).not.toMatch(/>Cancel</);
+    expect(rest).not.toMatch(/>Reply<\/button>/);
+    expect(rest).toMatch(/<textarea[^>]*rows="1"/);
+    const used = thread({ draft: 'half a thought' });
+    expect(used).toContain('class="sk-cm-reply-box active"');
+    expect(used).toMatch(/class="btn btn-secondary"[^>]*>Cancel</);
+    expect(used).toMatch(/class="btn btn-primary"[^>]*>Reply</);
+    expect(used.indexOf('>Cancel<')).toBeLessThan(used.indexOf('>Reply<'));
+    expect(used).toMatch(/<textarea[^>]*rows="3"/);
+  });
+
+  it('puts the parts of an open card in the order of the reference: header, text, emoji, replies, then the box to answer', () => {
+    const html = thread({ h: H({ reactions: [{ emoji: '👍', author: lan }], replies: [R('r_1', { author: mai })] }), draft: 'x' });
+    const at = (s: string) => html.indexOf(s);
+    expect(at('Reactions on this comment')).toBeLessThan(at('class="sk-cm-replies"'));
+    expect(at('class="sk-cm-replies"')).toBeLessThan(at('class="sk-cm-reply-box'));
+    expect(at('class="sk-cm-more"')).toBeLessThan(at('Because the cap is per day.'));
   });
 
   it('tells a screen reader what happened, politely', () => {

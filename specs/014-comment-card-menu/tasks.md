@@ -63,16 +63,16 @@
 
 **Kiểm độc lập**: quickstart 9, 10.
 
-- [ ] T017 [US4] Trong `src/annotations/Thread.tsx`: hộp trả lời hiện Cancel và Reply chỉ khi ô có tiêu điểm hoặc có chữ (trạng thái `active` theo `focus`/`blur` trong hộp và `draft`), góc vuông; Cancel có chữ hỏi bỏ ("Discard this reply?"), không chữ thì bỏ tiêu điểm; giữ quy tắc gửi/độ dài/chỉ đọc của 011. Trong `src/styles/reader.css`: kiểu hộp trả lời tinh gọn, `(pointer: coarse)` cho vùng chạm.
-- [ ] T018 [US4] Cập nhật `tests/threadMarkup.test.tsx`: khi nghỉ không có Cancel/Reply; có chữ thì hiện cả hai; thứ tự phần trong thẻ (tiêu đề, nội dung, emoji, trả lời, ô trả lời); chỉ đọc vẫn tắt ô và nêu lý do.
-- [ ] T019 [US4] Playwright demo 1440×900 và 390: bố cục khớp thứ tự ảnh tham chiếu; Cancel/Reply ẩn lúc nghỉ, hiện khi chọn; sheet hẹp không cuộn ngang, nút ba chấm ≥ 44 px (`pointer: coarse`); bàn phím; ghi kết quả vào `quickstart.md`.
+- [X] T017 [US4] Trong `src/annotations/Thread.tsx`: hộp trả lời hiện Cancel và Reply chỉ khi ô có tiêu điểm hoặc có chữ (trạng thái `active` theo `focus`/`blur` trong hộp và `draft`), góc vuông; Cancel có chữ hỏi bỏ ("Discard this reply?"), không chữ thì bỏ tiêu điểm; giữ quy tắc gửi/độ dài/chỉ đọc của 011. Trong `src/styles/reader.css`: kiểu hộp trả lời tinh gọn, `(pointer: coarse)` cho vùng chạm.
+- [X] T018 [US4] Cập nhật `tests/threadMarkup.test.tsx`: khi nghỉ không có Cancel/Reply; có chữ thì hiện cả hai; thứ tự phần trong thẻ (tiêu đề, nội dung, emoji, trả lời, ô trả lời); chỉ đọc vẫn tắt ô và nêu lý do.
+- [X] T019 [US4] Playwright demo 1440×900 và 390: bố cục khớp thứ tự ảnh tham chiếu; Cancel/Reply ẩn lúc nghỉ, hiện khi chọn; sheet hẹp không cuộn ngang, nút ba chấm ≥ 44 px (`pointer: coarse`); bàn phím; ghi kết quả vào `quickstart.md`.
 
 ## Phase 7: Polish & cross-cutting
 
-- [ ] T020 [P] Cập nhật `README.md` mục Highlights: nhận xét một màu (Change), menu ba chấm, không Copy/Ask, tab không lọc màu, "Before you approve" theo thời gian; liên kết `specs/014-comment-card-menu/`.
-- [ ] T021 Chạy toàn bộ quickstart 1–15 ở demo và server (GitHub giả); static (`build:pages`) và local chỉ ghi rõ có chạy hay chỉ build; ghi kết quả vào `quickstart.md`.
-- [ ] T022 Chạy đủ bốn cổng: `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages`; kiểm không còn mã chết (`onAsk`, `HL_NONE`, `meaningOf`, CSS không dùng) bằng `tsc` và grep.
-- [ ] T023 So ảnh demo với ảnh T001 ở 1440×900 và 924×540 (màn hình chính, hộp thoại New spec): giống hệt; liệt kê trong PR phần chênh (thẻ, tab, ô trả lời góc vuông so với ảnh tham chiếu).
+- [X] T020 [P] Cập nhật `README.md` mục Highlights: nhận xét một màu (Change), menu ba chấm, không Copy/Ask, tab không lọc màu, "Before you approve" theo thời gian; liên kết `specs/014-comment-card-menu/`.
+- [X] T021 Chạy toàn bộ quickstart 1–15 ở demo và server (GitHub giả); static (`build:pages`) và local chỉ ghi rõ có chạy hay chỉ build; ghi kết quả vào `quickstart.md`.
+- [X] T022 Chạy đủ bốn cổng: `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages`; kiểm không còn mã chết (`onAsk`, `HL_NONE`, `meaningOf`, CSS không dùng) bằng `tsc` và grep.
+- [X] T023 So ảnh demo với ảnh T001 ở 1440×900 và 924×540 (màn hình chính, hộp thoại New spec): giống hệt; liệt kê trong PR phần chênh (thẻ, tab, ô trả lời góc vuông so với ảnh tham chiếu).
 - [ ] T024 Mô tả PR: nêu `specs/014-comment-card-menu`, `Closes #<issue theo dõi "Spec 014: …">` (tạo issue nhãn `speckit` nếu chưa có), chế độ bị ảnh hưởng (cả bốn), không đổi định dạng file, "Before you approve" đổi sang theo thời gian (thay thế thứ tự Issue trước của 012), ô trả lời góc vuông. Không tạo PR trước khi người dùng yêu cầu.
 
 ## Dependencies & Execution Order

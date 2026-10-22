@@ -17,3 +17,29 @@ Chuẩn bị: `npm run dev` (demo `http://localhost:5173/?demo`, đổi vai sang
 13. **Dữ liệu và lưu.** `npm test` qua các test lưu/đọc/commit; mỗi lần lưu một commit `[skip ci]` ở GitHub giả. (FR-011)
 14. **Demo 1440×900 và 924×540** (màn hình chính, hộp thoại New spec) giống hệt trước khi sửa.
 15. **Cổng.** `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages`.
+
+## Results (2026-10-22, implement)
+
+Run with Playwright outside the repo, synthetic data, fake GitHub (no real GitHub written). Demo at 1920 and 390 (touch emulation for the coarse-pointer checks); server mode against the fake with the page's own `POST /api/highlights`.
+
+| Scenario | Mode | Result |
+|---|---|---|
+| 1 one colour | demo; server (fake) | Pass: a new comment is saved with `color: "o"`, the text is painted orange (`sk-o` registered), the card has no swatches or colour label; the edge of an unselected card uses the saved colour |
+| 2 note on a colour-only highlight of mine | server (fake) | Pass: the popup has only Comment; sending kept colour `b` and added the note; one `[skip ci]` commit |
+| 3 old comments | demo; server | Pass: comments saved with `p` and `y` keep their colour on the text and the card edge; opening and selecting wrote nothing (no commit, file unchanged, demo storage still empty); unit test writes a file with all five colours back byte for byte |
+| 4 three dots | demo (QA) | Pass: the button is on the open card, once for the comment and once for each reply of mine; none on a closed card, none on Director's view of QA's comment, none on lan's comment on the server |
+| 5 menu | demo | Pass: Edit edits in place and hides the button until Save/Cancel; Delete asks ("Delete this comment?" / "Delete this reply?"); Escape and a click outside close it; opening a second menu closes the first; focus returns to the button |
+| 6 keyboard | demo | Pass: Enter or ArrowDown opens, focus on Edit, ↓/↑ wrap, Escape closes without deselecting the card, ArrowDown/Up in the menu do not move the selected card, Tab closes |
+| 7 read-only | server (fake, `push:false`) | Pass: the menu is there on my comment and reply; Edit and Delete are `aria-disabled` with "Your GitHub account has read-only access…"; choosing one does nothing |
+| 8 no Copy/Ask | demo | Pass: none on the card or in the Highlights tab |
+| 9 layout | demo 1920 | Pass: header (avatar, name, time, ⋮), text, emoji, replies, box to answer; Cancel/Reply hidden at rest, shown when the box is focused or has words; Cancel on words asks to discard; Discard leaves the box at rest |
+| 10 narrow | demo 390, touch | Pass: sheet has the whole card; ⋮ is 44×44; menu items 44 px tall; the menu opens inside the screen; no horizontal scroll |
+| 11 Highlights tab | demo | Pass: no filter chips, no colour words; colour bars kept; my colour-only entry offers only Delete (asks first); an entry with a note and somebody else's entry do not expand |
+| 12 Before you approve | demo | Pass: notes in the order written |
+| 13 data and saving | tests; server | Pass: 476 tests; each save one commit, `[skip ci]`, only `highlights.json` |
+| 14 demo screenshots | demo | 1440×900 and 924×540 (main screen, New spec dialog) byte-identical to before |
+| 15 gates | — | `npm test` (476), `npm run typecheck`, `npm run build`, `npm run build:pages` pass |
+
+Found and fixed while checking: the first item of an opened menu took the focus only after the menu had a place (it was hidden when asked); in the narrow sheet the page scrolling just after opening closed the menu at once.
+
+Not run in a browser: static (Pages) and local mode (same components and `applyChange`, built only), and the real GitHub. The commit message for a new comment now reads "noted" instead of "commented" because new comments are colour Change rather than the plain colour `n`.
