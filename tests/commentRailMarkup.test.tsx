@@ -272,11 +272,12 @@ describe('the comment as an item with a row (specs/015 FR-001)', () => {
     expect(html).toContain('<div class="sk-cm-row"><p class="sk-cm-note">Why daily?</p></div></div>');
   });
 
-  it('puts the tool on the row of the open card only', () => {
-    const tool = (c: { id: string }) => <i className="tool">{c.id}</i>;
+  it('puts the tool on the row of every card, telling which one is open', () => {
+    const tool = (c: { id: string }, isOpen: boolean) => <i className="tool">{c.id}:{String(isOpen)}</i>;
     const html = open('h1', { rowToolFor: tool });
-    expect([...html.matchAll(/class="tool"/g)]).toHaveLength(1);
-    expect(html).toContain('<div class="sk-cm-row"><p class="sk-cm-note">Why daily?</p><i class="tool">h1</i></div>');
-    expect(open(null, { rowToolFor: tool })).not.toContain('class="tool"');
+    expect([...html.matchAll(/class="tool"/g)].length).toBeGreaterThan(1);
+    expect(html).toContain('<div class="sk-cm-row"><p class="sk-cm-note">Why daily?</p><i class="tool">h1:true</i></div>');
+    expect(html).toContain(':false</i>');
+    expect(open(null, { rowToolFor: tool })).not.toContain(':true</i>');
   });
 });

@@ -16,6 +16,8 @@ export interface EmojiButtonProps {
   what: string;
   /** Sets (`on`) or clears the user's emoji. */
   onToggle: (emoji: string, on: boolean) => void;
+  /** False on a closed card, whose controls stay out of the tab order (the open card has them). */
+  tabbable?: boolean;
 }
 
 const PICKER_W = 212;
@@ -34,7 +36,7 @@ export function EmojiPicker({ mine, onPick, style, listRef }: PickerProps) {
   </div>;
 }
 
-export function EmojiButton({ list, me, readOnly, what, onToggle }: EmojiButtonProps) {
+export function EmojiButton({ list, me, readOnly, what, onToggle, tabbable = true }: EmojiButtonProps) {
   const id = useId();
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLSpanElement>(null);
@@ -62,7 +64,7 @@ export function EmojiButton({ list, me, readOnly, what, onToggle }: EmojiButtonP
   };
 
   return <span ref={wrap} className={'sk-cm-float-wrap' + (open ? ' open' : '')} onKeyDown={keys} onClick={e => e.stopPropagation()}>
-    <button ref={button} type="button" className="sk-cm-float" aria-label={`Add a reaction to ${what}`} aria-haspopup="true" aria-expanded={open}
+    <button ref={button} type="button" className="sk-cm-float" tabIndex={tabbable ? undefined : -1} aria-label={`Add a reaction to ${what}`} aria-haspopup="true" aria-expanded={open}
       aria-disabled={readOnly ? true : undefined} title={readOnly ?? 'Add a reaction'}
       onClick={() => { if (readOnly) return; if (open) { close(); return; } announce(); setOpen(true); }}>
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
