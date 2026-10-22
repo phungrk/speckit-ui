@@ -22,3 +22,6 @@ Chuẩn bị: `npm run dev` (demo `http://localhost:5173/?demo`, vai QA để l�
 - **2, 3 (nút nổi)**: lúc nghỉ `opacity` 0; hover: 1, đường kính 28 px, `border-radius: 50%`, nằm trong dòng, chữ kết thúc trước nút. Bấm nút: thẻ vẫn chọn, không cuộn, 6 emoji, `aria-expanded="true"`. Escape đóng bộ, thẻ vẫn mở, tiêu điểm về nút. Chọn 👍: viên "👍 1", gỡ bằng "Remove 👍", bấm ngoài đóng bộ, mở bộ đóng menu ba chấm. Hover một trả lời chỉ hiện nút của trả lời đó.
 - **5, 6 (ba chấm)**: lúc nghỉ `opacity` 0; hover 1; Tab/focus 1 và Tab tiếp tới "Add a reaction to this comment"; menu mở rồi rời chuột: nút còn 1; nhận xét của người khác: 0 nút.
 - **8 (cảm ứng 390)**: ba chấm `opacity` 1, 44×44; nút emoji hiện sẵn, 44 px.
+- **9 (bốn giao diện)**: White, Sepia, Green, Dark: hàng hover là nền chữ 8 %; nút nổi có nền `--color-bg` khác nền thẻ ở cả bốn, viền theo `--color-divider`.
+- **13 (demo)**: ảnh chính và hộp thoại New spec ở 1440×900 và 924×540, cùng ảnh popup 1440/390, giống từng byte với ảnh trước khi sửa.
+- **14 (cổng)**: `npm test` 509 qua, `npm run typecheck`, `npm run build`, `npm run build:pages` đều qua. Không còn `.sk-cm-add` trong `src`. Không cuộn ngang ở 390 px. Static và local: chỉ build, không chạy tay (cùng mã giao diện).

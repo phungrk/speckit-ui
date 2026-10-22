@@ -58,11 +58,11 @@
 
 ## Phase 6: Polish & cross-cutting
 
-- [ ] T016 [P] Cập nhật `README.md` mục Highlights: hover làm đậm hàng, nút emoji nổi, ba chấm hiện khi hover (hiện sẵn trên cảm ứng); liên kết `specs/015-comment-hover/`.
-- [ ] T017 Chụp thẻ lúc hover ở bốn giao diện trang (White, Sepia, Green, Dark) và ở 390 px giả lập cảm ứng; xác nhận nền đậm và nút nổi đọc được và tách khỏi nền; sửa `reader.css` nếu cần; ghi kết quả vào `quickstart.md`.
-- [ ] T018 Chạy quickstart 1–14 ở demo và server (GitHub giả); static (`build:pages`) và local chỉ ghi rõ có chạy hay chỉ build; chạy đủ bốn cổng: `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages`; kiểm không còn mã chết (`.sk-cm-add`, bộ chọn cũ trong `ReactionBar`, tên sự kiện cũ) bằng `tsc` và grep.
-- [ ] T019 So ảnh demo với ảnh T001 ở 1440×900 và 924×540 (màn hình chính, hộp thoại New spec): giống hệt; liệt kê trong PR phần chênh (hiệu ứng trên thẻ đang mở, nút tròn).
-- [ ] T020 Mô tả PR: nêu `specs/015-comment-hover`, `Closes #<issue theo dõi "Spec 015: …">` (tạo issue nhãn `speckit` nếu chưa có), chế độ bị ảnh hưởng (cả bốn), không đổi dữ liệu hay cách lưu, ba chấm đổi sang hiện khi hover (thay 014), constitution 1.4.2 (ngoại lệ nút tròn). Không tạo PR trước khi người dùng yêu cầu.
+- [X] T016 [P] Cập nhật `README.md` mục Highlights: hover làm đậm hàng, nút emoji nổi, ba chấm hiện khi hover (hiện sẵn trên cảm ứng); liên kết `specs/015-comment-hover/`.
+- [X] T017 Chụp thẻ lúc hover ở bốn giao diện trang (White, Sepia, Green, Dark) và ở 390 px giả lập cảm ứng; xác nhận nền đậm và nút nổi đọc được và tách khỏi nền; sửa `reader.css` nếu cần; ghi kết quả vào `quickstart.md`.
+- [X] T018 Chạy quickstart 1–14 ở demo và server (GitHub giả); static (`build:pages`) và local chỉ ghi rõ có chạy hay chỉ build; chạy đủ bốn cổng: `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages`; kiểm không còn mã chết (`.sk-cm-add`, bộ chọn cũ trong `ReactionBar`, tên sự kiện cũ) bằng `tsc` và grep.
+- [X] T019 So ảnh demo với ảnh T001 ở 1440×900 và 924×540 (màn hình chính, hộp thoại New spec): giống hệt; liệt kê trong PR phần chênh (hiệu ứng trên thẻ đang mở, nút tròn).
+- [X] T020 Mô tả PR: nêu `specs/015-comment-hover`, `Closes #<issue theo dõi "Spec 015: …">` (tạo issue nhãn `speckit` nếu chưa có), chế độ bị ảnh hưởng (cả bốn), không đổi dữ liệu hay cách lưu, ba chấm đổi sang hiện khi hover (thay 014), constitution 1.4.2 (ngoại lệ nút tròn). Không tạo PR trước khi người dùng yêu cầu.
 
 ## Dependencies & Execution Order
 
