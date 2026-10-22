@@ -96,7 +96,7 @@ export function Thread({ h, me, person, now, save = {}, readOnly, draft, invalid
         const mine = sameAuthor(me, r.author);
         const name = nameOf(r.author);
         const state = save[r.id];
-        return <li key={r.id} className="sk-cm-reply">
+        return <li key={r.id} className="sk-cm-reply sk-cm-item">
           <div className="sk-cm-who"><Avatar name={name} /><b>{name}</b><span className="sk-cm-time">{relTime(r.createdAt, now)}</span>{r.editedAt && <span className="sk-cm-edited">edited</span>}
             {mine && editing?.replyId !== r.id && <MoreMenu label={`More actions for the reply by ${name}`} items={[
               { key: 'edit', label: 'Edit', disabledReason: readOnly, onSelect: () => onEdit(r.id) },
@@ -111,7 +111,7 @@ export function Thread({ h, me, person, now, save = {}, readOnly, draft, invalid
                 <button type="button" className="btn btn-primary" disabled={editing.busy} onClick={editing.onSubmit}>Save</button>
               </div>
             </div>
-            : <p className="sk-cm-text">{r.text}</p>}
+            : <div className="sk-cm-row"><p className="sk-cm-text">{r.text}</p></div>}
           <ReactionBar list={r.reactions} me={me} person={person} readOnly={readOnly} what={`the reply by ${name}`} onToggle={(emoji, on) => onReact(r.id, emoji, on)} />
           {mine && deleting === r.id && <div className="sk-cm-acts"><span>Delete this reply?</span>
             <button type="button" className="btn btn-secondary" onClick={() => setDeleting(null)}>Keep</button>

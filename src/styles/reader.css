@@ -254,3 +254,11 @@
 .sk-cm-menuitem:hover, .sk-cm-menuitem:focus { background: color-mix(in srgb, var(--color-text) 8%, transparent); }
 .sk-cm-menuitem[aria-disabled="true"] { opacity: .5; cursor: default; }
 @media (pointer: coarse) { .sk-cm-more { width: 44px; height: 44px; } .sk-cm-menuitem { min-height: 44px; display: flex; align-items: center; } }
+
+/* Hover on a comment or a reply (specs/015-comment-hover): the row of the item under the pointer, or with the focus in it,
+   is darker. The row always keeps room on the right for the tools, so nothing moves when they appear. */
+.sk-cm-row { position: relative; margin: 6px 0 0; }
+.sk-cm-row > .sk-cm-note, .sk-cm-row > .sk-cm-text { margin: 0; }
+.sk-cm-card.on .sk-cm-row, .sk-cm-reply .sk-cm-row { margin: 6px -8px 0; padding: 2px 40px 2px 8px; }
+.sk-cm-card.on .sk-cm-item:hover .sk-cm-row, .sk-cm-card.on .sk-cm-item:focus-within .sk-cm-row { background: color-mix(in srgb, var(--color-text) 8%, transparent); }
+@media (prefers-reduced-motion: no-preference) { .sk-cm-row { transition: background-color .12s ease-out; } }

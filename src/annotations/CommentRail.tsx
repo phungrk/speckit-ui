@@ -90,6 +90,8 @@ export interface CardProps {
   onMeasure?: (id: string, height: number) => void;
   /** The discussion under the comment (specs/011): shown when the card is open. */
   thread?: ReactNode;
+  /** Floating tool on the comment's own content row, as the emoji button (specs/015): shown when the card is open. */
+  rowTool?: ReactNode;
 }
 
 /** Sending, Saved or Failed with Retry: under a comment, and under each reply (specs/011 R8). */
@@ -106,7 +108,7 @@ function SaveLine({ card, onRetry }: { card: CommentCard; onRetry?: (id: string)
   return <SaveNote save={card.save} onRetry={onRetry ? () => onRetry(card.id) : undefined} />;
 }
 
-export function Card({ card, top, selected, person, now, onSelect, onRetry, actions, editing, onMeasure, thread }: CardProps) {
+export function Card({ card, top, selected, person, now, onSelect, onRetry, actions, editing, onMeasure, thread, rowTool }: CardProps) {
   const h = card.highlight;
   const name = person ? person(h.author).name : authorLabel(h.author);
   const ref = useRef<HTMLElement>(null);
@@ -134,6 +136,8 @@ export function Card({ card, top, selected, person, now, onSelect, onRetry, acti
     aria-label={`Comment by ${name} on “${quote40(h.quote)}”`} aria-current={selected ? 'true' : undefined}
     tabIndex={selected ? 0 : -1} style={style} onClick={() => onSelect(card.id)}
     onKeyDown={e => { if (e.key === 'Enter' && e.target === e.currentTarget) onSelect(card.id); }}>
+    {/* The comment is one item: hovering it (or the focus inside it) shows its row and its tools (specs/015). */}
+    <div className="sk-cm-item">
     <div className="sk-cm-who"><Avatar name={name} /><b>{name}</b><span className="sk-cm-time">{relTime(h.createdAt, now)}</span>
       {selected && card.mine && actions && <MoreMenu items={[
         { key: 'edit', label: 'Edit', disabledReason: actions.readOnly, onSelect: () => actions.onEdit(card.id) },
@@ -142,7 +146,8 @@ export function Card({ card, top, selected, person, now, onSelect, onRetry, acti
         replyCount(h) > 0 ? `${replyCount(h)} ${replyCount(h) === 1 ? 'reply' : 'replies'}` : '',
         ...groupReactions(h.reactions, null).map(g => `${g.emoji}${g.count}`)].filter(Boolean).join(' · ')}</span>}</div>
     <q className="sk-cm-quote">{h.quote}</q>
-    <p className="sk-cm-note">{h.note}</p>
+    <div className="sk-cm-row"><p className="sk-cm-note">{h.note}</p>{selected && rowTool}</div>
+    </div>
     {selected && actions && <>
       {card.mine && <>
         {confirming && <div className="sk-cm-acts"><span>{replyCount(h) > 0 ? `Delete this comment and its ${replyCount(h)} ${replyCount(h) === 1 ? 'reply' : 'replies'}?` : 'Delete this comment?'}</span>
@@ -184,6 +189,8 @@ export interface CommentRailProps {
   editing?: CardEditing;
   /** The discussion of a card, drawn when it is open (specs/011). */
   threadFor?: (card: CommentCard) => ReactNode;
+  /** The tool on the comment's own row (the emoji button), for the open card (specs/015). */
+  rowToolFor?: (card: CommentCard) => ReactNode;
   /** Comments being written, each beside its text; the one being written keeps its place and the cards make way. */
   drafts?: RailDraft[];
   activeDraftId?: string | null;
@@ -193,7 +200,7 @@ export interface CommentRailProps {
   fresh?: FreshProps;
 }
 
-export function CommentRail({ cards, selectedId, onSelect, branch, left, viewport, docRef, person, now, onRetry, actions, editing, threadFor, drafts = [], activeDraftId = null, draftsElsewhere = 0, fresh }: CommentRailProps) {
+export function CommentRail({ cards, selectedId, onSelect, branch, left, viewport, docRef, person, now, onRetry, actions, editing, threadFor, rowToolFor, drafts = [], activeDraftId = null, draftsElsewhere = 0, fresh }: CommentRailProps) {
   const head = fresh ? RAIL_HEAD_FRESH : RAIL_HEAD;
   const asideRef = useRef<HTMLElement>(null);
   const byKey = useRef(false);
@@ -243,10 +250,10 @@ export function CommentRail({ cards, selectedId, onSelect, branch, left, viewpor
       {fresh && <FreshBar {...fresh} />}</header>
     <div className="sk-cm-live" role="status" aria-live="polite">{at >= 0 ? `Comment ${at + 1} of ${ids.length} selected` : ''}</div>
     {drafts.map(d => <Fragment key={d.id}>{d.render(tops[draftId(d)])}</Fragment>)}
-    {cards.cards.filter(near).map(c => <Card key={c.id} card={c} top={tops[c.id]} selected={c.id === selectedId} onSelect={pick} thread={c.id === selectedId ? threadFor?.(c) : undefined} {...shared} />)}
+    {cards.cards.filter(near).map(c => <Card key={c.id} card={c} top={tops[c.id]} selected={c.id === selectedId} onSelect={pick} thread={c.id === selectedId ? threadFor?.(c) : undefined} rowTool={c.id === selectedId ? rowToolFor?.(c) : undefined} {...shared} />)}
     {cards.outdated.length > 0 && <section className="sk-cm-out" style={{ top: lastBottom + GAP * 2 }}>
       <h3>Outdated, text changed</h3>
-      {cards.outdated.map(c => <Card key={c.id} card={c} selected={c.id === selectedId} onSelect={pick} thread={c.id === selectedId ? threadFor?.(c) : undefined} {...shared} />)}
+      {cards.outdated.map(c => <Card key={c.id} card={c} selected={c.id === selectedId} onSelect={pick} thread={c.id === selectedId ? threadFor?.(c) : undefined} rowTool={c.id === selectedId ? rowToolFor?.(c) : undefined} {...shared} />)}
     </section>}
   </aside>;
 }

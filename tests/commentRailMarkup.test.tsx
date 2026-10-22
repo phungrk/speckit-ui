@@ -261,3 +261,22 @@ describe('save states on the card (FR-013)', () => {
     expect(state({ state: 'idle' })).not.toContain('sk-cm-state');
   });
 });
+
+describe('the comment as an item with a row (specs/015 FR-001)', () => {
+  const items = [H('h1'), H('h2', { note: 'Second', author: { login: 'lan' } })];
+  const open = (id: string | null, over: Partial<Parameters<typeof CommentRail>[0]> = {}) => rail(items, { h1: 100, h2: 400 }, { selectedId: id, ...over });
+
+  it('puts the header, the quote and the text of the comment in one item, the text in a row', () => {
+    const html = open('h1');
+    expect(html).toMatch(/<div class="sk-cm-item"><div class="sk-cm-who">/);
+    expect(html).toContain('<div class="sk-cm-row"><p class="sk-cm-note">Why daily?</p></div></div>');
+  });
+
+  it('puts the tool on the row of the open card only', () => {
+    const tool = (c: { id: string }) => <i className="tool">{c.id}</i>;
+    const html = open('h1', { rowToolFor: tool });
+    expect([...html.matchAll(/class="tool"/g)]).toHaveLength(1);
+    expect(html).toContain('<div class="sk-cm-row"><p class="sk-cm-note">Why daily?</p><i class="tool">h1</i></div>');
+    expect(open(null, { rowToolFor: tool })).not.toContain('class="tool"');
+  });
+});

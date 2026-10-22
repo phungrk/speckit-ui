@@ -168,6 +168,20 @@ describe('emoji (FR-006, FR-007)', () => {
   });
 });
 
+describe('the item and its row (specs/015 FR-001, FR-013)', () => {
+  it('makes each reply an item with one row that holds its text', () => {
+    const html = thread({ h: H({ replies: [R('r_1'), R('r_2', { author: mai, text: 'Mine' })] }) });
+    expect([...html.matchAll(/<li class="sk-cm-reply sk-cm-item">/g)]).toHaveLength(2);
+    expect([...html.matchAll(/<div class="sk-cm-row"><p class="sk-cm-text">/g)]).toHaveLength(2);
+  });
+
+  it('has no row, so no hover and no tool, on a reply that is being edited', () => {
+    const html = thread({ h: H({ replies: [R('r_1', { author: mai })] }), editing: { replyId: 'r_1', text: 'x', onText: noop, onSubmit: noop, onCancel: noop } });
+    expect(html).not.toContain('sk-cm-row');
+    expect(html).toContain('aria-label="Edit reply"');
+  });
+});
+
 describe('the card, closed and open (FR-004, FR-011)', () => {
   const rail = (items: Highlight[], selectedId: string | null, over: Partial<Parameters<typeof CommentRail>[0]> = {}) =>
     renderToStaticMarkup(<CommentRail cards={toCards(items, Object.fromEntries(items.map((h, i) => [h.id, 100 + i * 300])), {}, mai)} selectedId={selectedId} onSelect={noop} branch={null} now={NOW} {...over} />);
