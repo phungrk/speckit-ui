@@ -16,3 +16,10 @@ Chuẩn bị: `npm run dev` với GitHub giả (`FAKE_STATE`, như 011–017) ch
 12. **Local và demo.** Mỗi thao tác ghi ngay như trước, không thanh chưa lưu; ảnh demo giống hệt; test local qua. (US4, SC-005)
 13. **Màn hình hẹp 390 px.** Thanh Save hiện, không cuộn ngang; Save, Discard dùng được; bộ nhớ chặn (chế độ riêng tư): thanh nói thay đổi sẽ mất khi đóng tab.
 14. **Cổng.** `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages`.
+
+## Kết quả kiểm (Playwright, GitHub giả, server, 2026-10-23)
+
+- **1 (tức thì):** viết một nhận xét hiện sau 89 ms, thả emoji sau 73 ms; thẻ và trả lời ghi "Not saved"; 0 yêu cầu POST tới `/api/highlights`, 0 commit, không hộp xác nhận, không trạng thái "Sending".
+- **2 (tải lại):** sau khi tải lại, nhận xét vẫn còn và vẫn "Not saved"; hàng đợi nằm ở một khoá `sk.pending.v1.mai.o/r@main.003-transfer-limits` trong bộ nhớ trình duyệt.
+- **9 (gộp):** viết một nhận xét rồi xoá nó từ thẻ đóng (ba chấm, Delete) trước khi Save: hàng đợi rỗng, khoá bị gỡ, 0 commit; thả emoji rồi gỡ: hàng đợi rỗng.
+- **11 (hai tài khoản):** khoá có tên tài khoản; `tests/pendingStorage.test.ts` kiểm hàng đợi của tài khoản khác không được thấy (chưa thử bằng hai phiên đăng nhập).
