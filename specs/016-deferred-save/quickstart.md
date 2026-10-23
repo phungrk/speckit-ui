@@ -23,3 +23,8 @@ Chuẩn bị: `npm run dev` với GitHub giả (`FAKE_STATE`, như 011–017) ch
 - **2 (tải lại):** sau khi tải lại, nhận xét vẫn còn và vẫn "Not saved"; hàng đợi nằm ở một khoá `sk.pending.v1.mai.o/r@main.003-transfer-limits` trong bộ nhớ trình duyệt.
 - **9 (gộp):** viết một nhận xét rồi xoá nó từ thẻ đóng (ba chấm, Delete) trước khi Save: hàng đợi rỗng, khoá bị gỡ, 0 commit; thả emoji rồi gỡ: hàng đợi rỗng.
 - **11 (hai tài khoản):** khoá có tên tài khoản; `tests/pendingStorage.test.ts` kiểm hàng đợi của tài khoản khác không được thấy (chưa thử bằng hai phiên đăng nhập).
+- **3 (Save một lần):** hai nhận xét, ba emoji và một trả lời: thanh "6 changes not saved" hiện ở đầu khung đọc và ở đầu tab Highlights; Save lần đầu hiện "Commit highlights?" (0 commit trước khi chấp nhận); sau đó đúng một commit `mai saved 6 comment changes on 003-transfer-limits [skip ci]`, thanh và "Not saved" mất, file có đủ.
+- **4 (lỗi giữ nguyên):** Save lỗi 500: thanh ở lại "1 change not saved · Retry · Discard · GitHub is down", 0 commit; Retry thành công: đúng một commit.
+- **5 (hợp nhất):** khi còn một nhận xét chờ, người khác ghi một nhận xét vào kho giả; Save: một commit, file có cả hai.
+- **6 (mục bị xoá):** người khác xoá nhận xét mình vừa thả emoji (chưa lưu): Save lưu phần còn lại, thông báo "Saved · commit c4abcde · 1 change skipped (the comment was removed)".
+- **10 (chỉ đọc):** hàng đợi còn từ trước, `push:false`: thanh hiện "1 change not saved", Save `aria-disabled` kèm lý do của 012.
