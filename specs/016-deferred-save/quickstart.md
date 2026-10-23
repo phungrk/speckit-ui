@@ -34,3 +34,14 @@ Chuẩn bị: `npm run dev` với GitHub giả (`FAKE_STATE`, như 011–017) ch
 - **13 (bộ nhớ chặn):** `setItem` ném lỗi: thanh vẫn dùng được và thêm dòng "These changes are only in this tab and are lost if you close it."; đổi repo (Overview) hỏi "The changes not saved are only in this tab and will be lost. Leave this repository?".
 - **12 (local và demo):** ảnh demo (chính, New spec, popup; 1440×900, 924×540, 390) giống từng byte với ảnh trước (ảnh 924 chập chờn giữa các lần chạy, lần so sánh cuối giống hệt); `tests/storeKinds.test.ts` kiểm `LocalWorkspace` và các cửa hàng local, demo không biết hàng đợi; `LocalWorkspace.tsx` không đổi so với `main`; test local (`localMode`, `localPrivacy`, `localProject`, `localRepositoryPersistence`) qua. Chưa thử ghi thư mục thật bằng trình duyệt (cần File System Access).
 - **13 (390 px, bốn giao diện):** bốn giao diện: thanh dùng token (nền thẻ, chữ của giao diện, nút Save là `btn-primary` như các nút khác); ở 390 px thanh hiện, Save 71×44 px, không cuộn ngang.
+- **14 (cổng):** `npm test` 599 qua (41 file), `npm run typecheck`, `npm run build`, `npm run build:pages` qua. Pages (bản tĩnh) chỉ build, chưa chạy tay trong trình duyệt: hàm ghi `saveHighlights` mà Pages gọi trực tiếp được kiểm bằng `tests/saveHighlights.test.ts` (cùng hàm với server). Mã còn lại để tương thích, không còn dùng trong ứng dụng: `Backend.saveHighlight` và `gitHubStore.save` (đường một thay đổi, dùng ở test và có thể dùng lại), nhánh hỏi xác nhận từng thao tác của `Annotator` cho cửa hàng GitHub không hoãn.
+
+## Mô tả PR (nháp, T023; chưa tạo PR)
+
+- **Spec**: `specs/016-deferred-save/`; `Closes #<issue "Spec 016: …">` (tạo khi người dùng yêu cầu PR, nhãn `speckit`).
+- **Đổi**: ở GitHub Pages và server (VPS), thao tác nhận xét hiện ngay và chờ trong trình duyệt ("Not saved"); nút Save ghi tất cả trong một commit `[skip ci]` (xác nhận lần đầu ở Save), Discard, nhắc khi đóng tab, thông báo thay đổi ở spec khác, hai tab đồng bộ; hàng đợi theo "Remember" (localStorage hoặc sessionStorage).
+- **API**: `/api/highlights` nhận thêm `changes` (1–200), đọc thân tới 512 KiB cho đường này; cùng đường ghi, không loại ghi mới; thân `change` cũ vẫn dùng được.
+- **Chế độ**: server và Pages đổi; local và demo không đổi (có test bảo vệ).
+- **Constitution 1.4.3** (nguyên tắc I: "mỗi lần lưu" là mỗi lần bấm Save; hàng đợi là nháp).
+- **Demo**: ảnh 1440×900 và 924×540 (chính, New spec), popup giống hệt trước.
+- **Kiểm**: 599 test; Playwright trên GitHub giả (server): xem quickstart. Pages bản tĩnh chỉ build.

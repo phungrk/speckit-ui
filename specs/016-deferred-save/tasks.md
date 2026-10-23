@@ -71,8 +71,8 @@
 
 - [X] T020 [P] Cập nhật `README.md` mục Highlights: ở GitHub Pages và server, nhận xét được giữ trong trình duyệt ("Not saved") cho tới khi bấm Save (một commit), có Discard, nhắc khi đóng tab; local và demo lưu ngay; liên kết `specs/016-deferred-save/`.
 - [X] T021 Chụp màn hình 390 px giả lập và bốn giao diện trang (White, Sepia, Green, Dark) cho `SaveBar` và dấu "Not saved"; xác nhận đọc được, không cuộn ngang, nút ≥ 44 px trên cảm ứng; sửa `reader.css` nếu cần; ghi kết quả vào `quickstart.md`.
-- [ ] T022 Chạy quickstart 1–14 ở server (GitHub giả) và demo; Pages: `build:pages` và, nếu chạy được bản tĩnh với GitHub giả, kiểm tay; local chỉ ghi rõ có chạy hay chỉ test; chạy đủ bốn cổng: `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages`; kiểm không còn mã chết (hộp xác nhận từng thao tác trong đường github thường, `saveHighlight` không ai gọi) bằng `tsc` và grep.
-- [ ] T023 Mô tả PR (nháp, chưa tạo PR): nêu `specs/016-deferred-save`, `Closes #<issue "Spec 016: …">` (tạo issue nhãn `speckit` khi người dùng yêu cầu PR), chế độ bị ảnh hưởng (Pages và server đổi; local và demo không), API `changes` mới ở `/api/highlights` (cùng đường ghi, không loại ghi mới), constitution 1.4.3, ảnh demo giống hệt trước. Không tạo PR trước khi người dùng yêu cầu.
+- [X] T022 Chạy quickstart 1–14 ở server (GitHub giả) và demo; Pages: `build:pages` và, nếu chạy được bản tĩnh với GitHub giả, kiểm tay; local chỉ ghi rõ có chạy hay chỉ test; chạy đủ bốn cổng: `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages`; kiểm không còn mã chết (hộp xác nhận từng thao tác trong đường github thường, `saveHighlight` không ai gọi) bằng `tsc` và grep.
+- [X] T023 Mô tả PR (nháp, chưa tạo PR): nêu `specs/016-deferred-save`, `Closes #<issue "Spec 016: …">` (tạo issue nhãn `speckit` khi người dùng yêu cầu PR), chế độ bị ảnh hưởng (Pages và server đổi; local và demo không), API `changes` mới ở `/api/highlights` (cùng đường ghi, không loại ghi mới), constitution 1.4.3, ảnh demo giống hệt trước. Không tạo PR trước khi người dùng yêu cầu.
 
 ## Dependencies & Execution Order
 
