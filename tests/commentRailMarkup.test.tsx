@@ -281,3 +281,40 @@ describe('the comment as an item with a row (specs/015 FR-001)', () => {
     expect(open(null, { rowToolFor: tool })).not.toContain(':true</i>');
   });
 });
+
+describe('the row of emoji under the text, on every card (specs/017 FR-001, FR-002, FR-004)', () => {
+  const lan = { login: 'lan' };
+  const items = [H('h1', { reactions: [{ emoji: '👍', author: lan }] }), H('h2', { note: 'Other' })];
+  const at = { h1: 100, h2: 700 };
+  const chips = (c: { id: string }, isOpen: boolean) => c.id === 'h1' ? <i className="chips">{String(isOpen)}</i> : null;
+  const html = (sel: string | null) => rail(items, at, { selectedId: sel, chipsFor: chips });
+
+  it('puts the row right after the text, inside the item, on a closed card and on the open one', () => {
+    for (const sel of [null, 'h1']) {
+      expect(html(sel)).toContain(`<p class="sk-cm-note">Why daily?</p></div><div class="sk-cm-chips"><i class="chips">${sel === 'h1'}</i></div></div>`);
+    }
+  });
+
+  it('draws no row, and no empty box, for a comment nobody reacted to', () => {
+    expect([...html(null).matchAll(/class="sk-cm-chips"/g)]).toHaveLength(1);
+  });
+
+  it('keeps a plain closed card at the fixed height and lets one with emoji grow', () => {
+    const out = html(null);
+    expect(out).toMatch(/aria-label="Comment by mai on [^>]*style="top:\d+px;height:124px"[^>]*>(?:(?!<article).)*Other/);
+    const first = out.slice(out.indexOf('<article'), out.indexOf('<article', 10));
+    expect(first).not.toContain('height:');
+  });
+
+  it('keeps the click and the keys of the row from reaching the card (the rail would select or move)', () => {
+    // The wrapper is where they stop; a static render can only show that it is there, the browser check shows it works.
+    expect(html(null)).toContain('class="sk-cm-chips"');
+  });
+
+  it('shows the replies only in the header of a closed card, never the emoji', () => {
+    const withBoth = [H('h1', { reactions: [{ emoji: '👍', author: lan }], replies: [{ id: 'r', author: lan, createdAt: '2026-10-22T09:00:00.000Z', text: 'x' }] })];
+    const out = rail(withBoth, { h1: 100 }, { chipsFor: chips });
+    expect(out).toContain('class="sk-cm-count">1 reply<');
+    expect(out).not.toMatch(/sk-cm-count[^>]*>[^<]*👍/);
+  });
+});

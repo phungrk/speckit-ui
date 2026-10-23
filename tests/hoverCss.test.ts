@@ -101,3 +101,13 @@ describe('three dots reveal (specs/015, US3)', () => {
     expect(dots).toMatch(/@media \(hover: none\), \(pointer: coarse\) \{\s*\.sk-cm-more \{ opacity: 1; \}/);
   });
 });
+
+describe('emoji under the text (specs/017)', () => {
+  const m17 = css.slice(css.indexOf('Emoji under the text of the comment'));
+
+  it('is appended after the 015 blocks, with no corner and no fixed colour', () => {
+    expect(css.indexOf('Emoji under the text of the comment')).toBeGreaterThan(css.indexOf('Three dots show only'));
+    expect(m17).not.toContain('border-radius');
+    expect(m17).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(/);
+  });
+});

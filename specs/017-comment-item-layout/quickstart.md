@@ -15,3 +15,8 @@ Chuẩn bị: `npm run dev` (demo `http://localhost:5173/?demo`, vai QA); server
 11. **Demo.** Ảnh chính, New spec, popup (1440×900, 924×540, 390): giống trước, trừ tiêu đề thẻ đóng của mình (giờ dịch trái) và thẻ có emoji; ghi vào PR.
 12. **Dữ liệu và lưu.** `npm test` qua các test của 011/014/015; thả/gỡ emoji một commit `[skip ci]`, không nhân đôi. (SC-007)
 13. **Cổng.** `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages`.
+
+## Kết quả kiểm (Playwright, GitHub giả, 2026-10-23)
+
+- **1–3 (emoji dưới nội dung):** thả 👍 qua nút nổi lên thẻ đóng: hàng "👍 1" nằm ngay dưới nội dung, trong thẻ; tiêu đề chỉ có "1 reply". Bấm viên của mình gỡ được mà không mở thẻ. Thẻ mở: một hàng emoji, nằm trước thread, thread không còn hàng gốc.
+- **4 (không chồng thẻ):** thẻ có emoji cao 134 px, các thẻ dưới dịch xuống (593, 725, 857 sau 582, 714, 846 lúc chưa có emoji), khoảng cách giữ 8 px; gỡ emoji thì về 124 px.
