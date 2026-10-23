@@ -56,7 +56,7 @@ Rê chuột (hoặc đưa tiêu điểm) vào một mục của chính mình, �
 
 1. **Given** thẻ đóng chứa nhận xét của mình, **When** rê chuột vào mục, **Then** ba chấm và nút emoji cùng hiện; rời chuột thì cùng mất (trừ khi menu hoặc bộ emoji đang mở).
 2. **Given** thẻ đóng của người khác, **When** hover, **Then** chỉ có nút emoji, không có ba chấm (như 014).
-3. **Given** ba chấm trên thẻ đóng, **When** chọn Edit, **Then** thẻ mở và vào soạn tại chỗ như khi sửa ở thẻ đang mở.
+3. **Given** ba chấm trên thẻ đóng, **When** chọn Edit, **Then** vào soạn tại chỗ như khi sửa ở thẻ đang mở.
 4. **Given** ba chấm trên thẻ đóng, **When** chọn Delete, **Then** thẻ mở và hiện câu hỏi xác nhận như ở thẻ mở; Keep giữ nguyên, Delete xoá và nhận xét biến mất.
 5. **Given** bàn phím, **When** tiêu điểm vào thẻ hoặc vào nút trong mục (cả thẻ đóng), **Then** ba chấm và nút emoji hiện như khi hover; các nút này vào được bằng Tab theo thứ tự hợp lý.
 6. **Given** màn hình cảm ứng, **When** nhìn thẻ đóng, **Then** nút ba chấm (của mình) và nút emoji hiện sẵn và đạt vùng chạm 44 px, bấm vào chúng không bị tính là bấm chọn thẻ.
@@ -84,11 +84,11 @@ Rê chuột (hoặc đưa tiêu điểm) vào một mục của chính mình, �
 - **FR-003**: Viên emoji ở thẻ đóng MUST thả hoặc gỡ được theo đúng quy tắc, nhãn truy cập và cách lưu của 011 mà không làm mở thẻ.
 - **FR-004**: Khi emoji thay đổi, chiều cao thẻ đóng và vị trí các thẻ trong rail MUST được cập nhật ngay, không chồng lên nhau và không để khoảng trống lớn.
 - **FR-005**: Khi hover hoặc có tiêu điểm vào một mục do chính người dùng viết, ở thẻ đóng cũng như thẻ mở, nút ba chấm MUST hiện cùng nút emoji; mục của người khác MUST chỉ có nút emoji.
-- **FR-006**: Trên thẻ đóng, chọn Edit MUST mở thẻ và vào soạn tại chỗ; chọn Delete MUST mở thẻ và hiện câu hỏi xác nhận như ở thẻ mở (Keep, Delete); không thao tác nào ghi gì trước khi người dùng xác nhận.
+- **FR-006**: Trên thẻ đóng, chọn Edit MUST vào soạn tại chỗ như ở thẻ mở; chọn Delete MUST mở thẻ và hiện câu hỏi xác nhận như ở thẻ mở (Keep, Delete); không thao tác nào ghi gì trước khi người dùng xác nhận.
 - **FR-007**: Nút ba chấm và nút emoji trên thẻ đóng MUST không làm đổi thẻ đang chọn khi chỉ mở menu hoặc bộ emoji, ngoại trừ việc Edit hoặc Delete (FR-006) mở thẻ đó.
 - **FR-008**: Nút ba chấm MUST nằm ở ngoài cùng bên phải của tiêu đề mục, sau giờ, ở thẻ đóng cũng như thẻ mở, cùng một vị trí. Thẻ đóng của mình MUST chừa sẵn chỗ cho nút cả lúc nghỉ (giờ và số trả lời dịch sang trái cho vừa), để khi hover không có gì dịch chuyển; thẻ đóng của người khác MUST giữ tiêu đề như hiện nay.
 - **FR-009**: Trên thiết bị không có hover, nút ba chấm (mục của mình) và nút emoji MUST hiện sẵn ở thẻ đóng và thẻ mở, vùng chạm tối thiểu 44 px; bấm chúng MUST NOT bị tính là chọn thẻ.
-- **FR-010**: Các nút ẩn lúc nghỉ MUST vẫn truy cập được bằng bàn phím và trình đọc màn hình (có tên); thẻ đóng MUST giữ thứ tự Tab ngắn: các nút của mục vào được sau khi thẻ có tiêu điểm hoặc được mở.
+- **FR-010**: Các nút ẩn lúc nghỉ MUST vẫn truy cập được bằng bàn phím và trình đọc màn hình (có tên); thẻ đóng MUST giữ thứ tự Tab ngắn: người dùng bàn phím chọn thẻ bằng mũi tên và mở bằng Enter, rồi các nút của mục vào được bằng Tab (nút của thẻ đóng không nằm trong thứ tự Tab).
 - **FR-011**: Quyền và điều kiện ghi MUST giữ như 012, 014, 015 (chỉ đọc, nhánh bảo vệ, ghim commit: nút tắt kèm lý do).
 - **FR-012**: Chỉ dùng token Modernist, không màu cứng; nút emoji vẫn là phần tử tròn duy nhất (constitution 1.4.2); viên emoji, ba chấm, menu giữ hình vuông.
 - **FR-013**: Không đổi dữ liệu, `highlights.json`, cách lưu hay quyền; áp dụng cả bốn chế độ (constitution III). Ảnh demo ở trạng thái nghỉ MUST giữ nguyên so với trước spec này, trừ tiêu đề thẻ đóng của mình (giờ dịch trái vì chỗ chừa cho ba chấm, Clarifications Q1) và hàng emoji dưới nội dung; hai chỗ này được ghi là ngoại lệ trong PR.
