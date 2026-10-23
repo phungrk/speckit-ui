@@ -295,3 +295,15 @@
 
 /* A change waiting to be saved (specs/016-deferred-save). Tokens only, no corners. */
 .sk-cm-state[data-state="queued"] { color: color-mix(in srgb, var(--color-text) 65%, transparent); }
+
+/* The bar of changes waiting to be saved (specs/016-deferred-save). Tokens only, no corners. */
+.sk-savebar { box-sizing: border-box; padding: 8px 16px; background: var(--color-surface); border-bottom: 1px solid var(--color-divider); font-size: var(--fs-13); }
+.sk-savebar-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.sk-savebar-msg b { font-weight: 700; }
+.sk-savebar-else { color: color-mix(in srgb, var(--color-text) 65%, transparent); }
+.sk-savebar-acts { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; }
+.sk-savebar-err { margin-top: 6px; color: var(--color-accent-700); font-weight: 600; }
+.sk-savebar-warn { margin-top: 6px; color: color-mix(in srgb, var(--color-text) 65%, transparent); }
+.sk-savebar .btn[aria-disabled="true"] { opacity: .5; cursor: default; }
+@media (pointer: coarse) { .sk-savebar .btn { min-height: 44px; } }
+.sk-main.has-savebar { grid-template-rows: auto auto auto minmax(0, 1fr) auto; }

@@ -267,3 +267,9 @@ export function usePending(key: string | null, branch: string, slug: string, whe
     discard: () => { sending.current = new Set(); live.current = []; setQueue([]); if (key) { store.clear(key); setPersistent(true); } }
   };
 }
+
+/** The page's `beforeunload` handler while changes wait: the browser asks before the tab is closed or left (specs/016 FR-009). */
+export function warnBeforeUnload(e: { preventDefault(): void; returnValue?: unknown }): void {
+  e.preventDefault();
+  e.returnValue = '';
+}
