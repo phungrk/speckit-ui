@@ -21,12 +21,12 @@
 - **Alternatives**: Không gộp: xoá mục chưa từng lưu sẽ có thể lỗi ở server (mục không tồn tại), lịch sử nhiễu.
 
 ## R5. Nơi lưu hàng đợi: `localStorage`, key theo tài khoản, repo, nhánh, spec
-- **Decision**: key `sk.pending.v1.{login}.{repo}@{branch}.{slug}`, giá trị `{ v: 1, changes: PendingChange[] }`. Luôn `localStorage` (không theo "Remember" của token vì không phải bí mật; tab đóng không được mất bình luận). Mọi truy cập bọc `try/catch`; khi chặn hoặc đầy, hàng đợi giữ trong bộ nhớ tab và `SaveBar` nói sẽ mất nếu đóng tab. Giới hạn 500 thay đổi mỗi spec. Sự kiện `storage` đồng bộ hai tab. Giá trị sai khuôn dạng bị bỏ qua.
+- **Decision**: key `sk.pending.v1.{login}.{repo}@{branch}.{slug}`, giá trị `{ v: 1, changes: PendingChange[] }`. Theo lựa chọn "Remember" của ứng dụng (`storage` đã có ở `Root.tsx`): bật thì `localStorage`, tắt thì `sessionStorage` (qua được tải lại, không qua đóng tab; lời nhắc đóng tab bảo vệ). Nội dung là bình luận có thể từ repo riêng, nên không để lại trên thiết bị khi người dùng đã chọn không ghi nhớ (analyze B1). Mọi truy cập bọc `try/catch`; khi chặn hoặc đầy, hàng đợi giữ trong bộ nhớ tab và `SaveBar` nói sẽ mất nếu đóng tab. Giới hạn 500 thay đổi mỗi spec. Sự kiện `storage` đồng bộ hai tab. Giá trị sai khuôn dạng bị bỏ qua.
 - **Rationale**: FR-002, FR-010; đơn giản, đã có mẫu ở `prefs`.
-- **Alternatives**: `sessionStorage` (mất khi đóng tab); IndexedDB (nặng hơn cần thiết).
+- **Alternatives**: luôn `localStorage` (để lại bình luận riêng trên thiết bị dù đã chọn không ghi nhớ); IndexedDB (nặng hơn cần thiết). `listPending(login, repo, storage)` đếm thay đổi chưa lưu ở mọi spec và nhánh của repo, cho thông báo "N unsaved in other specs" và `beforeunload` (analyze C1).
 
 ## R6. Ghi một lần: mở rộng đường `/api/highlights`, không thêm đường mới
-- **Decision**: Thân POST nhận `changes: HighlightChange[]` (1 đến 200, mỗi phần tử qua `changeShapeOk`) bên cạnh `change` cũ; `saveHighlights` đọc file, áp lần lượt, một PUT Contents API. Thông điệp: một thay đổi thì như cũ; nhiều thì `{who} saved {N} comment changes on {spec} [skip ci]`. Giữ vòng thử lại 3 lần khi 409/422 (đọc lại, áp lại cả danh sách). Pages gọi cùng hàm trực tiếp (`backend.ts`).
+- **Decision**: Thân POST nhận `changes: HighlightChange[]` (1 đến 200, mỗi phần tử qua `changeShapeOk`) bên cạnh `change` cũ; `saveHighlights` đọc file, áp lần lượt, một PUT Contents API. Giới hạn thân của `/api/highlights` nâng từ 8.000 ký tự lên `MAX_BYTES` (512 KiB), các đường khác giữ 8.000 (analyze U1). Thông điệp: một thay đổi thì như cũ; nhiều thì `{who} saved {N} comment changes on {spec} [skip ci]`. Giữ vòng thử lại 3 lần khi 409/422 (đọc lại, áp lại cả danh sách). Pages gọi cùng hàm trực tiếp (`backend.ts`).
 - **Rationale**: Không loại ghi mới, chỉ gộp nhiều thay đổi vào một lần ghi; tác giả luôn là người server biết (không tin trang, như 010 FR-011).
 - **Alternatives**: Đường mới `/api/highlights/batch`: thêm bề mặt API; gọi tuần tự N lần: N commit.
 
@@ -44,3 +44,10 @@
 - **Decision**: Làm rõ nguyên tắc I: "mỗi lần lưu" là mỗi lần người dùng bấm Save, một commit có thể gồm nhiều thay đổi nhận xét; hàng đợi trong trình duyệt là nháp, không phải kho dữ liệu của dự án. Làm bằng `/speckit-constitution` trước khi viết mã ghi, cùng PR, ghi ở Constitution Check.
 - **Rationale**: Chữ hiện tại "mỗi lần lưu là một commit" dễ bị hiểu là mỗi thao tác.
 - **Alternatives**: Không sửa chữ: PR mâu thuẫn chữ của hiến pháp.
+
+## R10. Save không làm mất thay đổi làm trong lúc đang lưu
+- **Decision**: Trước khi gọi ghi, chụp danh sách đã gộp gửi đi (theo `id` và `at`). Thành công: bỏ khỏi hàng đợi đúng các mục đã gửi, giữ các mục mới hơn; thất bại: không bỏ gì. Nút Save tắt trong lúc đang lưu (analyze U2).
+- **Rationale**: Thao tác mới (trả lời, emoji) có thể diễn ra trong lúc Save chạy; xoá cả hàng đợi sẽ mất chúng.
+
+## R11. Giờ hiển thị trước khi lưu
+- **Decision**: `foldPending` truyền `at` của từng mục làm `now` cho `applyChange`, nên giờ hiển thị là lúc viết; server đặt giờ lúc Save (analyze U3).

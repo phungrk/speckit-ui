@@ -34,7 +34,7 @@ Spec này tách hai cách lưu theo chế độ: nơi lưu không qua commit gi�
 
 1. **Given** chế độ lưu qua commit và người dùng có quyền lưu, **When** viết nhận xét rồi bấm Comment, **Then** thẻ hiện ngay ở đúng chỗ cạnh đoạn chữ với dấu "Chưa lưu", không có trạng thái "Sending", và không có yêu cầu nào gửi tới GitHub.
 2. **Given** thẻ có thay đổi chưa lưu, **When** trả lời, thả/gỡ emoji, sửa hoặc xoá, **Then** mỗi thao tác hiện ngay và cộng vào danh sách thay đổi chưa lưu.
-3. **Given** có thay đổi chưa lưu, **When** tải lại trang hoặc đóng rồi mở lại cùng spec trên cùng trình duyệt và cùng tài khoản, **Then** các thay đổi vẫn còn, vẫn đánh dấu chưa lưu.
+3. **Given** có thay đổi chưa lưu, **When** tải lại trang, **Then** các thay đổi vẫn còn, vẫn đánh dấu chưa lưu; và khi người dùng đã chọn "Remember" (ghi nhớ trên thiết bị này), cả khi đóng rồi mở lại cùng spec trên cùng trình duyệt và cùng tài khoản. Không chọn "Remember" thì đóng tab là mất (có lời nhắc khi đóng, FR-009), giống cách khoá được xử lý.
 4. **Given** có thay đổi chưa lưu, **When** người khác lưu nhận xét mới lên GitHub và trang làm mới, **Then** nhận xét của người khác hiện cùng các thay đổi chưa lưu của mình, không bên nào mất.
 
 ---
@@ -106,14 +106,14 @@ Người dùng bỏ được các thay đổi chưa lưu của spec (có xác nh
 ### Functional Requirements
 
 - **FR-001**: Ở chế độ lưu qua commit (GitHub Pages và server/VPS, Clarifications Q1), mọi thao tác nhận xét (viết, trả lời, thả/gỡ emoji, sửa, xoá, đổi màu) MUST hiện ngay và MUST NOT gọi GitHub; thay đổi MUST được giữ trong trình duyệt và đánh dấu "Chưa lưu".
-- **FR-002**: Thay đổi chưa lưu MUST còn sau khi tải lại trang hoặc đóng rồi mở lại, trên cùng trình duyệt và cùng tài khoản, gắn với repo, spec và nhánh đã viết.
-- **FR-003**: Khi có thay đổi chưa lưu, giao diện MUST hiện số thay đổi và nút Save ở nơi nhìn thấy được trên rail và trong tab Highlights (cả màn hình hẹp).
+- **FR-002**: Thay đổi chưa lưu MUST còn sau khi tải lại trang; và khi người dùng đã chọn "Remember" thì cả sau khi đóng rồi mở lại, trên cùng trình duyệt và cùng tài khoản, gắn với repo, spec và nhánh đã viết. Không chọn "Remember" thì được giữ trong phiên của tab (như cách giữ khoá), không để lại gì trên thiết bị sau khi đóng tab.
+- **FR-003**: Khi có thay đổi chưa lưu, giao diện MUST hiện số thay đổi và nút Save ở nơi nhìn thấy được: phía trên khung đọc (kể cả khi rail ẩn ở màn hình hẹp) và ở đầu tab Highlights.
 - **FR-004**: Bấm Save MUST ghi mọi thay đổi chưa lưu của spec đang xem trong **một** commit `[skip ci]` lên nhánh đang xem; thành công thì các dấu "Chưa lưu" và thanh MUST biến mất.
 - **FR-005**: Lần lưu đầu tiên ở mỗi repo MUST hiện hộp xác nhận commit một lần (010); từ chối MUST giữ nguyên mọi thay đổi chưa lưu.
 - **FR-006**: Lưu thất bại MUST giữ nguyên mọi thay đổi chưa lưu, nêu lý do và cho thử lại; MUST NOT mất hay nhân đôi nội dung.
 - **FR-007**: Thay đổi chưa lưu MUST được áp lên dữ liệu mới nhất đọc từ GitHub khi làm mới và khi Save, theo cùng quy tắc hợp nhất của 011/012; nhận xét của người khác MUST NOT bị mất hay ghi đè.
 - **FR-008**: Người dùng MUST bỏ được toàn bộ thay đổi chưa lưu của spec sau một bước xác nhận; việc bỏ MUST NOT ghi gì lên GitHub.
-- **FR-009**: Rời trang hay đóng tab khi còn thay đổi chưa lưu MUST hiện lời nhắc của trình duyệt; không còn thay đổi thì MUST NOT nhắc.
+- **FR-009**: Rời trang hay đóng tab khi còn thay đổi chưa lưu, ở bất kỳ spec hoặc nhánh nào của repo đang mở, MUST hiện lời nhắc của trình duyệt; không còn thay đổi thì MUST NOT nhắc. Thay đổi chưa lưu ở spec khác MUST được báo ("N unsaved in other specs"), và khi không lưu được vào bộ nhớ trình duyệt, đổi repo MUST hỏi xác nhận vì sẽ mất.
 - **FR-010**: Thay đổi chưa lưu MUST NOT hiện với người khác và MUST NOT thuộc về tài khoản khác; khi đổi tài khoản MUST NOT áp thay đổi của tài khoản trước.
 - **FR-011**: Thay đổi chưa lưu nhắm vào mục không còn tồn tại hoặc không định vị được MUST được xử lý êm (bỏ qua hoặc nhóm Outdated), không gây lỗi và không chặn Save phần còn lại.
 - **FR-012**: Chế độ local và demo MUST giữ nguyên lưu tức thì: không thanh chưa lưu, không nút Save (constitution III: nêu rõ chế độ khác biệt).
@@ -146,6 +146,7 @@ Người dùng bỏ được các thay đổi chưa lưu của spec (có xác nh
 - **Thay đổi chưa lưu giữ trong trình duyệt** (bộ nhớ cục bộ của trang), tách theo tài khoản, repo, spec và nhánh; không đồng bộ giữa các thiết bị.
 - **Không lưu tự động theo thời gian**: chỉ lưu khi người dùng bấm Save (theo yêu cầu). Tự lưu nền không thuộc spec này.
 - **Nhãn tiếng Anh trong ứng dụng** ("Not saved", "Save", "Discard"), theo quyết định của 012; spec viết bằng tiếng Việt.
+- **Giờ của trả lời và `updatedAt`** do server đặt lúc Save (giống như tác giả); màn hình trước khi lưu hiển thị giờ đã viết, và giờ có thể nhảy sau Save.
 - **Hợp nhất** dùng lại hàm áp thay đổi đã dùng chung cho mọi chế độ; xung đột được xử lý như 011/012.
 
 ## Non-Goals
