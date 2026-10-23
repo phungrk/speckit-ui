@@ -7,7 +7,7 @@ import { handleCopilot } from './copilot.ts';
 import { GitHubError, detectSpeckit, getProject, getSpecVariant, identityFor, json, listRepos, type Source } from './github.ts';
 import { appConfig, destroySession, getSession, handleCallback, handleLogin, handleLogout, sessionToken } from './session.ts';
 import { GateRefused, decideGate, getTracking, type GateAction } from './tracking.ts';
-import { HighlightError, readHighlights, saveHighlight } from './highlights.ts';
+import { HighlightError, MAX_BYTES, readHighlights, saveHighlight, saveHighlights } from './highlights.ts';
 import type { HighlightChange } from '../src/project/types.ts';
 
 type Env = Record<string, string | undefined>;
@@ -174,6 +174,9 @@ async function handleGate(req: IncomingMessage, res: ServerResponse, access: Acc
 }
 
 /** Shape of the change a page sent (specs/011): types and string sizes only; who may do what is settled in `applyChange`. */
+/** Most changes one save may hold (specs/016 contracts/batch-save-api.md). */
+const MAX_BATCH = 200;
+
 function changeShapeOk(c: unknown): boolean {
   const o = c && typeof c === 'object' ? c as Record<string, unknown> : null;
   if (!o) return false;
@@ -190,14 +193,18 @@ function changeShapeOk(c: unknown): boolean {
 
 /** Commits one highlight change to the viewed spec's highlights.json (specs/010-spec-annotations). */
 async function handleHighlight(req: IncomingMessage, res: ServerResponse, access: Access, env: Env) {
-  const { repo, slug, branch, change } = await readJson(req);
+  // One change, or a queue of up to MAX_BATCH made before the user pressed Save (specs/016); the body may be as long as the file.
+  const { repo, slug, branch, change, changes } = await readJson(req, MAX_BYTES);
   const c = change as HighlightChange;
-  if (typeof slug !== 'string' || !/^\d{3,}-[^/]+$/.test(slug) || typeof branch !== 'string' || !branch || !changeShapeOk(c)) {
-    throw new HttpError(400, 'Expected { repo, slug, branch, change: { type: add | update | remove | reply | reply-edit | reply-remove | react, … } }.');
+  const batch = Array.isArray(changes) ? changes as HighlightChange[] : null;
+  if (typeof slug !== 'string' || !/^\d{3,}-[^/]+$/.test(slug) || typeof branch !== 'string' || !branch
+    || (batch ? batch.length < 1 || batch.length > MAX_BATCH || !batch.every(changeShapeOk) : !changeShapeOk(c))) {
+    throw new HttpError(400, `Expected { repo, slug, branch, change } or { repo, slug, branch, changes: 1 to ${MAX_BATCH} of { type: add | update | remove | reply | reply-edit | reply-remove | react, … } }.`);
   }
   const src = sourceFor(access, repo, undefined, env);
   // The author is who the server knows, never what the page sends (FR-011).
   const user = access.sessionId ? access.identity : (await tokenUser(access.token)).login;
+  if (batch) return send(res, 200, await saveHighlights(src, { slug, branch, changes: batch, user }));
   return send(res, 200, await saveHighlight(src, { slug, branch, change: c, user }));
 }
 

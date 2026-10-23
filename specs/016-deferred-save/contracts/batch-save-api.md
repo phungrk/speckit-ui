@@ -10,7 +10,7 @@
 
 - `changes`: 1 đến 200 phần tử, mỗi phần tử qua `changeShapeOk` như `change` hiện nay. Thân cũ `{ change }` vẫn dùng được.
 - Vẫn như 010: không tin tác giả từ trang; người ghi là người server biết (phiên đăng nhập hoặc chủ token); `slug` đúng mẫu `NNN-tên`; `branch` không rỗng.
-- Quá 200 phần tử: 400. Thân tối đa `MAX_BYTES` (512 KiB) cho đường này (các đường khác giữ 8.000 ký tự); quá thì 413.
+- Quá 200 phần tử: 400. Thân tối đa `MAX_BYTES` (512 KiB) cho đường này (các đường khác giữ 8.000 ký tự); quá thì 400 "Body too large".
 
 ## Xử lý
 
