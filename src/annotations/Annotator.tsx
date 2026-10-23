@@ -11,7 +11,7 @@ import type { HighlightActions } from './highlightActions';
 import { Card, CommentRail, CommentSheet, useDocViewport, useRailRoom, type CardActions, type CardEditing, type RailDraft } from './CommentRail';
 import { Composer } from './Composer';
 import { applyChange } from '../../server/highlightsFile';
-import { Thread } from './Thread';
+import { ReactionBar, Thread } from './Thread';
 import { EmojiButton } from './EmojiButton';
 import { draftKey, draftsElsewhere, draftsHere, pickOverlap, reducePending, toCards, type CommentCard, type CommentDraft, type SaveState } from './comments';
 
@@ -400,7 +400,9 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
     onReact={(replyId, emoji, on) => react(c.id, replyId, emoji, on)} announce={announce} />;
 
   // The emoji button on the comment's own row (specs/015); the replies carry theirs inside the thread.
-  const rowToolFor = (c: CommentCard) => <EmojiButton list={c.highlight.reactions} me={author} readOnly={store.readOnly} what="this comment" onToggle={(emoji, on) => react(c.id, undefined, emoji, on)} />;
+  // The row of emoji under the comment's text, on every card; none when nobody has reacted (specs/017).
+  const chipsFor = (c: CommentCard, open = true) => c.highlight.reactions?.length ? <ReactionBar list={c.highlight.reactions} me={author} person={person} readOnly={store.readOnly} what="this comment" tabbable={open} onToggle={(emoji, on) => react(c.id, undefined, emoji, on)} /> : null;
+  const rowToolFor = (c: CommentCard, open = true) => <EmojiButton tabbable={open} list={c.highlight.reactions} me={author} readOnly={store.readOnly} what="this comment" onToggle={(emoji, on) => react(c.id, undefined, emoji, on)} />;
 
   // A reply being written for a comment that was removed elsewhere is not kept silently (specs/011 U2).
   const knownIds = all.map(h => h.id).join(',');
@@ -429,10 +431,10 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
       {unsupported && items.length > 0 && <p className="sk-hlp-empty" role="note">This browser cannot draw highlights in the text; they are listed in the Highlights tab.</p>}
       <div className="sk-col" ref={colRef}>{children}</div>
       {showRail && <CommentRail cards={cards} selectedId={selectedId} onSelect={(id, o) => onSelect?.(id, o)} branch={target.branch} left={railLeft} viewport={viewport} docRef={docRef} person={person}
-        actions={actions} editing={cardEditing} threadFor={threadFor} rowToolFor={rowToolFor} onRetry={retry} fresh={fresh} drafts={railDrafts} activeDraftId={activeDraft} draftsElsewhere={draftsElsewhere(drafts, target)} />}
+        actions={actions} editing={cardEditing} threadFor={threadFor} rowToolFor={rowToolFor} chipsFor={chipsFor} onRetry={retry} fresh={fresh} drafts={railDrafts} activeDraftId={activeDraft} draftsElsewhere={draftsElsewhere(drafts, target)} />}
       {!showRail && (sheetDraft || selectedCard) && <CommentSheet label="Comment" onClose={() => { if (sheetDraft) cancelDraft(sheetDraft); else onSelect?.(null); }}>
         {sheetDraft ? composerFor(sheetDraft)
-          : <Card card={selectedCard!} selected person={person} onSelect={() => {}} actions={actions} editing={cardEditing} thread={threadFor(selectedCard!)} rowTool={rowToolFor(selectedCard!)} />}
+          : <Card card={selectedCard!} selected person={person} onSelect={() => {}} actions={actions} editing={cardEditing} thread={threadFor(selectedCard!)} rowTool={rowToolFor(selectedCard!)} chips={chipsFor(selectedCard!, true)} />}
       </CommentSheet>}
       {/* Where the rail is shown its cards take the place of the pins (spec FR-012). */}
       {!showRail && markers.map(m => <button type="button" key={m.id} className={'sk-hl-pin hl-' + m.color + '-solid'} style={{ top: m.top, left: m.left }}

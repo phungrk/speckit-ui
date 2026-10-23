@@ -51,20 +51,22 @@ export interface ReactionBarProps {
   me: HighlightAuthor | null;
   person?: (a: HighlightAuthor) => { name: string };
   readOnly: string | null;
-  /** What the "+" button says: the thing being reacted to. */
+  /** What the group is named for: the thing being reacted to. */
   what: string;
   onToggle: (emoji: string, on: boolean) => void;
+  /** False on a closed card, whose controls stay out of the tab order (specs/017 R5). */
+  tabbable?: boolean;
 }
 
 /** The emoji already put on one comment or reply: a button for each one in use (specs/011). Adding one is the floating button's job (specs/015). */
-export function ReactionBar({ list, me, person, readOnly, what, onToggle }: ReactionBarProps) {
+export function ReactionBar({ list, me, person, readOnly, what, onToggle, tabbable = true }: ReactionBarProps) {
   const name = person ? (a: HighlightAuthor) => person(a).name : authorLabel;
   const groups = groupReactions(list, me, name);
   const off = readOnly ? true : undefined;
   if (groups.length === 0) return null;
   return <div className="sk-cm-react" role="group" aria-label={`Reactions on ${what}`}>
     {groups.map(g => <button type="button" key={g.emoji} className={'sk-cm-emoji' + (g.mine ? ' mine' : '')} aria-pressed={g.mine} aria-disabled={off}
-      title={readOnly ?? reactionLabel(g)} aria-label={reactionLabel(g)} onClick={() => { if (!readOnly) onToggle(g.emoji, !g.mine); }}>{g.emoji}<b>{g.count}</b></button>)}
+      tabIndex={tabbable ? undefined : -1} title={readOnly ?? reactionLabel(g)} aria-label={reactionLabel(g)} onClick={() => { if (!readOnly) onToggle(g.emoji, !g.mine); }}>{g.emoji}<b>{g.count}</b></button>)}
   </div>;
 }
 
@@ -82,7 +84,6 @@ export function Thread({ h, me, person, now, save = {}, readOnly, draft, invalid
   const active = focused || draft.length > 0 || discarding;
   // Nothing in the thread is the card's own click: it must not select, or move the selection by arrow keys.
   return <div className="sk-cm-thr" onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
-    <ReactionBar list={h.reactions} me={me} person={person} readOnly={readOnly} what="this comment" onToggle={(emoji, on) => onReact(undefined, emoji, on)} />
     {replies.length > 0 && <ol className="sk-cm-replies" role="list" aria-label="Replies">
       {replies.map(r => {
         const mine = sameAuthor(me, r.author);

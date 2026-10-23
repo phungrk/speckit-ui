@@ -165,11 +165,11 @@ describe('emoji (FR-006, FR-007)', () => {
     expect(html).toMatch(/<div class="sk-cm-row"><p class="sk-cm-text">Because the cap is per day\.<\/p><span class="sk-cm-float-wrap"/);
   });
 
-  it('draws the emoji of a thread on the comment and on each reply', () => {
+  it('draws the emoji of the replies in the thread, and those of the comment under its text, outside the thread (specs/017)', () => {
     const html = thread({ h: H({ reactions: [{ emoji: '❤️', author: lan }], replies: [R('r_1', { reactions: [{ emoji: '😕', author: mai }] })] }) });
-    expect(html).toContain('aria-label="Reactions on this comment"');
+    expect(html).not.toContain('aria-label="Reactions on this comment"');
+    expect(html).not.toContain('❤️');
     expect(html).toContain('aria-label="Reactions on the reply by lan"');
-    expect(html).toContain('❤️<b>1</b>');
     expect(html).toContain('😕<b>1</b>');
   });
 });
@@ -195,7 +195,8 @@ describe('the card, closed and open (FR-004, FR-011)', () => {
   it('says how many replies a closed card has, and adds nothing when there are none', () => {
     expect(rail([H({ replies: [R('r_1'), R('r_2')] })], null)).toContain('class="sk-cm-count">2 replies<');
     expect(rail([H({ replies: [R('r_1')] })], null)).toContain('class="sk-cm-count">1 reply<');
-    expect(rail([H({ replies: [R('r_1')], reactions: [{ emoji: '👍', author: lan }] })], null)).toContain('1 reply · 👍1');
+    // The emoji are no longer in the header: they are a row under the text (specs/017).
+    expect(rail([H({ replies: [R('r_1')], reactions: [{ emoji: '👍', author: lan }] })], null)).toContain('class="sk-cm-count">1 reply<');
     expect(rail([H()], null)).not.toContain('sk-cm-count');
   });
 
@@ -214,5 +215,13 @@ describe('the card, closed and open (FR-004, FR-011)', () => {
     expect(html).toContain('sk-cm-more');
     expect(html).not.toContain('>Delete<');
     expect(html).not.toContain('Delete this comment');
+  });
+});
+
+describe('the emoji buttons of a closed card (specs/017 R5)', () => {
+  it('stay out of the tab order when `tabbable` is false, and in it by default', () => {
+    const list = [{ emoji: '👍', author: lan }];
+    expect(renderToStaticMarkup(<ReactionBar list={list} me={mai} readOnly={null} what="this comment" onToggle={noop} tabbable={false} />)).toContain('tabindex="-1"');
+    expect(renderToStaticMarkup(<ReactionBar list={list} me={mai} readOnly={null} what="this comment" onToggle={noop} />)).not.toContain('tabindex');
   });
 });

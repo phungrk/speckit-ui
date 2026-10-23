@@ -4,8 +4,8 @@ import type { HighlightAuthor } from '../project/types';
 import type { HighlightActions } from './highlightActions';
 import { Avatar } from './Avatar';
 import { authorLabel, relTime } from './brief';
-import { CLOSED_CARD_HEIGHT, nextSelection, type CommentCard, type Cards, type SaveState } from './comments';
-import { groupReactions, replyCount } from './reactions';
+import { CLOSED_CARD_HEIGHT, isMeasured, nextSelection, outdatedExtra, type CommentCard, type Cards, type SaveState } from './comments';
+import { replyCount } from './reactions';
 import { Composer } from './Composer';
 import { MoreMenu } from './MoreMenu';
 import { FreshBar, type FreshProps } from './FreshBar';
@@ -61,6 +61,20 @@ export function useDocViewport(docRef: RefObject<HTMLElement | null>): { top: nu
   return vp;
 }
 
+/** Whether the screen has no hover (touch): known only in the browser, so the first render, server or client, says no (specs/017 R2). */
+function useCoarse(): boolean {
+  const [coarse, setCoarse] = useState(false);
+  useEffect(() => {
+    if (typeof matchMedia !== 'function') return;
+    const m = matchMedia('(hover: none), (pointer: coarse)');
+    const sync = () => setCoarse(m.matches);
+    sync();
+    m.addEventListener?.('change', sync);
+    return () => m.removeEventListener?.('change', sync);
+  }, []);
+  return coarse;
+}
+
 /** What can be done on a selected card: the author recolours, edits, deletes; everyone copies and asks (specs/013 FR-008). */
 export type CardActions = HighlightActions;
 
@@ -92,6 +106,10 @@ export interface CardProps {
   thread?: ReactNode;
   /** Floating tool on the comment's own content row, as the emoji button (specs/015): shown when the card is open. */
   rowTool?: ReactNode;
+  /** The row of emoji already put on the comment, under its text, on every card (specs/017); absent when there are none. */
+  chips?: ReactNode;
+  /** The card is as tall as its content and reports its height, though closed: it has emoji, or the screen is a touch screen (specs/017). */
+  measured?: boolean;
 }
 
 /** Sending, Saved or Failed with Retry: under a comment, and under each reply (specs/011 R8). */
@@ -108,30 +126,31 @@ function SaveLine({ card, onRetry }: { card: CommentCard; onRetry?: (id: string)
   return <SaveNote save={card.save} onRetry={onRetry ? () => onRetry(card.id) : undefined} />;
 }
 
-export function Card({ card, top, selected, person, now, onSelect, onRetry, actions, editing, onMeasure, thread, rowTool }: CardProps) {
+export function Card({ card, top, selected, person, now, onSelect, onRetry, actions, editing, onMeasure, thread, rowTool, chips, measured }: CardProps) {
   const h = card.highlight;
   const name = person ? person(h.author).name : authorLabel(h.author);
   const ref = useRef<HTMLElement>(null);
   const [confirming, setConfirming] = useState(false);
   const open = selected || editing?.id === card.id;
-  // An open card is as tall as its content, so the layout is told (a closed one has a fixed height).
+  const grows = open || !!measured;
+  // An open card is as tall as its content, so the layout is told (a plain closed one has a fixed height).
   useEffect(() => {
     const el = ref.current;
-    if (!open || !el || !onMeasure) return;
+    if (!grows || !el || !onMeasure) return;
     const report = () => onMeasure(card.id, Math.ceil(el.getBoundingClientRect().height));
     report();
     if (typeof ResizeObserver === 'undefined') return;
     const ro = new ResizeObserver(report);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [open, card.id, onMeasure]);
+  }, [grows, card.id, onMeasure]);
   useEffect(() => { if (!selected) setConfirming(false); }, [selected]);
 
   if (editing && editing.id === card.id) {
     return <Composer name={name} quote={h.quote} text={editing.text} onText={editing.onText} onSubmit={editing.onSubmit} onCancel={editing.onCancel}
       busy={editing.busy} error={editing.error} top={top} label="Edit comment" submitLabel="Save" />;
   }
-  const style = top === undefined ? undefined : { top, ...(selected ? {} : { height: card.height }) };
+  const style = top === undefined ? undefined : { top, ...(selected || measured ? {} : { height: card.height }) };
   return <article ref={ref} className={'sk-cm-card' + (selected ? ' on' : '')} data-color={h.color} role="group"
     aria-label={`Comment by ${name} on “${quote40(h.quote)}”`} aria-current={selected ? 'true' : undefined}
     tabIndex={selected ? 0 : -1} style={style} onClick={() => onSelect(card.id)}
@@ -139,14 +158,14 @@ export function Card({ card, top, selected, person, now, onSelect, onRetry, acti
     {/* The comment is one item: hovering it (or the focus inside it) shows its row and its tools (specs/015). */}
     <div className="sk-cm-item">
     <div className="sk-cm-who"><Avatar name={name} /><b>{name}</b><span className="sk-cm-time">{relTime(h.createdAt, now)}</span>
-      {selected && card.mine && actions && <MoreMenu items={[
+      {!selected && replyCount(h) > 0 && <span className="sk-cm-count">{`${replyCount(h)} ${replyCount(h) === 1 ? 'reply' : 'replies'}`}</span>}
+      {/* The tools of your own comment are on every card, closed or open, at the far right (specs/017). Delete on a closed card opens it and asks there. */}
+      {card.mine && actions && <MoreMenu tabbable={open} items={[
         { key: 'edit', label: 'Edit', disabledReason: actions.readOnly, onSelect: () => actions.onEdit(card.id) },
-        { key: 'delete', label: 'Delete', disabledReason: actions.readOnly, onSelect: () => setConfirming(true) }]} />}
-      {!selected && (replyCount(h) > 0 || !!h.reactions?.length) && <span className="sk-cm-count">{[
-        replyCount(h) > 0 ? `${replyCount(h)} ${replyCount(h) === 1 ? 'reply' : 'replies'}` : '',
-        ...groupReactions(h.reactions, null).map(g => `${g.emoji}${g.count}`)].filter(Boolean).join(' · ')}</span>}</div>
+        { key: 'delete', label: 'Delete', disabledReason: actions.readOnly, onSelect: () => { if (!selected) onSelect(card.id); setConfirming(true); } }]} />}</div>
     <q className="sk-cm-quote">{h.quote}</q>
-    <div className="sk-cm-row"><p className="sk-cm-note">{h.note}</p>{selected && rowTool}</div>
+    <div className="sk-cm-row"><p className="sk-cm-note">{h.note}</p>{rowTool}</div>
+    {chips && <div className="sk-cm-chips" onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>{chips}</div>}
     </div>
     {selected && actions && <>
       {card.mine && <>
@@ -189,8 +208,10 @@ export interface CommentRailProps {
   editing?: CardEditing;
   /** The discussion of a card, drawn when it is open (specs/011). */
   threadFor?: (card: CommentCard) => ReactNode;
-  /** The tool on the comment's own row (the emoji button), for the open card (specs/015). */
-  rowToolFor?: (card: CommentCard) => ReactNode;
+  /** The tool on the comment's own row (the emoji button); `open` tells whether the card is the open one (specs/015). */
+  rowToolFor?: (card: CommentCard, open: boolean) => ReactNode;
+  /** The row of emoji under the comment's text, for every card (specs/017). */
+  chipsFor?: (card: CommentCard, open: boolean) => ReactNode;
   /** Comments being written, each beside its text; the one being written keeps its place and the cards make way. */
   drafts?: RailDraft[];
   activeDraftId?: string | null;
@@ -200,16 +221,18 @@ export interface CommentRailProps {
   fresh?: FreshProps;
 }
 
-export function CommentRail({ cards, selectedId, onSelect, branch, left, viewport, docRef, person, now, onRetry, actions, editing, threadFor, rowToolFor, drafts = [], activeDraftId = null, draftsElsewhere = 0, fresh }: CommentRailProps) {
+export function CommentRail({ cards, selectedId, onSelect, branch, left, viewport, docRef, person, now, onRetry, actions, editing, threadFor, rowToolFor, chipsFor, drafts = [], activeDraftId = null, draftsElsewhere = 0, fresh }: CommentRailProps) {
   const head = fresh ? RAIL_HEAD_FRESH : RAIL_HEAD;
   const asideRef = useRef<HTMLElement>(null);
   const byKey = useRef(false);
   const [heights, setHeights] = useState<Record<string, number>>({});
   const measure = useRef((id: string, h: number) => setHeights(m => (Math.abs((m[id] ?? 0) - h) < 2 ? m : { ...m, [id]: h }))).current;
+  const coarse = useCoarse();
   const total = cards.cards.length + cards.outdated.length;
   const draftId = (d: RailDraft) => 'draft:' + d.id;
   const ids = [...cards.cards, ...cards.outdated].map(c => c.id);
-  const heightOf = (c: CommentCard) => (c.id === selectedId || c.id === editing?.id ? heights[c.id] ?? c.height : c.height ?? CLOSED_CARD_HEIGHT);
+  const heightOf = (c: CommentCard) => (isMeasured(c, { open: c.id === selectedId || c.id === editing?.id, coarse }) ? heights[c.id] ?? c.height : c.height ?? CLOSED_CARD_HEIGHT);
+  const measuredClosed = (c: CommentCard) => isMeasured(c, { open: false, coarse });
   const tops = layoutCards([
     ...cards.cards.map(c => ({ id: c.id, anchorTop: c.anchorTop ?? 0, height: heightOf(c), createdAt: c.highlight.createdAt })),
     ...drafts.map(d => ({ id: draftId(d), anchorTop: d.anchorTop, height: COMPOSER_HEIGHT, createdAt: '9999' }))
@@ -235,7 +258,7 @@ export function CommentRail({ cards, selectedId, onSelect, branch, left, viewpor
   const lastBottom = Math.max(cards.cards.reduce((m, c) => Math.max(m, tops[c.id] + heightOf(c)), head), ...drafts.map(d => tops[draftId(d)] + COMPOSER_HEIGHT));
   // The rail is as tall as its cards, so the document scrolls far enough to reach them even though the cards far
   // from the screen are not built (a dense document pushes later cards below its own text).
-  const outdatedHeight = cards.outdated.length ? 40 + cards.outdated.length * (CLOSED_CARD_HEIGHT + 8) : 0;
+  const outdatedHeight = cards.outdated.length ? 40 + cards.outdated.reduce((n, c) => n + CLOSED_CARD_HEIGHT + 8 + outdatedExtra(c, coarse), 0) : 0;
   const railHeight = Math.ceil(lastBottom + GAP * 2 + outdatedHeight + 16);
   const pick = (id: string) => onSelect(id, { jump: true });
   const at = selectedId ? ids.indexOf(selectedId) : -1;
@@ -250,10 +273,10 @@ export function CommentRail({ cards, selectedId, onSelect, branch, left, viewpor
       {fresh && <FreshBar {...fresh} />}</header>
     <div className="sk-cm-live" role="status" aria-live="polite">{at >= 0 ? `Comment ${at + 1} of ${ids.length} selected` : ''}</div>
     {drafts.map(d => <Fragment key={d.id}>{d.render(tops[draftId(d)])}</Fragment>)}
-    {cards.cards.filter(near).map(c => <Card key={c.id} card={c} top={tops[c.id]} selected={c.id === selectedId} onSelect={pick} thread={c.id === selectedId ? threadFor?.(c) : undefined} rowTool={c.id === selectedId ? rowToolFor?.(c) : undefined} {...shared} />)}
+    {cards.cards.filter(near).map(c => <Card key={c.id} card={c} top={tops[c.id]} selected={c.id === selectedId} onSelect={pick} thread={c.id === selectedId ? threadFor?.(c) : undefined} rowTool={rowToolFor?.(c, c.id === selectedId)} chips={chipsFor?.(c, c.id === selectedId)} measured={measuredClosed(c)} {...shared} />)}
     {cards.outdated.length > 0 && <section className="sk-cm-out" style={{ top: lastBottom + GAP * 2 }}>
       <h3>Outdated, text changed</h3>
-      {cards.outdated.map(c => <Card key={c.id} card={c} selected={c.id === selectedId} onSelect={pick} thread={c.id === selectedId ? threadFor?.(c) : undefined} rowTool={c.id === selectedId ? rowToolFor?.(c) : undefined} {...shared} />)}
+      {cards.outdated.map(c => <Card key={c.id} card={c} selected={c.id === selectedId} onSelect={pick} thread={c.id === selectedId ? threadFor?.(c) : undefined} rowTool={rowToolFor?.(c, c.id === selectedId)} chips={chipsFor?.(c, c.id === selectedId)} measured={measuredClosed(c)} {...shared} />)}
     </section>}
   </aside>;
 }
