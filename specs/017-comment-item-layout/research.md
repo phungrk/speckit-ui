@@ -36,3 +36,6 @@
 ## R8. Tiêu đề thẻ đóng
 - **Decision**: `.sk-cm-count` chỉ còn "N reply/replies"; chuỗi emoji bỏ (hàng emoji dưới nội dung thay thế).
 - **Rationale**: FR-002; tránh hiển thị cùng thông tin hai chỗ.
+
+## R9. Ghi chú
+- `near()` của rail dựng thẻ theo `c.height` (124), không theo chiều cao đo; thẻ có emoji có thể được dựng sớm hoặc muộn một chút, nhưng vùng đệm là một màn hình nên không thấy được. Không đổi.

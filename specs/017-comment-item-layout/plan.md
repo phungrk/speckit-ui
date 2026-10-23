@@ -42,7 +42,7 @@ Không đổi dữ liệu, cách lưu, quyền hay `highlights.json`. Chuyển �
 | I. Git là nguồn sự thật | Đạt. Không loại ghi mới; emoji, sửa, xoá dùng đường ghi hiện có. |
 | II. Khoá thuộc về người dùng | Đạt. Không đụng khoá, token, mạng. |
 | III. Ba chế độ, một hành vi | Đạt. Thành phần dùng chung; spec 016 (lưu hoãn) độc lập. |
-| IV. Trung thành với thiết kế | Đạt có ghi chú: demo giữ nguyên ngoại trừ tiêu đề thẻ đóng của mình và hàng emoji, hai phần thuộc thẻ nhận xét của chuỗi spec 012–017 (không có trong thiết kế gốc, đã là ngoại lệ từ 012); liệt kê trong PR. Không bo góc mới. |
+| IV. Trung thành với thiết kế | Đạt có điều kiện (analyze C1): demo đổi ở tiêu đề thẻ đóng của mình (giờ dịch trái) và hàng emoji. Hiến pháp chỉ cho lệch ở phần thuộc spec khác chưa xong, nên cách xử lý là người dùng cập nhật bản thiết kế `Speckit Workspace.html` có rail (như 012 Q), demo so với bản đó; merge chờ xác nhận bản đó (T001b). Không bo góc mới. |
 | V. Test trước khi merge | Đạt khi qua bốn lệnh. |
 | VI. AI chỉ đề xuất | Không liên quan. |
 | VII. Đơn giản trước | Đạt. Dời một thành phần có sẵn, thêm hai prop; không hook hay thư viện mới. |

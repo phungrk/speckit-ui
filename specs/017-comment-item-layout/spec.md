@@ -21,7 +21,7 @@ Spec này làm hai việc: emoji luôn nằm ngay dưới nội dung của mục
 
 ### Session 2026-10-22
 
-- Q1: Ba chấm trên thẻ đóng hiện thế nào? → A: Phương án A, và đặt ở **ngoài cùng bên phải** của tiêu đề (sau giờ), cùng vị trí với thẻ đang mở. Thẻ đóng của mình chừa sẵn chỗ cho nút ngay cả lúc nghỉ, nên giờ dịch sang trái khoảng 32 px. Ảnh demo của thẻ đóng của mình đổi vì điều này, ghi là ngoại lệ trong PR (phần tiêu đề thẻ nhận xét thuộc spec này). Người dùng nhắc lại yêu cầu gốc: emoji đã thả dời xuống dưới đoạn text của nhận xét (US1).
+- Q1: Ba chấm trên thẻ đóng hiện thế nào? → A: Phương án A, và đặt ở **ngoài cùng bên phải** của tiêu đề (sau giờ), cùng vị trí với thẻ đang mở. Thẻ đóng của mình chừa sẵn chỗ cho nút ngay cả lúc nghỉ, nên giờ dịch sang trái khoảng 32 px. Ảnh demo của thẻ đóng của mình đổi vì điều này, ghi trong PR. Người dùng sẽ **cập nhật bản thiết kế `Speckit Workspace.html`** để thẻ đóng của mình có chỗ cho ba chấm (cách 012 đã làm với rail); demo được so với bản thiết kế đã cập nhật đó (analyze C1, phương án a). Người dùng nhắc lại yêu cầu gốc: emoji đã thả dời xuống dưới đoạn text của nhận xét (US1).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -58,7 +58,7 @@ Rê chuột (hoặc đưa tiêu điểm) vào một mục của chính mình, �
 2. **Given** thẻ đóng của người khác, **When** hover, **Then** chỉ có nút emoji, không có ba chấm (như 014).
 3. **Given** ba chấm trên thẻ đóng, **When** chọn Edit, **Then** vào soạn tại chỗ như khi sửa ở thẻ đang mở.
 4. **Given** ba chấm trên thẻ đóng, **When** chọn Delete, **Then** thẻ mở và hiện câu hỏi xác nhận như ở thẻ mở; Keep giữ nguyên, Delete xoá và nhận xét biến mất.
-5. **Given** bàn phím, **When** tiêu điểm vào thẻ hoặc vào nút trong mục (cả thẻ đóng), **Then** ba chấm và nút emoji hiện như khi hover; các nút này vào được bằng Tab theo thứ tự hợp lý.
+5. **Given** bàn phím, **When** tiêu điểm vào thẻ hoặc vào nút trong mục (cả thẻ đóng), **Then** ba chấm và nút emoji hiện như khi hover; khi thẻ đang mở các nút này vào được bằng Tab theo thứ tự hợp lý (nút của thẻ đóng không nằm trong thứ tự Tab, FR-010).
 6. **Given** màn hình cảm ứng, **When** nhìn thẻ đóng, **Then** nút ba chấm (của mình) và nút emoji hiện sẵn và đạt vùng chạm 44 px, bấm vào chúng không bị tính là bấm chọn thẻ.
 7. **Given** người chỉ có quyền đọc hoặc nhánh bảo vệ, **When** hover, **Then** nút emoji và các mục Edit/Delete tắt kèm lý do (như 012).
 
@@ -67,7 +67,7 @@ Rê chuột (hoặc đưa tiêu điểm) vào một mục của chính mình, �
 ### Edge Cases
 
 - **Thẻ đóng có nhiều emoji và ghi chú dài:** thẻ đóng cao hơn hiện nay vì có hàng emoji; layout của rail đo lại để các thẻ không đè nhau (US1-6).
-- **Thẻ đóng chưa có emoji:** giữ đúng chiều cao hiện nay, không thay đổi bố cục.
+- **Thẻ đóng chưa có emoji:** giữ đúng chiều cao hiện nay trên màn hình có hover; trên màn hình cảm ứng thẻ đóng cao hơn (nút 44 px) và được đo.
 - **Thẻ ở nhóm Outdated hoặc trong sheet hẹp:** cùng hành vi như trong rail.
 - **Menu hoặc bộ emoji mở trên thẻ đóng rồi cuộn hoặc đổi cỡ cửa sổ:** đóng như ở thẻ mở, không treo.
 - **Mục đang soạn tại chỗ (Edit):** không có hover, ba chấm, nút emoji hay hàng emoji tương tác (như 015 FR-013).
@@ -91,7 +91,7 @@ Rê chuột (hoặc đưa tiêu điểm) vào một mục của chính mình, �
 - **FR-010**: Các nút ẩn lúc nghỉ MUST vẫn truy cập được bằng bàn phím và trình đọc màn hình (có tên); thẻ đóng MUST giữ thứ tự Tab ngắn: người dùng bàn phím chọn thẻ bằng mũi tên và mở bằng Enter, rồi các nút của mục vào được bằng Tab (nút của thẻ đóng không nằm trong thứ tự Tab).
 - **FR-011**: Quyền và điều kiện ghi MUST giữ như 012, 014, 015 (chỉ đọc, nhánh bảo vệ, ghim commit: nút tắt kèm lý do).
 - **FR-012**: Chỉ dùng token Modernist, không màu cứng; nút emoji vẫn là phần tử tròn duy nhất (constitution 1.4.2); viên emoji, ba chấm, menu giữ hình vuông.
-- **FR-013**: Không đổi dữ liệu, `highlights.json`, cách lưu hay quyền; áp dụng cả bốn chế độ (constitution III). Ảnh demo ở trạng thái nghỉ MUST giữ nguyên so với trước spec này, trừ tiêu đề thẻ đóng của mình (giờ dịch trái vì chỗ chừa cho ba chấm, Clarifications Q1) và hàng emoji dưới nội dung; hai chỗ này được ghi là ngoại lệ trong PR.
+- **FR-013**: Không đổi dữ liệu, `highlights.json`, cách lưu hay quyền; áp dụng cả bốn chế độ (constitution III). Ảnh demo ở trạng thái nghỉ MUST giữ nguyên so với trước spec này, trừ tiêu đề thẻ đóng của mình (giờ dịch trái vì chỗ chừa cho ba chấm, Clarifications Q1) và hàng emoji dưới nội dung. Hai chỗ này MUST được đưa vào bản thiết kế đã cập nhật (người dùng cung cấp, ngoài repo) trước khi merge, và PR MUST liệt kê chúng; cho tới khi có bản thiết kế đã cập nhật, ảnh demo được so với ảnh trước spec này.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -113,6 +113,7 @@ Không có thực thể hay trường dữ liệu mới. Đây là thay đổi b
 
 - **Dựa trên 010–015 và PR #41 (đã merge vào `main`).** Spec 016 (lưu theo hai cách) độc lập và chưa merge.
 - **Chế độ bị ảnh hưởng** (constitution III): cả bốn; thành phần dùng chung.
+- **Bản thiết kế đã cập nhật** do người dùng cung cấp sau (ngoài repo); việc merge chờ xác nhận bản đó có tiêu đề thẻ đóng mới và hàng emoji.
 - **Nút emoji tròn** (015) vẫn ở mép phải của dòng nội dung khi hover; các viên emoji đã thả là hàng dưới nội dung (US1). Nếu ý là dời cả nút tròn xuống dưới nội dung thì cần nói lại.
 - **Số trả lời** vẫn ở tiêu đề thẻ đóng; chỉ chuỗi emoji chuyển xuống dưới nội dung.
 - **Hàng emoji của trả lời** vẫn dưới nội dung của trả lời như hiện nay; thay đổi chính là thẻ đóng và vị trí nhất quán.
