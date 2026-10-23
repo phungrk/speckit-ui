@@ -5,7 +5,7 @@ what it does and how each mode works.
 
 ## Rules
 
-The development rules live in `.specify/memory/constitution.md` (v1.4.2). Read it before changing
+The development rules live in `.specify/memory/constitution.md` (v1.4.3). Read it before changing
 code. In short:
 
 - Git is the source of truth. The app writes only to tracking issues labelled `speckit` and to the
