@@ -60,3 +60,10 @@ describe('the menu', () => {
     expect(rules).toContain('var(--shadow-md)');
   });
 });
+
+describe('the button of a closed card (specs/017 R5)', () => {
+  it('is out of the tab order when `tabbable` is false, and in it by default', () => {
+    expect(renderToStaticMarkup(<MoreMenu items={items} tabbable={false} />)).toContain('tabindex="-1"');
+    expect(renderToStaticMarkup(<MoreMenu items={items} />)).not.toContain('tabindex');
+  });
+});

@@ -71,8 +71,13 @@ describe('the floating emoji button (FR-003, FR-009, FR-010, FR-011)', () => {
     expect(float.match(/\.sk-cm-float-wrap \{([^}]*)\}/)![1]).not.toContain('transform');
   });
 
-  it('shows on a screen with no hover, at 44 px', () => {
-    expect(float).toMatch(/@media \(hover: none\), \(pointer: coarse\) \{[^@]*\.sk-cm-card\.on \.sk-cm-float-wrap \{ opacity: 1; pointer-events: auto; \}[^@]*\.sk-cm-float \{ width: 44px; height: 44px; \}/);
+  it('shows on a screen with no hover, on closed cards too (specs/017), at 44 px', () => {
+    expect(float).toMatch(/@media \(hover: none\), \(pointer: coarse\) \{[^@]*\.sk-cm-float-wrap \{ opacity: 1; pointer-events: auto; \}[^@]*\.sk-cm-float \{ width: 44px; height: 44px; \}/);
+    expect(float).not.toMatch(/@media \(hover: none\)[^@]*\.sk-cm-card\.on \.sk-cm-float-wrap/);
+  });
+
+  it('keeps the row room on a touch screen above the open-card row rule (same or higher specificity)', () => {
+    expect(float).toMatch(/\.sk-cm-card \.sk-cm-row, \.sk-cm-card\.on \.sk-cm-row, \.sk-cm-reply \.sk-cm-row \{ min-height: 52px; padding-right: 60px; \}/);
   });
 
   it('places the picker with fixed position, square', () => {
@@ -99,5 +104,25 @@ describe('three dots reveal (specs/015, US3)', () => {
 
   it('is always shown on a screen with no hover', () => {
     expect(dots).toMatch(/@media \(hover: none\), \(pointer: coarse\) \{\s*\.sk-cm-more \{ opacity: 1; \}/);
+  });
+});
+
+describe('emoji under the text (specs/017)', () => {
+  const m17 = css.slice(css.indexOf('Emoji under the text of the comment'));
+
+  it('is appended after the 015 blocks, with no corner and no fixed colour', () => {
+    expect(css.indexOf('Emoji under the text of the comment')).toBeGreaterThan(css.indexOf('Three dots show only'));
+    expect(m17).not.toContain('border-radius');
+    expect(m17).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(/);
+  });
+});
+
+describe('the header of a closed card (specs/017 FR-008)', () => {
+  const tail = css.slice(css.indexOf('The header of a closed card holds'));
+
+  it('lets the name give way (ellipsis) and never wraps the count, the time or the three dots', () => {
+    expect(tail).toMatch(/\.sk-cm-who b \{[^}]*overflow: hidden; text-overflow: ellipsis; white-space: nowrap;/);
+    expect(tail).toMatch(/\.sk-cm-who \.sk-cm-time, \.sk-cm-who \.sk-cm-count, \.sk-cm-who \.sk-cm-more-wrap \{ flex: none; \}/);
+    expect(tail).not.toContain('border-radius');
   });
 });

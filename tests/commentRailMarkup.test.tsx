@@ -149,16 +149,36 @@ describe('selected card, announcement and sheet (FR-008, FR-009, FR-011, FR-012)
     expect(mine).not.toMatch(/>Edit</);
     expect(mine).not.toMatch(/>Delete</);
     expect(mine).not.toContain('sk-cm-own');
+    // Only the author's own cards have one (h1 and h3; h2 is somebody else's), and none when nothing can be done (no actions).
     const theirs = sel('h2', { actions: acts() });
-    expect(theirs).not.toContain('sk-cm-more');
+    expect([...theirs.matchAll(/class="sk-cm-more"/g)]).toHaveLength(2);
+    const lans = theirs.split('<article').filter(a => a.includes('Comment by lan'));
+    expect(lans).toHaveLength(1);
+    expect(lans[0]).not.toContain('sk-cm-more');
     expect(sel('h1')).not.toContain('sk-cm-more');
   });
 
-  it('puts the three-dot button on the open card only, in its header', () => {
-    const html = sel('h1', { actions: acts() });
-    expect([...html.matchAll(/class="sk-cm-more"/g)]).toHaveLength(1);
-    expect(html.indexOf('sk-cm-more')).toBeLessThan(html.indexOf('class="sk-cm-quote"'));
-    expect(sel(null, { actions: acts() })).not.toContain('sk-cm-more');
+  it('puts the three-dot button on every card of the author, closed or open, at the end of its header (specs/017 FR-005, FR-008)', () => {
+    const open = sel('h1', { actions: acts() });
+    expect(open.indexOf('sk-cm-more')).toBeLessThan(open.indexOf('class="sk-cm-quote"'));
+    expect(open).toMatch(/class="sk-cm-time">[^<]*<\/span><span class="sk-cm-more-wrap"><button type="button" class="sk-cm-more" aria-label/);
+    // Closed: still there, still named, out of the tab order; somebody else's card has none.
+    const closed = sel(null, { actions: acts() });
+    expect([...closed.matchAll(/class="sk-cm-more"/g)]).toHaveLength(2);
+    expect(closed).toMatch(/class="sk-cm-more" tabindex="-1" aria-label="More actions"/);
+    const openCard = open.split('<article').find(a => a.includes('aria-current="true"'))!;
+    expect(openCard).toContain('class="sk-cm-more" aria-label');
+    expect(openCard).not.toContain('tabindex="-1" aria-label="More actions"');
+  });
+
+  it('puts the three-dot button after the reply count in the header of a closed card, at the far right', () => {
+    const html = rail([H('h1', { replies: [{ id: 'r', author: { login: 'lan' }, createdAt: '2026-10-21T08:40:00.000Z', text: 'x' }] })], { h1: 100 }, { actions: acts() });
+    expect(html).toMatch(/class="sk-cm-count">1 reply<\/span><span class="sk-cm-more-wrap">/);
+  });
+
+  it('turns the three-dot button off with the reason on a closed card in read-only mode (specs/017 FR-011)', () => {
+    // The menu is closed in a static render; its items carry the reason when it is open (moreMenu.test), so the button must still be there.
+    expect(sel(null, { actions: acts({ readOnly: 'Read-only token' }) })).toContain('class="sk-cm-more" tabindex="-1"');
   });
 
   it('has no Copy and no Ask on the card, for anyone (specs/014 FR-009)', () => {
@@ -279,5 +299,42 @@ describe('the comment as an item with a row (specs/015 FR-001)', () => {
     expect(html).toContain('<div class="sk-cm-row"><p class="sk-cm-note">Why daily?</p><i class="tool">h1:true</i></div>');
     expect(html).toContain(':false</i>');
     expect(open(null, { rowToolFor: tool })).not.toContain(':true</i>');
+  });
+});
+
+describe('the row of emoji under the text, on every card (specs/017 FR-001, FR-002, FR-004)', () => {
+  const lan = { login: 'lan' };
+  const items = [H('h1', { reactions: [{ emoji: '👍', author: lan }] }), H('h2', { note: 'Other' })];
+  const at = { h1: 100, h2: 700 };
+  const chips = (c: { id: string }, isOpen: boolean) => c.id === 'h1' ? <i className="chips">{String(isOpen)}</i> : null;
+  const html = (sel: string | null) => rail(items, at, { selectedId: sel, chipsFor: chips });
+
+  it('puts the row right after the text, inside the item, on a closed card and on the open one', () => {
+    for (const sel of [null, 'h1']) {
+      expect(html(sel)).toContain(`<p class="sk-cm-note">Why daily?</p></div><div class="sk-cm-chips"><i class="chips">${sel === 'h1'}</i></div></div>`);
+    }
+  });
+
+  it('draws no row, and no empty box, for a comment nobody reacted to', () => {
+    expect([...html(null).matchAll(/class="sk-cm-chips"/g)]).toHaveLength(1);
+  });
+
+  it('keeps a plain closed card at the fixed height and lets one with emoji grow', () => {
+    const out = html(null);
+    expect(out).toMatch(/aria-label="Comment by mai on [^>]*style="top:\d+px;height:124px"[^>]*>(?:(?!<article).)*Other/);
+    const first = out.slice(out.indexOf('<article'), out.indexOf('<article', 10));
+    expect(first).not.toContain('height:');
+  });
+
+  it('keeps the click and the keys of the row from reaching the card (the rail would select or move)', () => {
+    // The wrapper is where they stop; a static render can only show that it is there, the browser check shows it works.
+    expect(html(null)).toContain('class="sk-cm-chips"');
+  });
+
+  it('shows the replies only in the header of a closed card, never the emoji', () => {
+    const withBoth = [H('h1', { reactions: [{ emoji: '👍', author: lan }], replies: [{ id: 'r', author: lan, createdAt: '2026-10-22T09:00:00.000Z', text: 'x' }] })];
+    const out = rail(withBoth, { h1: 100 }, { chipsFor: chips });
+    expect(out).toContain('class="sk-cm-count">1 reply<');
+    expect(out).not.toMatch(/sk-cm-count[^>]*>[^<]*👍/);
   });
 });

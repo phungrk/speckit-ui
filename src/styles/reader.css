@@ -281,7 +281,14 @@
 @media (prefers-reduced-motion: no-preference) { .sk-cm-more { transition: opacity .12s ease-out; } }
 @media (hover: none), (pointer: coarse) {
   .sk-cm-more { opacity: 1; }
-  .sk-cm-card.on .sk-cm-float-wrap { opacity: 1; pointer-events: auto; }
+  .sk-cm-float-wrap { opacity: 1; pointer-events: auto; }
   .sk-cm-float { width: 44px; height: 44px; }
-  .sk-cm-card.on .sk-cm-row, .sk-cm-reply .sk-cm-row { min-height: 52px; padding-right: 60px; }
+  .sk-cm-card .sk-cm-row, .sk-cm-card.on .sk-cm-row, .sk-cm-reply .sk-cm-row { min-height: 52px; padding-right: 60px; }
 }
+
+/* Emoji under the text of the comment, on every card (specs/017-comment-item-layout). Tokens only, no corners. */
+.sk-cm-chips { min-width: 0; }
+.sk-cm-chips .sk-cm-react { margin-top: 6px; }
+/* The header of a closed card holds the three dots too: the name gives way, the reply count and the time never wrap. */
+.sk-cm-who b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sk-cm-who .sk-cm-time, .sk-cm-who .sk-cm-count, .sk-cm-who .sk-cm-more-wrap { flex: none; }
