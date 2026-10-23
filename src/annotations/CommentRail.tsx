@@ -158,10 +158,11 @@ export function Card({ card, top, selected, person, now, onSelect, onRetry, acti
     {/* The comment is one item: hovering it (or the focus inside it) shows its row and its tools (specs/015). */}
     <div className="sk-cm-item">
     <div className="sk-cm-who"><Avatar name={name} /><b>{name}</b><span className="sk-cm-time">{relTime(h.createdAt, now)}</span>
-      {selected && card.mine && actions && <MoreMenu items={[
+      {!selected && replyCount(h) > 0 && <span className="sk-cm-count">{`${replyCount(h)} ${replyCount(h) === 1 ? 'reply' : 'replies'}`}</span>}
+      {/* The tools of your own comment are on every card, closed or open, at the far right (specs/017). Delete on a closed card opens it and asks there. */}
+      {card.mine && actions && <MoreMenu tabbable={open} items={[
         { key: 'edit', label: 'Edit', disabledReason: actions.readOnly, onSelect: () => actions.onEdit(card.id) },
-        { key: 'delete', label: 'Delete', disabledReason: actions.readOnly, onSelect: () => setConfirming(true) }]} />}
-      {!selected && replyCount(h) > 0 && <span className="sk-cm-count">{`${replyCount(h)} ${replyCount(h) === 1 ? 'reply' : 'replies'}`}</span>}</div>
+        { key: 'delete', label: 'Delete', disabledReason: actions.readOnly, onSelect: () => { if (!selected) onSelect(card.id); setConfirming(true); } }]} />}</div>
     <q className="sk-cm-quote">{h.quote}</q>
     <div className="sk-cm-row"><p className="sk-cm-note">{h.note}</p>{rowTool}</div>
     {chips && <div className="sk-cm-chips" onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>{chips}</div>}

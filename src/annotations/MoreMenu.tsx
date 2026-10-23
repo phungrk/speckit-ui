@@ -29,7 +29,7 @@ export function MenuList({ items, onPick, style, listRef }: MenuListProps) {
 
 const MENU_W = 140;
 
-export function MoreMenu({ label = 'More actions', items }: { label?: string; items: MoreMenuItem[] }) {
+export function MoreMenu({ label = 'More actions', items, tabbable = true }: { label?: string; items: MoreMenuItem[]; /** False on a closed card, whose controls stay out of the tab order (specs/017 R5). */ tabbable?: boolean }) {
   const id = useId();
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLSpanElement>(null);
@@ -65,7 +65,7 @@ export function MoreMenu({ label = 'More actions', items }: { label?: string; it
   };
 
   return <span ref={wrap} className="sk-cm-more-wrap" onKeyDown={keys} onClick={e => e.stopPropagation()}>
-    <button ref={button} type="button" className="sk-cm-more" aria-label={label} aria-haspopup="menu" aria-expanded={open} onClick={toggle}>
+    <button ref={button} type="button" className="sk-cm-more" tabIndex={tabbable ? undefined : -1} aria-label={label} aria-haspopup="menu" aria-expanded={open} onClick={toggle}>
       <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="currentColor"><circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" /></svg>
     </button>
     {open && <MenuList listRef={el => { list.current = el; listRef(el); }} items={items} style={pos ? { left: pos.left, top: pos.top, width: MENU_W } : { visibility: 'hidden', width: MENU_W }}

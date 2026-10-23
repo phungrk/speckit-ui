@@ -149,16 +149,36 @@ describe('selected card, announcement and sheet (FR-008, FR-009, FR-011, FR-012)
     expect(mine).not.toMatch(/>Edit</);
     expect(mine).not.toMatch(/>Delete</);
     expect(mine).not.toContain('sk-cm-own');
+    // Only the author's own cards have one (h1 and h3; h2 is somebody else's), and none when nothing can be done (no actions).
     const theirs = sel('h2', { actions: acts() });
-    expect(theirs).not.toContain('sk-cm-more');
+    expect([...theirs.matchAll(/class="sk-cm-more"/g)]).toHaveLength(2);
+    const lans = theirs.split('<article').filter(a => a.includes('Comment by lan'));
+    expect(lans).toHaveLength(1);
+    expect(lans[0]).not.toContain('sk-cm-more');
     expect(sel('h1')).not.toContain('sk-cm-more');
   });
 
-  it('puts the three-dot button on the open card only, in its header', () => {
-    const html = sel('h1', { actions: acts() });
-    expect([...html.matchAll(/class="sk-cm-more"/g)]).toHaveLength(1);
-    expect(html.indexOf('sk-cm-more')).toBeLessThan(html.indexOf('class="sk-cm-quote"'));
-    expect(sel(null, { actions: acts() })).not.toContain('sk-cm-more');
+  it('puts the three-dot button on every card of the author, closed or open, at the end of its header (specs/017 FR-005, FR-008)', () => {
+    const open = sel('h1', { actions: acts() });
+    expect(open.indexOf('sk-cm-more')).toBeLessThan(open.indexOf('class="sk-cm-quote"'));
+    expect(open).toMatch(/class="sk-cm-time">[^<]*<\/span><span class="sk-cm-more-wrap"><button type="button" class="sk-cm-more" aria-label/);
+    // Closed: still there, still named, out of the tab order; somebody else's card has none.
+    const closed = sel(null, { actions: acts() });
+    expect([...closed.matchAll(/class="sk-cm-more"/g)]).toHaveLength(2);
+    expect(closed).toMatch(/class="sk-cm-more" tabindex="-1" aria-label="More actions"/);
+    const openCard = open.split('<article').find(a => a.includes('aria-current="true"'))!;
+    expect(openCard).toContain('class="sk-cm-more" aria-label');
+    expect(openCard).not.toContain('tabindex="-1" aria-label="More actions"');
+  });
+
+  it('puts the three-dot button after the reply count in the header of a closed card, at the far right', () => {
+    const html = rail([H('h1', { replies: [{ id: 'r', author: { login: 'lan' }, createdAt: '2026-10-21T08:40:00.000Z', text: 'x' }] })], { h1: 100 }, { actions: acts() });
+    expect(html).toMatch(/class="sk-cm-count">1 reply<\/span><span class="sk-cm-more-wrap">/);
+  });
+
+  it('turns the three-dot button off with the reason on a closed card in read-only mode (specs/017 FR-011)', () => {
+    // The menu is closed in a static render; its items carry the reason when it is open (moreMenu.test), so the button must still be there.
+    expect(sel(null, { actions: acts({ readOnly: 'Read-only token' }) })).toContain('class="sk-cm-more" tabindex="-1"');
   });
 
   it('has no Copy and no Ask on the card, for anyone (specs/014 FR-009)', () => {

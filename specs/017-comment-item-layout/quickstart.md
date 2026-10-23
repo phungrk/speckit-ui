@@ -20,3 +20,7 @@ Chuẩn bị: `npm run dev` (demo `http://localhost:5173/?demo`, vai QA); server
 
 - **1–3 (emoji dưới nội dung):** thả 👍 qua nút nổi lên thẻ đóng: hàng "👍 1" nằm ngay dưới nội dung, trong thẻ; tiêu đề chỉ có "1 reply". Bấm viên của mình gỡ được mà không mở thẻ. Thẻ mở: một hàng emoji, nằm trước thread, thread không còn hàng gốc.
 - **4 (không chồng thẻ):** thẻ có emoji cao 134 px, các thẻ dưới dịch xuống (593, 725, 857 sau 582, 714, 846 lúc chưa có emoji), khoảng cách giữ 8 px; gỡ emoji thì về 124 px.
+- **5–6 (ba chấm ở thẻ đóng):** lúc nghỉ ba chấm và nút emoji `opacity` 0; hover thẻ đóng của mình: cả hai 1, thẻ không mở. Ba chấm nằm cách mép thẻ 13 px, giờ ở bên trái nó, tiêu đề một dòng. Thẻ của lan: chỉ nút emoji, không ba chấm. Edit: soạn tại chỗ, thẻ không được chọn. Delete: thẻ mở, hỏi "Delete this comment and its 1 reply?" với Keep và Delete; Keep bỏ câu hỏi, 4 nhận xét còn nguyên.
+- **7 (bàn phím):** ↓/↑ đổi thẻ chọn; Tab từ thẻ mở đi qua "More actions", "Add a reaction to this comment", ba chấm và nút emoji của trả lời, ô Reply; nút của thẻ đóng có `tabindex=-1`.
+- **8 (chỉ đọc, `push:false`):** nút emoji của thẻ đóng `aria-disabled` kèm lý do, bấm không mở bộ; Edit và Delete `aria-disabled` kèm cùng lý do, bấm không làm gì.
+- **9 (cảm ứng, 1920 với `isMobile`):** ba chấm 44×44 và nút emoji 44×44 hiện sẵn ở thẻ đóng; thẻ được đo (152, 134, 152, 152 px), không chồng nhau (cách nhau 8 px) và nội dung không bị cắt; chạm nút emoji mở 6 emoji mà không chọn thẻ; không cuộn ngang. Ở 390 px rail không hiện (chỉ có sheet cho thẻ đã chọn).
