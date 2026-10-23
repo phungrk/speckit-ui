@@ -1,6 +1,7 @@
 // Changes made to comments and not saved yet (specs/016-deferred-save). At GitHub Pages and on the server every
 // save is a commit, so the changes wait in the browser as a queue and one Save writes them all. Pure: no DOM, so the
 // view, the tests and the saving share it (constitution III).
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Highlight, HighlightAuthor, HighlightChange } from '../project/types';
 import { applyChange } from '../../server/highlightsFile';
 
@@ -107,4 +108,162 @@ export function unsavedIds(queue: PendingChange[]): Set<string> {
     else if (c.type === 'reply-edit') ids.add(c.replyId);
   }
   return ids;
+}
+
+// ---- Where the queue waits: this browser (specs/016 research R5) ----
+
+/** `local` when the user chose "Remember" (kept after the tab closes), `session` when not (kept for the tab, like the keys). */
+export type PendingWhere = 'local' | 'session';
+
+export const MAX_PENDING = 500;
+const PREFIX = 'sk.pending.v1.';
+
+/** One queue per account, repository, branch and spec. */
+export const pendingKey = (login: string, repo: string, branch: string, slug: string) => `${PREFIX}${login}.${repo}@${branch}.${slug}`;
+
+const TYPES = ['add', 'update', 'remove', 'reply', 'reply-edit', 'reply-remove', 'react'];
+const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
+const validEntry = (e: unknown): e is PendingChange => isObj(e) && typeof e.id === 'string' && typeof e.at === 'string' && isObj(e.by) && isObj(e.change) && TYPES.includes(e.change.type as string)
+  && (e.change.type !== 'add' || (isObj(e.change.highlight) && typeof e.change.highlight.id === 'string'));
+
+/** What is stored for a queue: its place and the changes, nothing else (no key, token or cookie). */
+interface Stored { v: 1; branch: string; slug: string; changes: PendingChange[] }
+
+/** The queue in `raw`; anything that is not the stored shape (damaged, other version, not JSON) is an empty queue. */
+export function parsePending(raw: string | null): PendingChange[] {
+  if (!raw) return [];
+  try {
+    const v = JSON.parse(raw) as unknown;
+    if (!isObj(v) || v.v !== 1 || !Array.isArray(v.changes)) return [];
+    return v.changes.filter(validEntry).slice(0, MAX_PENDING);
+  } catch { return []; }
+}
+
+export interface PendingStorage {
+  load(key: string): PendingChange[];
+  /** True when the queue is kept in the browser; false when storage is blocked or full (it then lives in the tab only). */
+  save(key: string, branch: string, slug: string, changes: PendingChange[]): boolean;
+  clear(key: string): void;
+  /** Queues of an account's repository, in every spec and branch, with how many changes each holds. */
+  list(login: string, repo: string): { key: string; branch: string; slug: string; count: number }[];
+}
+
+export function pendingStorage(where: PendingWhere, storage?: () => Storage | null): PendingStorage {
+  const area = storage ?? ((): Storage | null => { try { return where === 'local' ? localStorage : sessionStorage; } catch { return null; } });
+  return {
+    load: key => { try { return parsePending(area()?.getItem(key) ?? null); } catch { return []; } },
+    save: (key, branch, slug, changes) => {
+      try {
+        const a = area();
+        if (!a) return false;
+        if (changes.length === 0) { a.removeItem(key); return true; }
+        a.setItem(key, JSON.stringify({ v: 1, branch, slug, changes } satisfies Stored));
+        return true;
+      } catch { return false; }
+    },
+    clear: key => { try { area()?.removeItem(key); } catch { /* nothing to clear */ } },
+    list: (login, repo) => {
+      const out: { key: string; branch: string; slug: string; count: number }[] = [];
+      try {
+        const a = area();
+        if (!a) return out;
+        const head = `${PREFIX}${login}.${repo}@`;
+        for (let i = 0; i < a.length; i++) {
+          const key = a.key(i);
+          if (!key?.startsWith(head)) continue;
+          const raw = a.getItem(key);
+          const v = raw ? JSON.parse(raw) as Partial<Stored> : null;
+          const count = compactPending(parsePending(raw)).length;
+          if (v && count > 0) out.push({ key, branch: String(v.branch ?? ''), slug: String(v.slug ?? ''), count });
+        }
+      } catch { /* an unreadable store lists nothing */ }
+      return out;
+    }
+  };
+}
+
+const markOf = (c: PendingChange) => `${c.at}|${c.id}`;
+
+/**
+ * The queue with `entry` at the end. What is on its way to be saved (`sending`, by mark) does not take part in folding:
+ * a later change must not vanish into an entry that is already being sent (specs/016 research R10).
+ */
+export function addToQueue(queue: PendingChange[], sending: ReadonlySet<string>, entry: PendingChange): PendingChange[] {
+  const frozen = queue.filter(c => sending.has(markOf(c)));
+  const rest = queue.filter(c => !sending.has(markOf(c)));
+  return [...frozen, ...compactPending([...rest, entry])];
+}
+
+/** The queue without what was sent: what was done while the save ran stays. */
+export function removeSent(queue: PendingChange[], sent: PendingChange[]): PendingChange[] {
+  const gone = new Set(sent.map(markOf));
+  return queue.filter(c => !gone.has(markOf(c)));
+}
+
+export interface PendingApi {
+  queue: PendingChange[];
+  /** True while the queue is kept in the browser. */
+  persistent: boolean;
+  /** Puts a change at the end (folding what it cancels); false when the queue is full. */
+  add(change: HighlightChange, by: HighlightAuthor): boolean;
+  /** Starts a save: the queue folded, as it is to be sent, and held apart from later changes. */
+  begin(): PendingChange[];
+  /** A save worked: takes out what was sent and keeps what was done since. */
+  finish(sent: PendingChange[]): void;
+  /** A save failed: everything stays, and later changes may fold into it again. */
+  abort(): void;
+  /** Throws all changes away. */
+  discard(): void;
+}
+
+/**
+ * The queue of one spec on one branch, kept in the browser. Reloaded when the key changes (another spec or branch) and
+ * when another tab changes it. `key` null is no queue (nothing open).
+ */
+export function usePending(key: string | null, branch: string, slug: string, where: PendingWhere): PendingApi {
+  const store = useMemo(() => pendingStorage(where), [where]);
+  const [queue, setQueue] = useState<PendingChange[]>(() => key ? store.load(key) : []);
+  const [persistent, setPersistent] = useState(true);
+  const live = useRef(queue);
+  const sending = useRef<Set<string>>(new Set());
+  const write = useCallback((next: PendingChange[]) => {
+    live.current = next;
+    setQueue(next);
+    if (key) setPersistent(store.save(key, branch, slug, next));
+  }, [key, branch, slug, store]);
+
+  useEffect(() => {
+    sending.current = new Set();
+    const next = key ? store.load(key) : [];
+    live.current = next;
+    setQueue(next);
+  }, [key, store]);
+  useEffect(() => {
+    if (!key) return;
+    const onStorage = (e: StorageEvent) => { if (e.key === key) { const next = store.load(key); live.current = next; setQueue(next); } };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [key, store]);
+
+  return {
+    queue,
+    persistent,
+    add: (change, by) => {
+      if (live.current.length >= MAX_PENDING) return false;
+      write(addToQueue(live.current, sending.current, makePending(change, by)));
+      return true;
+    },
+    begin: () => {
+      const folded = compactPending(live.current);
+      write(folded);
+      sending.current = new Set(folded.map(markOf));
+      return folded;
+    },
+    finish: sent => {
+      sending.current = new Set();
+      write(removeSent(live.current, sent));
+    },
+    abort: () => { sending.current = new Set(); },
+    discard: () => { sending.current = new Set(); live.current = []; setQueue([]); if (key) { store.clear(key); setPersistent(true); } }
+  };
 }
