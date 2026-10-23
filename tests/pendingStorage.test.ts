@@ -1,7 +1,7 @@
 // Where the queue of unsaved changes waits, and how a save takes out only what it sent (specs/016-deferred-save).
 // Synthetic data only; a fake Storage stands for the browser's.
-import { describe, expect, it } from 'vitest';
-import { MAX_PENDING, addToQueue, compactPending, makePending, parsePending, pendingKey, pendingStorage, removeSent, type PendingChange } from '../src/annotations/pending';
+import { describe, expect, it, vi } from 'vitest';
+import { MAX_PENDING, addToQueue, warnBeforeUnload, compactPending, makePending, parsePending, pendingKey, pendingStorage, removeSent, type PendingChange } from '../src/annotations/pending';
 import type { Highlight } from '../src/project/types';
 
 class FakeStorage implements Storage {
@@ -130,5 +130,14 @@ describe('a save that takes out only what it sent (research R10)', () => {
   it('keeps everything when the save failed (nothing removed)', () => {
     const queue = [add('n1'), add('n2')];
     expect(removeSent(queue, [])).toEqual(queue);
+  });
+});
+
+describe('the warning before the tab is closed (FR-009)', () => {
+  it('asks the browser to ask, the way `beforeunload` wants it', () => {
+    const e = { preventDefault: vi.fn(), returnValue: undefined as unknown };
+    warnBeforeUnload(e);
+    expect(e.preventDefault).toHaveBeenCalled();
+    expect(e.returnValue).toBe('');
   });
 });

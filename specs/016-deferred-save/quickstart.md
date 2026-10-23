@@ -28,3 +28,7 @@ Chuẩn bị: `npm run dev` với GitHub giả (`FAKE_STATE`, như 011–017) ch
 - **5 (hợp nhất):** khi còn một nhận xét chờ, người khác ghi một nhận xét vào kho giả; Save: một commit, file có cả hai.
 - **6 (mục bị xoá):** người khác xoá nhận xét mình vừa thả emoji (chưa lưu): Save lưu phần còn lại, thông báo "Saved · commit c4abcde · 1 change skipped (the comment was removed)".
 - **10 (chỉ đọc):** hàng đợi còn từ trước, `push:false`: thanh hiện "1 change not saved", Save `aria-disabled` kèm lý do của 012.
+- **7 (Discard):** Discard hỏi "Discard 2 changes? Keep / Discard"; Keep giữ nguyên; Discard xoá emoji vừa thêm, thanh mất, 0 POST, 0 commit, khoá trong bộ nhớ bị gỡ.
+- **8 (rời trang):** `beforeunload` được huỷ mặc định (trình duyệt hỏi) khi còn thay đổi chưa lưu, im lặng khi hết; thay đổi ở spec khác (`004-card-freeze`) hiện "1 unsaved in other specs" và cũng làm trình duyệt hỏi.
+- **2 (hai tab):** thay đổi ở tab A hiện ở tab B không cần tải lại (sự kiện `storage`); Discard ở A làm thanh ở B mất.
+- **13 (bộ nhớ chặn):** `setItem` ném lỗi: thanh vẫn dùng được và thêm dòng "These changes are only in this tab and are lost if you close it."; đổi repo (Overview) hỏi "The changes not saved are only in this tab and will be lost. Leave this repository?".
