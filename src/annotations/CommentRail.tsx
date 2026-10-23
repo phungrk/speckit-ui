@@ -146,7 +146,7 @@ export function Card({ card, top, selected, person, now, onSelect, onRetry, acti
         replyCount(h) > 0 ? `${replyCount(h)} ${replyCount(h) === 1 ? 'reply' : 'replies'}` : '',
         ...groupReactions(h.reactions, null).map(g => `${g.emoji}${g.count}`)].filter(Boolean).join(' · ')}</span>}</div>
     <q className="sk-cm-quote">{h.quote}</q>
-    <div className="sk-cm-row"><p className="sk-cm-note">{h.note}</p>{selected && rowTool}</div>
+    <div className="sk-cm-row"><p className="sk-cm-note">{h.note}</p>{rowTool}</div>
     </div>
     {selected && actions && <>
       {card.mine && <>
@@ -189,8 +189,8 @@ export interface CommentRailProps {
   editing?: CardEditing;
   /** The discussion of a card, drawn when it is open (specs/011). */
   threadFor?: (card: CommentCard) => ReactNode;
-  /** The tool on the comment's own row (the emoji button), for the open card (specs/015). */
-  rowToolFor?: (card: CommentCard) => ReactNode;
+  /** The tool on the comment's own row (the emoji button); `open` tells whether the card is the open one (specs/015). */
+  rowToolFor?: (card: CommentCard, open: boolean) => ReactNode;
   /** Comments being written, each beside its text; the one being written keeps its place and the cards make way. */
   drafts?: RailDraft[];
   activeDraftId?: string | null;
@@ -250,10 +250,10 @@ export function CommentRail({ cards, selectedId, onSelect, branch, left, viewpor
       {fresh && <FreshBar {...fresh} />}</header>
     <div className="sk-cm-live" role="status" aria-live="polite">{at >= 0 ? `Comment ${at + 1} of ${ids.length} selected` : ''}</div>
     {drafts.map(d => <Fragment key={d.id}>{d.render(tops[draftId(d)])}</Fragment>)}
-    {cards.cards.filter(near).map(c => <Card key={c.id} card={c} top={tops[c.id]} selected={c.id === selectedId} onSelect={pick} thread={c.id === selectedId ? threadFor?.(c) : undefined} rowTool={c.id === selectedId ? rowToolFor?.(c) : undefined} {...shared} />)}
+    {cards.cards.filter(near).map(c => <Card key={c.id} card={c} top={tops[c.id]} selected={c.id === selectedId} onSelect={pick} thread={c.id === selectedId ? threadFor?.(c) : undefined} rowTool={rowToolFor?.(c, c.id === selectedId)} {...shared} />)}
     {cards.outdated.length > 0 && <section className="sk-cm-out" style={{ top: lastBottom + GAP * 2 }}>
       <h3>Outdated, text changed</h3>
-      {cards.outdated.map(c => <Card key={c.id} card={c} selected={c.id === selectedId} onSelect={pick} thread={c.id === selectedId ? threadFor?.(c) : undefined} rowTool={c.id === selectedId ? rowToolFor?.(c) : undefined} {...shared} />)}
+      {cards.outdated.map(c => <Card key={c.id} card={c} selected={c.id === selectedId} onSelect={pick} thread={c.id === selectedId ? threadFor?.(c) : undefined} rowTool={rowToolFor?.(c, c.id === selectedId)} {...shared} />)}
     </section>}
   </aside>;
 }

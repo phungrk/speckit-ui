@@ -400,7 +400,7 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
     onReact={(replyId, emoji, on) => react(c.id, replyId, emoji, on)} announce={announce} />;
 
   // The emoji button on the comment's own row (specs/015); the replies carry theirs inside the thread.
-  const rowToolFor = (c: CommentCard) => <EmojiButton list={c.highlight.reactions} me={author} readOnly={store.readOnly} what="this comment" onToggle={(emoji, on) => react(c.id, undefined, emoji, on)} />;
+  const rowToolFor = (c: CommentCard, open = true) => <EmojiButton tabbable={open} list={c.highlight.reactions} me={author} readOnly={store.readOnly} what="this comment" onToggle={(emoji, on) => react(c.id, undefined, emoji, on)} />;
 
   // A reply being written for a comment that was removed elsewhere is not kept silently (specs/011 U2).
   const knownIds = all.map(h => h.id).join(',');

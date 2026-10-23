@@ -12,20 +12,25 @@ describe('the darker row (FR-001, FR-002, FR-010)', () => {
     expect(css.indexOf(MARK)).toBeGreaterThan(0);
   });
 
-  it('darkens the row of the item under the pointer or with the focus in it, on the open card only', () => {
-    expect(block).toMatch(/\.sk-cm-card\.on \.sk-cm-item:hover \.sk-cm-row, \.sk-cm-card\.on \.sk-cm-item:focus-within \.sk-cm-row \{[^}]*background:/);
-    // The closed card has no row of its own to darken.
-    expect(block).not.toMatch(/\.sk-cm-card:not\(\.on\)[^{]*:hover/);
+  it('darkens the row of the item under the pointer or with the focus in it, on open and closed cards', () => {
+    expect(block).toMatch(/\.sk-cm-item:hover \.sk-cm-row, \.sk-cm-item:focus-within \.sk-cm-row \{[^}]*background:/);
+  });
+
+  it('on a closed card the row grows as paint only (shadow) and makes room for the button on hover', () => {
+    const r = rule('.sk-cm-card:not(.on) .sk-cm-item:hover .sk-cm-row, .sk-cm-card:not(.on) .sk-cm-item:focus-within .sk-cm-row');
+    expect(r).toMatch(/box-shadow: 0 0 0 4px color-mix/);
+    expect(r).toContain('padding-right: 36px');
+    expect(r).not.toMatch(/margin|height|border/);
   });
 
   it('colours through tokens, no fixed colour', () => {
     expect(block).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
     expect(block).not.toMatch(/rgba?\(/);
-    expect(rule('.sk-cm-card.on .sk-cm-item:hover .sk-cm-row, .sk-cm-card.on .sk-cm-item:focus-within .sk-cm-row')).toContain('var(--color-text)');
+    expect(rule('.sk-cm-item:hover .sk-cm-row, .sk-cm-item:focus-within .sk-cm-row')).toContain('var(--color-text)');
   });
 
   it('never changes size or place on hover: only the background', () => {
-    const hover = rule('.sk-cm-card.on .sk-cm-item:hover .sk-cm-row, .sk-cm-card.on .sk-cm-item:focus-within .sk-cm-row');
+    const hover = rule('.sk-cm-item:hover .sk-cm-row, .sk-cm-item:focus-within .sk-cm-row');
     for (const prop of ['padding', 'margin', 'height', 'width', 'border', 'top', 'left', 'font', 'line-height', 'display']) expect(hover, prop).not.toContain(prop + ':');
   });
 
@@ -58,7 +63,7 @@ describe('the floating emoji button (FR-003, FR-009, FR-010, FR-011)', () => {
 
   it('is hidden at rest by opacity, not removed, and shows with the pointer, the focus or an open picker', () => {
     expect(float).toMatch(/\.sk-cm-float-wrap \{[^}]*opacity: 0; pointer-events: none/);
-    expect(float).toMatch(/\.sk-cm-item:hover \.sk-cm-float-wrap, \.sk-cm-card\.on \.sk-cm-item:focus-within \.sk-cm-float-wrap, \.sk-cm-float-wrap\.open \{[^}]*opacity: 1/);
+    expect(float).toMatch(/\.sk-cm-item:hover \.sk-cm-float-wrap, \.sk-cm-item:focus-within \.sk-cm-float-wrap, \.sk-cm-float-wrap\.open \{[^}]*opacity: 1/);
     expect(float).not.toMatch(/\.sk-cm-float-wrap \{[^}]*display: none/);
   });
 
