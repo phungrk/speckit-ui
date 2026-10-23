@@ -292,3 +292,6 @@
 /* The header of a closed card holds the three dots too: the name gives way, the reply count and the time never wrap. */
 .sk-cm-who b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sk-cm-who .sk-cm-time, .sk-cm-who .sk-cm-count, .sk-cm-who .sk-cm-more-wrap { flex: none; }
+
+/* A change waiting to be saved (specs/016-deferred-save). Tokens only, no corners. */
+.sk-cm-state[data-state="queued"] { color: color-mix(in srgb, var(--color-text) 65%, transparent); }

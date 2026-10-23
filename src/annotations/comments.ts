@@ -32,7 +32,9 @@ export type SaveState =
   | { state: 'idle' }
   | { state: 'sending' }
   | { state: 'saved'; commit?: { sha: string; url: string }; where?: 'folder' | 'browser' }
-  | { state: 'failed'; error: string };
+  | { state: 'failed'; error: string }
+  /** Waiting in the browser until the user presses Save (specs/016-deferred-save); made from the queue, never by `reducePending`. */
+  | { state: 'queued' };
 
 export interface CommentCard {
   id: string;

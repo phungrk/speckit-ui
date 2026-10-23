@@ -12,7 +12,8 @@ import { prefsFor, type LastViewed, type PrefsStorage } from './prefs';
 import { Annotator } from '../annotations/Annotator';
 import type { HighlightActions } from '../annotations/highlightActions';
 import { HighlightsPanel } from '../annotations/HighlightsPanel';
-import { gitHubStore } from '../annotations/store';
+import { deferredStore, gitHubStore } from '../annotations/store';
+import { foldPending, pendingKey, unsavedIds, usePending } from '../annotations/pending';
 import type { FreshProps } from '../annotations/FreshBar';
 import { useFreshness } from '../annotations/useFreshness';
 import { briefNotes, readOnlyReason } from '../annotations/brief';
@@ -146,16 +147,21 @@ export function LiveWorkspace({ project, backend, user, storage, refreshing, onR
   const st = status[pi];
   const hlBranch = f ? f.branch ?? project.ref : null;
   const hlKey = f ? `${f.slug}@${hlBranch}` : '';
-  const hls = f ? savedHls[hlKey] ?? f.highlights?.items ?? [] : [];
+  // What is saved, and the changes made since that wait in this browser until Save (specs/016-deferred-save): the screen shows the queue on top of the saved list.
+  const savedList = f ? savedHls[hlKey] ?? f.highlights?.items ?? [] : [];
+  const pend = usePending(f ? pendingKey(user.login, project.repo, hlBranch ?? project.ref, f.slug) : null, hlBranch ?? project.ref, f?.slug ?? '', storage);
+  const hls = foldPending(savedList, pend.queue).items;
+  const queueRef = useRef({ view: hls, saved: savedList, add: pend.add });
+  queueRef.current = { view: hls, saved: savedList, add: pend.add };
   // Why saving is off: pinned, a broken file, an account GitHub says is read-only, or a save that was refused (specs/012 FR-016).
   const hlReadOnly = !f ? null : readOnlyReason(project, f.highlights?.error, refused);
-  const hlStore = gitHubStore(backend, project.repo, hlReadOnly);
+  const hlStore = deferredStore(gitHubStore(backend, project.repo, hlReadOnly), { view: () => queueRef.current.view, saved: () => queueRef.current.saved, add: (c, by) => queueRef.current.add(c, by) });
   // Other people's new comments: looked for every minute while the tab is open, shown only when asked (specs/012 FR-014).
   const freshCtl = useFreshness({
     enabled: !!f && !!hlBranch && !!hlStore.refresh,
     poll: true,
     read: etag => hlStore.refresh!({ slug: f!.slug, branch: hlBranch }, etag),
-    current: () => hls,
+    current: () => savedList,
     resetKey: hlKey
   });
   const showFresh = (items: Highlight[] | null) => { if (items) setSavedHls(x => ({ ...x, [hlKey]: items })); };
@@ -273,7 +279,7 @@ export function LiveWorkspace({ project, backend, user, storage, refreshing, onR
           </button>;
         })}</div>
         {f ? <Annotator items={hls} target={{ slug: f.slug, branch: hlBranch, phase: phase.k, doc: PHASE_DOC[phase.k] ?? '', docSha: f.blobs?.[PHASE_DOC[phase.k] ?? ''] ?? null }}
-          store={hlStore} author={{ login: user.login }} focusId={focusId} clearFocus={() => setFocusId(null)} selectedId={selectedId} onSelect={selectHl} fresh={fresh} onOutdated={setOutdated} onActions={setHlActions}
+          store={hlStore} author={{ login: user.login }} focusId={focusId} clearFocus={() => setFocusId(null)} selectedId={selectedId} onSelect={selectHl} fresh={fresh} unsaved={unsavedIds(pend.queue)} onOutdated={setOutdated} onActions={setHlActions}
           consent={{ needed: askConsent, branch: hlBranch ?? project.ref, login: user.login, accept: () => { prefs.setHighlightConsent(project.repo, true); setAskConsent(false); } }}
           onItems={items => setSavedHls(x => ({ ...x, [hlKey]: items }))}
           onRefused={reason => setRefused(reason)}
