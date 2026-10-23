@@ -24,3 +24,13 @@ Chuẩn bị: `npm run dev` (demo `http://localhost:5173/?demo`, vai QA); server
 - **7 (bàn phím):** ↓/↑ đổi thẻ chọn; Tab từ thẻ mở đi qua "More actions", "Add a reaction to this comment", ba chấm và nút emoji của trả lời, ô Reply; nút của thẻ đóng có `tabindex=-1`.
 - **8 (chỉ đọc, `push:false`):** nút emoji của thẻ đóng `aria-disabled` kèm lý do, bấm không mở bộ; Edit và Delete `aria-disabled` kèm cùng lý do, bấm không làm gì.
 - **9 (cảm ứng, 1920 với `isMobile`):** ba chấm 44×44 và nút emoji 44×44 hiện sẵn ở thẻ đóng; thẻ được đo (152, 134, 152, 152 px), không chồng nhau (cách nhau 8 px) và nội dung không bị cắt; chạm nút emoji mở 6 emoji mà không chọn thẻ; không cuộn ngang. Ở 390 px rail không hiện (chỉ có sheet cho thẻ đã chọn).
+- **10 (bốn giao diện trang):** White, Sepia, Green, Dark: hàng emoji, ba chấm và nút nổi đọc được; viên emoji của mình có viền theo màu chữ, nền cùng nền thẻ (như 011).
+- **11 (demo):** ảnh chính, New spec, popup (1440×900, 924×540, 390) giống từng byte với ảnh trước spec này (ở các cỡ này rail không hiện). Ở 1920 px (rail hiện), thẻ đóng của mình đổi đúng chỗ đã ghi: giờ ở tiêu đề dịch trái từ cách mép thẻ 13 px thành 53 px (chỗ cho ba chấm, 40 px thay vì ~32 px dự kiến); chiều cao 124 px giữ nguyên. Phần chênh này phải có trong bản thiết kế đã cập nhật (T001b, chờ người dùng).
+- **12–13 (dữ liệu và cổng):** `npm test` 530 qua, `npm run typecheck`, `npm run build`, `npm run build:pages` qua. Thả/gỡ emoji tạo một commit `[skip ci]` mỗi lần, không nhân đôi. Không còn hàng emoji gốc trong thread và không còn chuỗi emoji trong tiêu đề. Static và local: chỉ build, không chạy tay (cùng mã giao diện).
+
+## Mô tả PR (nháp, T016; chưa tạo PR)
+
+- **Spec**: `specs/017-comment-item-layout/`; `Closes #<issue "Spec 017: …">` (tạo khi người dùng yêu cầu PR, nhãn `speckit`).
+- **Đổi**: hàng emoji dưới nội dung ở mọi thẻ (thẻ đóng không còn chuỗi emoji trong tiêu đề, thẻ có emoji được đo chiều cao); ba chấm cùng nút emoji khi hover ở mọi thẻ của mình, ngoài cùng bên phải của tiêu đề; Edit/Delete từ thẻ đóng; cảm ứng: nút hiện sẵn ở thẻ đóng.
+- **Chế độ**: cả bốn (demo, server, static, local), chỉ giao diện; không đổi dữ liệu, `highlights.json`, quyền hay cách lưu.
+- **Demo**: ảnh 1440×900 và 924×540 (chính, New spec) và popup giống hệt; ở 1920 px thẻ đóng của mình có giờ dịch 40 px sang trái (chỗ cho ba chấm) và hàng emoji dưới nội dung khi có emoji. Hai chỗ này phải có trong bản thiết kế `Speckit Workspace.html` đã cập nhật (người dùng cung cấp); **không merge trước khi có xác nhận (T001b)**.

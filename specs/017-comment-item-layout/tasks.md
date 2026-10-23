@@ -47,11 +47,11 @@
 
 ## Phase 5: Polish & cross-cutting
 
-- [ ] T012 [P] Cập nhật `README.md` mục Highlights: emoji dưới nội dung ở mọi thẻ, ba chấm cùng nút emoji khi hover ở mọi thẻ của mình; liên kết `specs/017-comment-item-layout/`.
-- [ ] T013 Chụp thẻ đóng và mở có emoji ở bốn giao diện trang (White, Sepia, Green, Dark) và ở 390 px giả lập cảm ứng; xác nhận hàng emoji, ba chấm, nút nổi đọc được; sửa `reader.css` nếu cần; ghi kết quả vào `quickstart.md`.
-- [ ] T014 Chạy quickstart 1–13 ở demo và server (GitHub giả); static (`build:pages`) và local chỉ ghi rõ có chạy hay chỉ build; chạy đủ bốn cổng: `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages`; kiểm không còn mã chết (`ReactionBar` gốc trong `Thread`, chuỗi emoji trong `.sk-cm-count`) bằng `tsc` và grep.
-- [ ] T015 So ảnh demo với ảnh T001 ở 1440×900 và 924×540 (màn hình chính, hộp thoại New spec) và popup: giống hệt ngoài tiêu đề thẻ đóng của mình; liệt kê phần chênh trong PR (ngoại lệ đã ghi ở spec Q1).
-- [ ] T016 Mô tả PR: nêu `specs/017-comment-item-layout`, `Closes #<issue "Spec 017: …">` (tạo issue nhãn `speckit` nếu chưa có), chế độ bị ảnh hưởng (cả bốn), không đổi dữ liệu hay cách lưu, hai ngoại lệ demo (giờ ở tiêu đề thẻ đóng của mình dịch trái, hàng emoji dưới nội dung), thẻ đóng không còn chuỗi emoji ở tiêu đề. Không tạo PR trước khi người dùng yêu cầu.
+- [X] T012 [P] Cập nhật `README.md` mục Highlights: emoji dưới nội dung ở mọi thẻ, ba chấm cùng nút emoji khi hover ở mọi thẻ của mình; liên kết `specs/017-comment-item-layout/`.
+- [X] T013 Chụp thẻ đóng và mở có emoji ở bốn giao diện trang (White, Sepia, Green, Dark) và ở 390 px giả lập cảm ứng; xác nhận hàng emoji, ba chấm, nút nổi đọc được; sửa `reader.css` nếu cần; ghi kết quả vào `quickstart.md`.
+- [X] T014 Chạy quickstart 1–13 ở demo và server (GitHub giả); static (`build:pages`) và local chỉ ghi rõ có chạy hay chỉ build; chạy đủ bốn cổng: `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages`; kiểm không còn mã chết (`ReactionBar` gốc trong `Thread`, chuỗi emoji trong `.sk-cm-count`) bằng `tsc` và grep.
+- [X] T015 So ảnh demo với ảnh T001 ở 1440×900 và 924×540 (màn hình chính, hộp thoại New spec) và popup: giống hệt ngoài tiêu đề thẻ đóng của mình; liệt kê phần chênh trong PR (ngoại lệ đã ghi ở spec Q1).
+- [X] T016 Mô tả PR: nêu `specs/017-comment-item-layout`, `Closes #<issue "Spec 017: …">` (tạo issue nhãn `speckit` nếu chưa có), chế độ bị ảnh hưởng (cả bốn), không đổi dữ liệu hay cách lưu, hai ngoại lệ demo (giờ ở tiêu đề thẻ đóng của mình dịch trái, hàng emoji dưới nội dung), thẻ đóng không còn chuỗi emoji ở tiêu đề. Không tạo PR trước khi người dùng yêu cầu.
 
 ## Dependencies & Execution Order
 
