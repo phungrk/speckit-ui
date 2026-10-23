@@ -7,6 +7,26 @@ import { sameAuthor } from './brief';
 /** Height of a closed card in the rail: fixed by the CSS to this number, so the layout needs no measuring (research R2). */
 export const CLOSED_CARD_HEIGHT = 124;
 
+/** Room added to a closed card by a row of emoji, and by 44 px buttons on a touch screen (specs/017); only used to guess the height of the Outdated group, which is not placed. */
+export const CHIPS_ROW_HEIGHT = 36;
+export const CHIPS_ROW_HEIGHT_COARSE = 56;
+export const CLOSED_COARSE_EXTRA = 30;
+
+const hasEmoji = (card: CommentCard) => (card.highlight.reactions?.length ?? 0) > 0;
+
+/**
+ * Whether a card's height is measured (the open card, one being edited, one with a row of emoji, any on a touch screen)
+ * or the fixed `CLOSED_CARD_HEIGHT` of a plain closed card (specs/017 research R2).
+ */
+export function isMeasured(card: CommentCard, { open, coarse }: { open: boolean; coarse: boolean }): boolean {
+  return open || coarse || hasEmoji(card);
+}
+
+/** A guess of what a measured closed card adds to the Outdated group, over the fixed height. */
+export function outdatedExtra(card: CommentCard, coarse: boolean): number {
+  return (coarse ? CLOSED_COARSE_EXTRA : 0) + (hasEmoji(card) ? (coarse ? CHIPS_ROW_HEIGHT_COARSE : CHIPS_ROW_HEIGHT) : 0);
+}
+
 /** Where a change stands: reading from the file, being saved, saved (with where), or refused. */
 export type SaveState =
   | { state: 'idle' }

@@ -10,13 +10,13 @@
 
 ## Phase 1: Setup
 
-- [ ] T001 Baseline trên `main` mới nhất: `npm ci`; `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages` đều qua. Chụp ảnh "trước" vào scratchpad (ngoài repo): demo 1440×900 và 924×540 (màn hình chính, hộp thoại New spec), popup 1440 và 390 (`base.cjs before17`); thẻ đóng của mình và thẻ đóng có emoji ở GitHub giả (1440 và 390). Ghi số test đang qua.
+- [X] T001 Baseline trên `main` mới nhất: `npm ci`; `npm test`, `npm run typecheck`, `npm run build`, `npm run build:pages` đều qua. Chụp ảnh "trước" vào scratchpad (ngoài repo): demo 1440×900 và 924×540 (màn hình chính, hộp thoại New spec), popup 1440 và 390 (`base.cjs before17`); thẻ đóng của mình và thẻ đóng có emoji ở GitHub giả (1440 và 390). Ghi số test đang qua.
 
 - [ ] T001b Chặn merge: xác nhận với người dùng rằng bản thiết kế `Speckit Workspace.html` (ngoài repo) đã cập nhật tiêu đề thẻ đóng của mình (giờ dịch trái, chỗ cho ba chấm) và hàng emoji dưới nội dung; ghi xác nhận (ngày, nội dung) vào `quickstart.md`. Có thể làm song song mọi việc khác, nhưng không merge khi chưa có (constitution IV, analyze C1).
 
 ## Phase 2: Foundational — quy tắc đo thẻ (chặn US1, US2)
 
-- [ ] T002 Trong `src/annotations/comments.ts`: thêm hàm thuần `isMeasured(card, { open, coarse })` (mở, đang soạn, có ít nhất một emoji, hoặc màn hình cảm ứng thì đo, ngược lại cố định `CLOSED_CARD_HEIGHT`) và `outdatedExtra(card, coarse)` (ước lượng chiều cao thêm cho thẻ Outdated có emoji/cảm ứng; hằng số tên rõ). Test `tests/measured.test.ts`: thẻ đóng không emoji → không đo; có emoji → đo; cảm ứng → đo; mở/soạn → đo; ước lượng 0 khi không cần.
+- [X] T002 Trong `src/annotations/comments.ts`: thêm hàm thuần `isMeasured(card, { open, coarse })` (mở, đang soạn, có ít nhất một emoji, hoặc màn hình cảm ứng thì đo, ngược lại cố định `CLOSED_CARD_HEIGHT`) và `outdatedExtra(card, coarse)` (ước lượng chiều cao thêm cho thẻ Outdated có emoji/cảm ứng; hằng số tên rõ). Test `tests/measured.test.ts`: thẻ đóng không emoji → không đo; có emoji → đo; cảm ứng → đo; mở/soạn → đo; ước lượng 0 khi không cần.
 
 **Checkpoint**: `npm test` và `npm run typecheck` qua; UI chưa đổi.
 
