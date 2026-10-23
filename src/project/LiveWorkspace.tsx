@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Copilot, type AskFn, type CopilotMsg } from '../copilot/Copilot';
 import { STATIC, type Backend } from '../backend';
 import { OfflineError } from '../copilot/api';
@@ -9,10 +9,12 @@ import { GatePanel, type DecideResult } from './GatePanel';
 import { buildOverview } from './overview';
 import { LIVE_CLASS, LIVE_LABEL, PHASES, blobUrl, phaseStatus, type LiveStatus } from './phases';
 import { prefsFor, type LastViewed, type PrefsStorage } from './prefs';
-import { Annotator } from '../annotations/Annotator';
+import { Annotator, ConsentDialog } from '../annotations/Annotator';
+import { SaveBar } from '../annotations/SaveBar';
 import type { HighlightActions } from '../annotations/highlightActions';
 import { HighlightsPanel } from '../annotations/HighlightsPanel';
-import { gitHubStore } from '../annotations/store';
+import { deferredStore, gitHubStore } from '../annotations/store';
+import { compactPending, foldPending, pendingKey, pendingStorage, unsavedIds, usePending, warnBeforeUnload } from '../annotations/pending';
 import type { FreshProps } from '../annotations/FreshBar';
 import { useFreshness } from '../annotations/useFreshness';
 import { briefNotes, readOnlyReason } from '../annotations/brief';
@@ -146,16 +148,58 @@ export function LiveWorkspace({ project, backend, user, storage, refreshing, onR
   const st = status[pi];
   const hlBranch = f ? f.branch ?? project.ref : null;
   const hlKey = f ? `${f.slug}@${hlBranch}` : '';
-  const hls = f ? savedHls[hlKey] ?? f.highlights?.items ?? [] : [];
+  // What is saved, and the changes made since that wait in this browser until Save (specs/016-deferred-save): the screen shows the queue on top of the saved list.
+  const savedList = f ? savedHls[hlKey] ?? f.highlights?.items ?? [] : [];
+  const pend = usePending(f ? pendingKey(user.login, project.repo, hlBranch ?? project.ref, f.slug) : null, hlBranch ?? project.ref, f?.slug ?? '', storage);
+  const hls = foldPending(savedList, pend.queue).items;
+  const queueRef = useRef({ view: hls, saved: savedList, add: pend.add });
+  queueRef.current = { view: hls, saved: savedList, add: pend.add };
   // Why saving is off: pinned, a broken file, an account GitHub says is read-only, or a save that was refused (specs/012 FR-016).
   const hlReadOnly = !f ? null : readOnlyReason(project, f.highlights?.error, refused);
-  const hlStore = gitHubStore(backend, project.repo, hlReadOnly);
+  // Save: every change waiting in this spec goes in one commit, after the one-time confirmation for the repository (specs/016).
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveNote, setSaveNote] = useState<{ commit: { sha: string; url: string } | null; skipped: number } | null>(null);
+  const [confirmSave, setConfirmSave] = useState(false);
+  useEffect(() => { setSaveError(null); setSaveNote(null); }, [hlKey]);
+  useEffect(() => { if (!saveNote) return; const t = setTimeout(() => setSaveNote(null), 6000); return () => clearTimeout(t); }, [saveNote]);
+  const pendingCount = compactPending(pend.queue).length;
+  const elsewhere = useMemo(() => pendingStorage(storage).list(user.login, project.repo).filter(q => !(f && q.slug === f.slug && q.branch === (hlBranch ?? project.ref))).reduce((n, q) => n + q.count, 0),
+    [pend.queue, f?.slug, hlBranch, project.repo, user.login, storage]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The browser asks before the tab is closed while anything waits, here or in another spec (FR-009).
+  useEffect(() => {
+    if (pendingCount + elsewhere === 0) return;
+    window.addEventListener('beforeunload', warnBeforeUnload);
+    return () => window.removeEventListener('beforeunload', warnBeforeUnload);
+  }, [pendingCount + elsewhere > 0]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Leaving the repository loses a queue the browser could not keep (FR-009).
+  const leave = (go: () => void) => { if (!pend.persistent && pendingCount > 0 && !window.confirm('The changes not saved are only in this tab and will be lost. Leave this repository?')) return; go(); };
+  const doSave = async () => {
+    if (!f || !hlBranch || saving || hlReadOnly) return;
+    setSaving(true); setSaveError(null);
+    const sent = pend.begin();
+    try {
+      const r = await backend.saveHighlights(project.repo, f.slug, hlBranch, sent.map(s => s.change));
+      setSavedHls(x => ({ ...x, [hlKey]: r.items }));
+      pend.finish(sent);
+      setSaveNote({ commit: r.commit, skipped: r.skipped.length });
+    } catch (e) {
+      pend.abort();
+      const msg = e instanceof Error ? e.message : String(e);
+      if (e instanceof SignInRequired) onAuthLost();
+      setSaveError(msg);
+      if (/cannot commit to|no longer exists|read-only/.test(msg)) setRefused(msg);
+    } finally { setSaving(false); }
+  };
+  const onSave = () => { if (askConsent) setConfirmSave(true); else void doSave(); };
+  const saveBar = f ? <SaveBar count={pendingCount} elsewhere={elsewhere} saving={saving} error={saveError} readOnly={hlReadOnly} persistent={pend.persistent} onSave={onSave} onDiscard={() => { pend.discard(); setSaveError(null); }} /> : null;
+  const hlStore = deferredStore(gitHubStore(backend, project.repo, hlReadOnly), { view: () => queueRef.current.view, saved: () => queueRef.current.saved, add: (c, by) => queueRef.current.add(c, by) });
   // Other people's new comments: looked for every minute while the tab is open, shown only when asked (specs/012 FR-014).
   const freshCtl = useFreshness({
     enabled: !!f && !!hlBranch && !!hlStore.refresh,
     poll: true,
     read: etag => hlStore.refresh!({ slug: f!.slug, branch: hlBranch }, etag),
-    current: () => hls,
+    current: () => savedList,
     resetKey: hlKey
   });
   const showFresh = (items: Highlight[] | null) => { if (items) setSavedHls(x => ({ ...x, [hlKey]: items })); };
@@ -213,7 +257,7 @@ export function LiveWorkspace({ project, backend, user, storage, refreshing, onR
       <SidebarToggle side="left" open={rd.layout.left} onToggle={() => rd.setLayout({ ...rd.layout, left: !rd.layout.left })} />
       <div className="nav-brand" title={`Build ${__BUILD__}`}>Speckit</div>
       <div className="sk-proj">
-        <select className="sk-repo-switch" aria-label="Repository" value={project.repo} onChange={e => e.target.value === '*' ? onAllRepos() : onSwitch(e.target.value)}>
+        <select className="sk-repo-switch" aria-label="Repository" value={project.repo} onChange={e => leave(() => e.target.value === '*' ? onAllRepos() : onSwitch(e.target.value))}>
           <option value={project.repo}>{project.repo}</option>
           {choices.pinned.length > 0 && <optgroup label="Pinned">{choices.pinned.map(r => <option key={r} value={r} disabled={!!repos.unavailable[r]}>{r}{repos.unavailable[r] ? ' (not accessible)' : ''}</option>)}</optgroup>}
           {choices.recent.length > 0 && <optgroup label="Recent">{choices.recent.map(r => <option key={r} value={r}>{r}</option>)}</optgroup>}
@@ -222,8 +266,8 @@ export function LiveWorkspace({ project, backend, user, storage, refreshing, onR
         <a className="sk-plain text-muted" href={`https://github.com/${project.repo}`} target="_blank" rel="noreferrer" title="Open on GitHub">/ specs</a>
       </div>
       <div className="sk-spacer"></div>
-      <button className="btn btn-ghost sk-small" onClick={onOverview}>Overview</button>
-      <button className="btn btn-ghost sk-small" onClick={onAllRepos}>All repos</button>
+      <button className="btn btn-ghost sk-small" onClick={() => leave(onOverview)}>Overview</button>
+      <button className="btn btn-ghost sk-small" onClick={() => leave(onAllRepos)}>All repos</button>
       <a className="sk-sync" href={`https://github.com/${project.repo}/commit/${project.sha}`} target="_blank" rel="noreferrer" title={`Loaded ${new Date(project.fetchedAt).toLocaleString()}`}>
         <Icon n="branch" s={14} />{project.ref} @ {project.sha.slice(0, 7)}<span className="text-muted"> · {ago(project.fetchedAt, now)}</span>
       </a>
@@ -253,7 +297,7 @@ export function LiveWorkspace({ project, backend, user, storage, refreshing, onR
           })}</ul>
         </div>
       </aside>}
-      <main className="sk-main">
+      <main className={'sk-main' + (f && pendingCount + elsewhere > 0 ? ' has-savebar' : '')}>
         <div className="sk-fhead">
           <div className="sk-file"><Icon n="branch" s={14} />{f ? <>{f.branch ? `${f.branch} · ` : ''}{f.slug}</> : project.repo}
             {f && f.variants.length > 1 && <select className="sk-repo-switch sk-version" aria-label={`Version of ${f.slug}`} value={f.variants[0].branches[0]}
@@ -272,8 +316,9 @@ export function LiveWorkspace({ project, backend, user, storage, refreshing, onR
             <span className="sk-st">{cls === 'done' ? <Icon n="check" s={12} /> : s === 'pending' ? <Icon n="lock" s={12} /> : <Icon n="dot" s={12} />}{label}</span>
           </button>;
         })}</div>
+        {saveBar}
         {f ? <Annotator items={hls} target={{ slug: f.slug, branch: hlBranch, phase: phase.k, doc: PHASE_DOC[phase.k] ?? '', docSha: f.blobs?.[PHASE_DOC[phase.k] ?? ''] ?? null }}
-          store={hlStore} author={{ login: user.login }} focusId={focusId} clearFocus={() => setFocusId(null)} selectedId={selectedId} onSelect={selectHl} fresh={fresh} onOutdated={setOutdated} onActions={setHlActions}
+          store={hlStore} author={{ login: user.login }} focusId={focusId} clearFocus={() => setFocusId(null)} selectedId={selectedId} onSelect={selectHl} fresh={fresh} unsaved={unsavedIds(pend.queue)} onOutdated={setOutdated} onActions={setHlActions}
           consent={{ needed: askConsent, branch: hlBranch ?? project.ref, login: user.login, accept: () => { prefs.setHighlightConsent(project.repo, true); setAskConsent(false); } }}
           onItems={items => setSavedHls(x => ({ ...x, [hlKey]: items }))}
           onRefused={reason => setRefused(reason)}
@@ -291,6 +336,11 @@ export function LiveWorkspace({ project, backend, user, storage, refreshing, onR
             <button className="btn btn-primary" onClick={copy} disabled={cmdLocked}>Copy<Icon n="arrow" s={12} /></button>
           </div>
         </div>
+        {confirmSave && <ConsentDialog branch={hlBranch ?? project.ref} login={user.login} onCancel={() => setConfirmSave(false)}
+          onAccept={() => { prefs.setHighlightConsent(project.repo, true); setAskConsent(false); setConfirmSave(false); void doSave(); }} />}
+        {saveNote && <div className="sk-hl-toast" role="status">
+          {saveNote.commit ? <>Saved · <a href={saveNote.commit.url} target="_blank" rel="noreferrer">commit {saveNote.commit.sha.slice(0, 7)}</a></> : 'Nothing was left to save'}
+          {saveNote.skipped > 0 && ` · ${saveNote.skipped} ${saveNote.skipped === 1 ? 'change' : 'changes'} skipped (the comment was removed)`}</div>}
       </main>
       {rd.layout.right && <aside className={'sk-right' + (rtab === 'ai' ? ' is-ai' : '')}>
         <div className="sk-rtabs is-3" role="tablist">
@@ -300,7 +350,7 @@ export function LiveWorkspace({ project, backend, user, storage, refreshing, onR
         </div>
         {rtab === 'hl' && f ? <HighlightsPanel actions={hlActions} items={hls} phases={PHASES.map(p => ({ key: p.k, name: p.n }))} outdated={outdated}
           selectedId={selectedId} fresh={fresh} onOpen={h => { const i = PHASES.findIndex(p => p.k === h.phase); if (i >= 0) setSel(i); selectHl(h.id, { jump: true }); }}
-          ask={{ on: askConsent, set: on => { prefs.setHighlightConsent(project.repo, !on); setAskConsent(on); } }} readOnly={hlReadOnly} now={now} />
+          ask={{ on: askConsent, set: on => { prefs.setHighlightConsent(project.repo, !on); setAskConsent(on); } }} saveBar={saveBar} readOnly={hlReadOnly} now={now} />
           : rtab === 'ai' && f ? <Copilot label={<>Reading <b>{f.id}</b> · {phase.n} · {project.repo}</>} tag={`${f.id} · ${phase.n}`} audience="this spec" suggestions={LIVE_SUGGEST}
           placeholder={`Ask about ${f.title}…`} refPattern={liveRefPattern(f)} msgs={msgs} setMsgs={setMsgs} ask={ask} seed={seed} clearSeed={() => setSeed(null)}
           onRef={r => setSel(liveRefPhase(f, r))} /> : <>

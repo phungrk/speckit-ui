@@ -3,7 +3,7 @@
 // Every call names its repository; the user's own access decides what they can open.
 import { GitHubError, clearProjectCache, detectSpeckit, getProject, getSpecVariant, identityFor, json, listRepos, type Source } from '../server/github';
 import { clearTrackingCache, decideGate, getTracking } from '../server/tracking';
-import { readHighlights, saveHighlight, type ReadResult, type SaveResult } from '../server/highlights';
+import { readHighlights, saveHighlight, saveHighlights, type ReadResult, type SaveBatchResult, type SaveResult } from '../server/highlights';
 import type { CopilotMsg } from './copilot/Copilot';
 import { OfflineError, requestCopilot, toTurns } from './copilot/api';
 import type { Decided, GateAction } from './project/trackingApi';
@@ -28,6 +28,8 @@ export interface Backend {
   decide(repo: string, slug: string, gate: GateKey, action: GateAction, note: string, branch?: string | null): Promise<Decided>;
   /** Commits one highlight change to the spec's highlights.json on `branch` (specs/010-spec-annotations). */
   saveHighlight(repo: string, slug: string, branch: string, change: HighlightChange): Promise<SaveResult>;
+  /** Commits the changes made before the user pressed Save as one commit; the ones that no longer apply come back as `skipped` (specs/016). */
+  saveHighlights(repo: string, slug: string, branch: string, changes: HighlightChange[]): Promise<SaveBatchResult>;
   /** Reads the spec's highlights.json on `branch`, or says it is unchanged since `etag` (specs/012 FR-014). Writes nothing. */
   readHighlights(repo: string, slug: string, branch: string, etag: string | null): Promise<ReadResult>;
   /** Throws OfflineError when no Claude credentials are available. */
@@ -68,6 +70,7 @@ export const serverBackend: Backend = {
   tracking: fetchTracking,
   decide: postGate,
   saveHighlight: (repo, slug, branch, change) => api<SaveResult>('/api/highlights', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ repo, slug, branch, change }) }),
+  saveHighlights: (repo, slug, branch, changes) => api<SaveBatchResult>('/api/highlights', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ repo, slug, branch, changes }) }),
   readHighlights: readHighlightsFromServer,
   copilot: requestCopilot,
   reset: resetCaches
@@ -161,6 +164,11 @@ export function browserBackend(settings: Settings): Backend {
       const src = await source(repo);
       const me = await json<{ login: string }>({ owner: '', repo: '', token }, '/user');
       return saveHighlight(src, { slug, branch, change, user: me.login });
+    },
+    async saveHighlights(repo, slug, branch, changes) {
+      const src = await source(repo);
+      const me = await json<{ login: string }>({ owner: '', repo: '', token }, '/user');
+      return saveHighlights(src, { slug, branch, changes, user: me.login });
     },
     async readHighlights(repo, slug, branch, etag) { return readHighlights(await source(repo), { slug, branch, etag }); },
     copilot: (context, hist) => browserCopilot(settings.anthropicKey, context, hist),

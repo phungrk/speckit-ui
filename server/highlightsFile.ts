@@ -171,6 +171,11 @@ export function applyChange(items: Highlight[], change: HighlightChange, by: Hig
   return items.map(x => x.id === change.id ? { ...x, ...(change.color ? { color: change.color } : {}), ...(change.note !== undefined ? { note: change.note } : {}), updatedAt: now } : x);
 }
 
+/** The commit message of a save of several changes at once (specs/016 R6); one change keeps its own message. Always ends with [skip ci]. */
+export function commitMessageBatch(changes: HighlightChange[], items: Highlight[], who: string, slug: string): string {
+  return changes.length === 1 ? commitMessage(changes[0], items, who) : `${who} saved ${changes.length} comment changes on ${slug} [skip ci]`;
+}
+
 /** The commit message (research R16); it always ends with [skip ci] (FR-010). */
 export function commitMessage(change: HighlightChange, items: Highlight[], who: string): string {
   const h = change.type === 'add' ? change.highlight : items.find(x => x.id === change.id);

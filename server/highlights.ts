@@ -2,7 +2,7 @@
 // build (constitution III): no Node-only APIs. The only write is one Contents API commit to
 // specs/NNN-slug/highlights.json (constitution I 1.4.0).
 import { GitHubError, gh, type Source } from './github.ts';
-import { HIGHLIGHTS_FILE, HighlightError, MAX_BYTES, applyChange, commitMessage, parseHighlights, serializeHighlights } from './highlightsFile.ts';
+import { HIGHLIGHTS_FILE, HighlightError, MAX_BYTES, applyChange, commitMessageBatch, parseHighlights, serializeHighlights } from './highlightsFile.ts';
 import type { Highlight, HighlightAuthor, HighlightChange } from '../src/project/types.ts';
 
 export * from './highlightsFile.ts';
@@ -41,11 +41,16 @@ export async function readHighlights(src: Source, { slug, branch, etag }: { slug
   }
 }
 
+export interface SaveBatchResult { items: Highlight[]; /** null when nothing changed, so nothing was committed. */ commit: { sha: string; url: string } | null; /** Changes that could not be applied (their target is gone, or is not the saver's), by place in `changes`. */ skipped: { index: number; error: string }[] }
+
 /**
- * Reads the file on `branch`, applies `change` for `user`, and commits it with the read sha.
- * A concurrent commit (409, or 422 about the sha) is retried on the new version, up to 3 times.
+ * Reads the file on `branch`, applies `changes` in order for `user`, and commits the result once with the read sha.
+ * A change whose target was removed by someone else, or that only another person may make, is skipped and reported and
+ * does not stop the others (specs/016 FR-011); nothing changed means no commit. A concurrent commit (409, or 422 about
+ * the sha) is retried on the new version, applying every change again, up to 3 times. `strict` (one change, the old
+ * behaviour) throws instead of skipping and always commits.
  */
-export async function saveHighlight(src: Source, { slug, branch, change, user }: { slug: string; branch: string; change: HighlightChange; user: string }): Promise<SaveResult> {
+async function commitChanges(src: Source, { slug, branch, changes, user }: { slug: string; branch: string; changes: HighlightChange[]; user: string }, strict: boolean): Promise<SaveBatchResult> {
   const path = `specs/${slug}/${HIGHLIGHTS_FILE}`;
   const base = `/repos/${src.owner}/${src.repo}/contents/${enc(path)}`;
   const by: HighlightAuthor = { login: user };
@@ -59,12 +64,21 @@ export async function saveHighlight(src: Source, { slug, branch, change, user }:
     }
     const parsed = parseHighlights(text);
     if (parsed.error) throw new HighlightError(parsed.error, 409);
-    const items = applyChange(parsed.items, change, by);
+    let items = parsed.items;
+    const skipped: { index: number; error: string }[] = [];
+    changes.forEach((change, index) => {
+      try { items = applyChange(items, change, by); } catch (e) {
+        if (!strict && e instanceof HighlightError && (e.status === 409 || e.status === 403)) skipped.push({ index, error: e.message });
+        else throw e;
+      }
+    });
     const body = serializeHighlights(items);
+    if (!strict && (text === null ? items.length === 0 : body === serializeHighlights(parsed.items))) return { items, commit: null, skipped };
     if (new TextEncoder().encode(body).length > MAX_BYTES) throw new HighlightError('This spec has too many highlights to save more.', 413);
+    const applied = changes.filter((_, i) => !skipped.some(s => s.index === i));
     try {
-      const res = await (await gh(src, base, false, { method: 'PUT', body: { message: commitMessage(change, parsed.items, user), content: toBase64(body), branch, ...(sha ? { sha } : {}) } })).json() as { commit: { sha: string; html_url: string } };
-      return { items, commit: { sha: res.commit.sha, url: res.commit.html_url } };
+      const res = await (await gh(src, base, false, { method: 'PUT', body: { message: commitMessageBatch(applied.length ? applied : changes, parsed.items, user, slug), content: toBase64(body), branch, ...(sha ? { sha } : {}) } })).json() as { commit: { sha: string; html_url: string } };
+      return { items, commit: { sha: res.commit.sha, url: res.commit.html_url }, skipped };
     } catch (e) {
       if (e instanceof GitHubError && (e.status === 409 || e.status === 422 && sha)) continue;
       if (e instanceof GitHubError && (e.status === 403 || e.status === 404)) throw new HighlightError(`Your token cannot commit to ${branch} (needs Contents: Read and write), or the branch is protected.`, 403);
@@ -73,4 +87,15 @@ export async function saveHighlight(src: Source, { slug, branch, change, user }:
     }
   }
   throw new HighlightError('Someone else saved highlights at the same time. Try again.', 409);
+}
+
+/** One change, one commit (specs/010). */
+export async function saveHighlight(src: Source, { slug, branch, change, user }: { slug: string; branch: string; change: HighlightChange; user: string }): Promise<SaveResult> {
+  const r = await commitChanges(src, { slug, branch, changes: [change], user }, true);
+  return { items: r.items, commit: r.commit! };
+}
+
+/** Several changes, one commit (specs/016). */
+export function saveHighlights(src: Source, args: { slug: string; branch: string; changes: HighlightChange[]; user: string }): Promise<SaveBatchResult> {
+  return commitChanges(src, args, false);
 }

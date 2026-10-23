@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Label } from '../ui';
 import type { Highlight, HighlightAuthor } from '../project/types';
 import { authorLabel, relTime } from './brief';
@@ -27,6 +27,8 @@ export interface HighlightsPanelProps {
   person?: (a: HighlightAuthor) => { name: string; ini: string };
   /** The "Ask before committing highlights" switch, for GitHub stores only (FR-009a). */
   ask?: { on: boolean; set: (on: boolean) => void };
+  /** The bar of changes waiting to be saved, at the top (specs/016-deferred-save); left out where saving is at once. */
+  saveBar?: ReactNode;
   /** Reason saving is off, shown under the list. */
   readOnly?: string | null;
   now?: number;
@@ -50,13 +52,14 @@ export function EntryActions({ h, actions, confirming, onConfirm, onDeleted }: {
   </div>;
 }
 
-export function HighlightsPanel({ items, phases, outdated, selectedId = null, fresh, onOpen, actions, person = defaultPerson, ask, readOnly, now }: HighlightsPanelProps) {
+export function HighlightsPanel({ items, phases, outdated, selectedId = null, fresh, onOpen, actions, person = defaultPerson, ask, saveBar, readOnly, now }: HighlightsPanelProps) {
   // The entry whose actions are open, and the one waiting for "Delete this highlight?" (only entries without a note have actions here).
   const [openId, setOpenId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const order = phases.map(p => p.key);
   const groups = order.map((k, i) => ({ k, i, list: items.filter(h => h.phase === k) })).filter(g => g.list.length);
   return <div className="sk-hlp">
+    {saveBar}
     {fresh && <FreshBar {...fresh} />}
     {items.length === 0 && <p className="sk-hlp-empty">Select text in any step's document and press Comment to leave a note for the team.</p>}
     {groups.map(g => <section key={g.k} className="sk-hlp-sec"><Label>{String(g.i + 1).padStart(2, '0')} · {phases[g.i].name}</Label>

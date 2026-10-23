@@ -225,3 +225,22 @@ describe('the emoji buttons of a closed card (specs/017 R5)', () => {
     expect(renderToStaticMarkup(<ReactionBar list={list} me={mai} readOnly={null} what="this comment" onToggle={noop} />)).not.toContain('tabindex');
   });
 });
+
+describe('what waits to be saved shows as Not saved (specs/016)', () => {
+  const queued = { state: 'queued' } as const;
+
+  it('puts the note on a reply that waits, and not on the ones saved', () => {
+    const html = thread({ h: H({ replies: [R('r_1'), R('r_2', { text: 'Waiting', author: mai })] }), save: { r_2: queued } });
+    expect([...html.matchAll(/data-state="queued"[^>]*>Not saved</g)]).toHaveLength(1);
+    expect(html.indexOf('Waiting')).toBeLessThan(html.indexOf('Not saved'));
+  });
+
+  it('puts the note on a comment that waits, in its card, and it stays (no Retry, no commit link)', () => {
+    const items = [H({ id: 'h9' })];
+    const cards = toCards(items, { h9: 100 }, { h9: queued }, mai);
+    const html = renderToStaticMarkup(<CommentRail cards={cards} selectedId={null} onSelect={noop} branch="main" now={NOW} />);
+    expect(html).toContain('data-state="queued"');
+    expect(html).toContain('Not saved');
+    expect(html).not.toMatch(/Retry|commit /);
+  });
+});

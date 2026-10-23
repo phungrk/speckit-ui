@@ -13,6 +13,7 @@ import { Composer } from './Composer';
 import { applyChange } from '../../server/highlightsFile';
 import { ReactionBar, Thread } from './Thread';
 import { EmojiButton } from './EmojiButton';
+import { changeId } from './pending';
 import { draftKey, draftsElsewhere, draftsHere, pickOverlap, reducePending, toCards, type CommentCard, type CommentDraft, type SaveState } from './comments';
 
 // The reading column with highlights (specs/010-spec-annotations): selection → toolbar → save
@@ -51,6 +52,11 @@ export interface AnnotatorProps {
   onSelect?: (id: string | null, opts?: { jump?: boolean }) => void;
   /** When comments were last looked for and the badge for new ones (specs/012 FR-014); the shell runs the check. */
   fresh?: FreshProps;
+  /**
+   * Ids of comments and replies waiting in the queue, shown as "Not saved" (specs/016); with a `deferred` store nothing
+   * is sent per change, so no Sending, Saved or commit toast comes of it.
+   */
+  unsaved?: Set<string>;
   /** Display name of an author, for the cards of the rail. */
   person?: (a: HighlightAuthor) => { name: string };
   /** Extra attributes of the .sk-doc element (role, id, aria). */
@@ -61,12 +67,14 @@ export interface AnnotatorProps {
 
 const newId = () => 'h_' + Array.from({ length: 12 }, () => '0123456789abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 36)]).join('');
 
-export function Annotator({ items, target, store, author, askAuthor, consent, focusId, clearFocus, onItems, onOutdated, onRefused, onActions, selectedId = null, onSelect, person, fresh, docProps, children }: AnnotatorProps) {
+export function Annotator({ items, target, store, author, askAuthor, consent, focusId, clearFocus, onItems, onOutdated, onRefused, onActions, selectedId = null, onSelect, person, fresh, unsaved, docProps, children }: AnnotatorProps) {
   const colRef = useRef<HTMLDivElement>(null);
   const docRef = useRef<HTMLDivElement>(null);
   // A comment that was just sent shows at once, as Sending, and stays (as Failed, with Retry) if the save is refused:
   // what was typed is never lost (specs/012 FR-013, 010 FR-015).
   const [pending, dispatchPending] = useReducer(reducePending, {} as Record<string, SaveState>);
+  // What is waiting in the queue shows as Not saved; a change on its way or failed shows its own state over it.
+  const states: Record<string, SaveState> = { ...Object.fromEntries([...(unsaved ?? [])].map(id => [id, { state: 'queued' } as SaveState])), ...pending };
   const [optimistic, setOptimistic] = useState<Record<string, Highlight>>({});
   const inFlight = useRef<Record<string, { change: HighlightChange; by: HighlightAuthor; after?: () => void }>>({});
   // What is on its way (a reply, an emoji) is shown as if saved: the same pure change the save applies, on top of what
@@ -98,7 +106,7 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
   // The rail: cards beside the text, when `.sk-doc` is wide enough and there is a comment (specs/012 FR-007).
   const { room, left: railLeft } = useRailRoom(docRef, colRef);
   const viewport = useDocViewport(docRef);
-  const cards = tops ? toCards(shown, tops, pending, author) : { cards: [], outdated: [] };
+  const cards = tops ? toCards(shown, tops, states, author) : { cards: [], outdated: [] };
   const showRail = room && cards.cards.length + cards.outdated.length + here.length + (fresh?.newCount ?? 0) > 0;
   useEffect(() => { onOutdated?.(outdated); }, [outdated.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
   const [tb, setTb] = useState<Draft | null>(null);
@@ -186,14 +194,6 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
     }, 0);
   };
 
-  /**
-   * What a change is about, for its save state: the highlight's own id for an add, the id it names otherwise, and for a
-   * reply the reply itself, so each reply shows Sending, Saved or Failed on its own (specs/011 R8).
-   */
-  const changeId = (change: HighlightChange) => change.type === 'add' ? change.highlight.id
-    : change.type === 'reply' ? change.reply.id
-      : change.type === 'reply-edit' || change.type === 'reply-remove' ? change.replyId
-        : change.type === 'react' ? `${change.replyId ?? change.id}:${change.emoji}` : change.id;
   const isThread = (c: HighlightChange) => c.type === 'reply' || c.type === 'reply-edit' || c.type === 'reply-remove' || c.type === 'react';
   const dropOverlay = (id: string) => setOverlay(o => { if (!(id in o)) return o; const n = { ...o }; delete n[id]; return n; });
   const forget = (id: string) => setOptimistic(o => { if (!(id in o)) return o; const n = { ...o }; delete n[id]; return n; });
@@ -201,12 +201,13 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
   const run = async (change: HighlightChange, by: HighlightAuthor, after?: () => void) => {
     const id = changeId(change);
     inFlight.current[id] = { change, by, after };
-    dispatchPending({ type: 'start', id });
+    // A deferred store only queues the change: no Sending, no Saved, no commit (specs/016).
+    if (!store.deferred) dispatchPending({ type: 'start', id });
     setBusy(true);
     setError(null);
     try {
       const saved = await store.save({ slug: tb?.target.slug ?? target.slug, branch: tb?.target.branch ?? target.branch }, change, by);
-      dispatchPending({ type: 'ok', id, commit: saved.commit, where: store.kind === 'local' ? 'folder' : store.kind === 'demo' ? 'browser' : undefined });
+      if (!store.deferred) dispatchPending({ type: 'ok', id, commit: saved.commit, where: store.kind === 'local' ? 'folder' : store.kind === 'demo' ? 'browser' : undefined });
       delete inFlight.current[id];
       onItems(saved.items, change);
       forget(id);
@@ -241,7 +242,7 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
     const by = byArg ?? author ?? askAuthor?.() ?? null;
     if (!by) return setError('Enter your name to save highlights.');
     if (isThread(change)) setOverlay(o => ({ ...o, [changeId(change)]: { change, by } }));
-    if (store.kind === 'github' && consent?.needed) { dispatchPending({ type: 'start', id: changeId(change) }); return setAsking({ id: changeId(change), change, by, after }); }
+    if (store.kind === 'github' && !store.deferred && consent?.needed) { dispatchPending({ type: 'start', id: changeId(change) }); return setAsking({ id: changeId(change), change, by, after }); }
     void run(change, by, after);
   };
 
@@ -381,7 +382,7 @@ export function Annotator({ items, target, store, author, askAuthor, consent, fo
     setAnnounce(`${on ? 'Added' : 'Removed'} reaction ${emoji}`);
     save({ type: 'react', id: hid, ...(replyId ? { replyId } : {}), emoji, on });
   };
-  const threadFor = (c: CommentCard) => <Thread h={c.highlight} me={author} person={person} save={pending} readOnly={store.readOnly}
+  const threadFor = (c: CommentCard) => <Thread h={c.highlight} me={author} person={person} save={states} readOnly={store.readOnly}
     draft={replyDrafts[c.id] ?? ''} invalid={replyNeed === c.id}
     onDraft={text => { setReplyDrafts(d => ({ ...d, [c.id]: text })); if (replyNeed === c.id) setReplyNeed(null); }}
     onSend={() => sendReply(c.id)} onRetry={retry}

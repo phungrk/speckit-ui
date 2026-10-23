@@ -65,3 +65,11 @@ describe('actions under an open entry', () => {
     expect(html).not.toMatch(/<button[^>]*aria-disabled[^>]*>(Copy|Ask)</);
   });
 });
+
+describe('the bar of changes waiting to be saved at the top of the tab (specs/016)', () => {
+  it('shows what it is given before everything else, and nothing when it is not given', () => {
+    const withBar = renderToStaticMarkup(<HighlightsPanel items={[H('h1')]} phases={phases} outdated={[]} onOpen={noop} saveBar={<div className="probe">bar</div>} now={Date.parse('2026-10-21T09:00:00.000Z')} />);
+    expect(withBar).toContain('<div class="sk-hlp"><div class="probe">bar</div>');
+    expect(panel([H('h1')])).not.toContain('probe');
+  });
+});

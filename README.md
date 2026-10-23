@@ -265,10 +265,10 @@ See `specs/010-reader-highlights/`.
 
 ## Highlights
 
-Select text in any step's document and press **Comment**, the only button in the small box that appears: the comment is written in a rail beside the text, next to the passage it is about, like in a shared document. Every new comment is highlighted in one colour, Change (orange); there is no colour to choose, and comments saved with another colour keep it. Edit and Delete of your own comment or reply are in the three-dot menu at its right. Notes show a pin in the margin, are listed in the **Highlights** tab (without colour filters; each entry has a small colour bar) and appear in **Before you approve** for that step in the order they were written. A highlight that has only a colour (from before) is found in the **Highlights** tab, where its author can delete it; clicking it in the text offers **Comment** to add a note. Highlights never block or approve a gate.
+Select text in any step's document and press **Comment**, the only button in the small box that appears: the comment is written in a rail beside the text, next to the passage it is about, like in a shared document. Every new comment is highlighted in one colour, Change (orange); there is no colour to choose, and comments saved with another colour keep it. Edit and Delete of your own comment or reply are in the three-dot menu at its right. In the local folder and the demo, each change is saved at once. Notes show a pin in the margin, are listed in the **Highlights** tab (without colour filters; each entry has a small colour bar) and appear in **Before you approve** for that step in the order they were written. A highlight that has only a colour (from before) is found in the **Highlights** tab, where its author can delete it; clicking it in the text offers **Comment** to add a note. Highlights never block or approve a gate.
 
 - **Stored with the spec** in `specs/NNN-name/highlights.json`, on the branch you are viewing. Anyone who can read the spec sees its highlights.
-- **GitHub and Pages:** every save is one commit by you, ending in `[skip ci]` so CI does not run. The first save in a repository asks once to confirm (switch it back on under the Highlights tab). It needs Contents: Read and write; without it, or on a pinned commit, highlights are read-only.
+- **GitHub and Pages:** what you write (comments, replies, emoji, edits, deletes) shows at once and waits in this browser, marked **Not saved**; a bar above the document says how many changes wait. **Save** writes them all in one commit by you, ending in `[skip ci]` so CI does not run (the commit holds all the changes of that spec; a comment written and removed before Save leaves nothing). **Discard** throws them away, and the browser asks before the tab is closed while changes wait. They are kept for the tab, and after it is closed too if you chose Remember. The first save in a repository asks once to confirm (switch it back on under the Highlights tab). It needs Contents: Read and write; without it, or on a pinned commit, highlights are read-only.
 - **Local:** saves write the file in the folder, with no commit and no network; the first save asks for your name.
 - **Demo:** highlights are kept in this browser only.
 - **Comments from other people** are checked about once a minute (GitHub and Pages) or when the window regains focus (local). A **New comments (n)** bar appears; nothing moves until you click it. Only people with write access to the repository can comment; others read.
@@ -277,7 +277,7 @@ Select text in any step's document and press **Comment**, the only button in the
 - **Only the author** can edit or remove a comment or a reply; others read it, react with emoji and reply.
 - When the text under a highlight changes, it stays in the list marked **Outdated, text changed**.
 
-See `specs/010-spec-annotations/`, `specs/012-docs-style-comment-flow/`, `specs/013-comment-button-popup/`, `specs/011-replies-reactions/` `specs/014-comment-card-menu/`, `specs/015-comment-hover/` and `specs/017-comment-item-layout/`.
+See `specs/010-spec-annotations/`, `specs/012-docs-style-comment-flow/`, `specs/013-comment-button-popup/`, `specs/011-replies-reactions/` `specs/014-comment-card-menu/`, `specs/015-comment-hover/`, `specs/016-deferred-save/` and `specs/017-comment-item-layout/`.
 
 ## Demo mode
 

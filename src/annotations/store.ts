@@ -19,6 +19,11 @@ export interface HighlightStore {
   refresh?(target: { slug: string; branch: string | null }, etag: string | null): Promise<ReadResult>;
   /** Why saving is not possible here, or null. */
   readOnly: string | null;
+  /**
+   * `save` only queues the change in the browser; nothing is committed until the user presses Save (specs/016-deferred-save).
+   * Left out where a save is the write itself (local folder, demo, and GitHub when a commit is the save).
+   */
+  deferred?: boolean;
   save(target: SaveTarget, change: HighlightChange, author: HighlightAuthor): Promise<Saved>;
 }
 
@@ -35,6 +40,35 @@ export function gitHubStore(backend: Pick<Backend, 'saveHighlight' | 'readHighli
     async save({ slug, branch }, change) {
       if (!branch) throw new Error('No branch to commit to.');
       return backend.saveHighlight(repo, slug, branch, change);
+    }
+  };
+}
+
+/** What the deferred store needs from the queue kept in the page (specs/016-deferred-save). */
+export interface DeferredQueue {
+  /** What is on the screen: the saved highlights with the queue on top. */
+  view(): Highlight[];
+  /** The saved highlights, without the queue. */
+  saved(): Highlight[];
+  /** Puts the change at the end of the queue; false when the queue is full. */
+  add(change: HighlightChange, by: HighlightAuthor): boolean;
+}
+
+/**
+ * Server and Pages with a queue: a save checks the change against what is on the screen, so a refused change (not the
+ * writer's, comment removed, note too long) is told at once as before, then waits in the queue instead of becoming a
+ * commit. It answers with the saved highlights unchanged; the screen shows the queue on top of them.
+ */
+export function deferredStore(inner: HighlightStore, queue: DeferredQueue): HighlightStore {
+  return {
+    kind: inner.kind,
+    deferred: true,
+    get readOnly() { return inner.readOnly; },
+    refresh: inner.refresh ? (target, etag) => inner.refresh!(target, etag) : undefined,
+    async save(_target, change, author) {
+      applyChange(queue.view(), change, author);
+      if (!queue.add(change, author)) throw new Error('Too many changes are waiting to be saved. Save or discard some first.');
+      return { items: queue.saved() };
     }
   };
 }

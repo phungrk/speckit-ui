@@ -126,3 +126,13 @@ describe('the header of a closed card (specs/017 FR-008)', () => {
     expect(tail).not.toContain('border-radius');
   });
 });
+
+describe('a change waiting to be saved (specs/016)', () => {
+  const m16 = css.slice(css.indexOf('A change waiting to be saved'));
+
+  it('is told apart by a token colour, with no corner and no fixed colour', () => {
+    expect(m16).toMatch(/\.sk-cm-state\[data-state="queued"\] \{ color: color-mix\(in srgb, var\(--color-text\)/);
+    expect(m16).not.toContain('border-radius');
+    expect(m16).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(/);
+  });
+});

@@ -117,6 +117,7 @@ export function SaveNote({ save: s, onRetry }: { save: SaveState; onRetry?: () =
   if (s.state === 'idle') return null;
   return <div className="sk-cm-state" data-state={s.state} role={s.state === 'failed' ? 'alert' : 'status'}>
     {s.state === 'sending' && 'Sending…'}
+    {s.state === 'queued' && 'Not saved'}
     {s.state === 'saved' && (s.commit ? <>Saved · <a href={s.commit.url} target="_blank" rel="noreferrer">commit {s.commit.sha.slice(0, 7)}</a></> : s.where === 'folder' ? 'Saved to folder' : s.where === 'browser' ? 'Saved in this browser' : 'Saved')}
     {s.state === 'failed' && <>Failed: {s.error}{onRetry && <button type="button" onClick={e => { e.stopPropagation(); onRetry(); }}>Retry</button>}</>}
   </div>;

@@ -1,16 +1,18 @@
 <!--
 Sync Impact Report
-- Version change: 1.4.1 → 1.4.2 (PATCH: một ngoại lệ có chủ đích trong nguyên tắc IV)
-- Modified principles: IV. Trung thành với thiết kế. Vẫn "không bo góc", thêm đúng một ngoại lệ: nút
-  emoji nổi của thẻ nhận xét (specs/015-comment-hover) hình tròn, chỉ dùng token (`--color-bg`,
-  `--color-divider`, `--shadow-md`). Các chỉ báo radio có sẵn của design system (`border-radius: 50%`
-  trong `modernist.css`) không đổi; mọi phần tử khác vẫn vuông.
+- Version change: 1.4.2 → 1.4.3 (PATCH: làm rõ chữ "mỗi lần lưu" trong nguyên tắc I)
+- Modified principles: I. Git là nguồn sự thật. Với `specs/*/highlights.json`, "một lần lưu" là mỗi
+  lần người dùng bấm Save: một commit `[skip ci]` có thể gồm nhiều thay đổi nhận xét của spec đang
+  xem (specs/016-deferred-save). Ở GitHub Pages và server (VPS), các thay đổi làm trước khi bấm Save
+  chờ trong trình duyệt như một hàng đợi nháp, không phải kho dữ liệu của dự án (như nháp bình luận
+  và `prefs`); xác nhận một lần cho mỗi repo được hỏi ở lần Save đầu. Local vẫn ghi thẳng file,
+  demo vẫn ở trình duyệt. Không nguyên tắc nào khác đổi.
 - Added sections: none
 - Removed sections: none
-- Lý do: người dùng chọn phương án A cho câu hỏi 2 của specs/015 (nút tròn như ảnh tham chiếu Google
-  Docs), 2026-10-22. Bản trước: 1.4.1 (hộp "Comment" sáng, bỏ "thanh luôn tối").
+- Lý do: spec 016 (lưu nhận xét theo hai cách) cần một commit cho nhiều thao tác; chữ cũ "mỗi lần lưu
+  là một commit" dễ bị hiểu là mỗi thao tác. Bản trước: 1.4.2 (nút emoji tròn, nguyên tắc IV).
 - Templates: không cần sửa ✅
-- Follow-up: CLAUDE.md ghi version 1.4.2 ✅
+- Follow-up: CLAUDE.md ghi version 1.4.3 ✅
 -->
 
 # speckit-ui Constitution
@@ -30,9 +32,12 @@ Tài liệu này là luật phát triển cho repo `speckit-ui`.
 - Ứng dụng chỉ ghi ở hai nơi:
   - issue theo dõi cổng: có nhãn `speckit` và dấu `<!-- speckit-ui:spec=... -->`;
   - file `specs/*/highlights.json` của chính spec đang xem (specs/010-spec-annotations): mỗi lần lưu
+    (mỗi lần người dùng bấm Save, có thể gồm nhiều thay đổi nhận xét của spec đó; specs/016-deferred-save)
     là một commit chỉ đổi file đó, trên nhánh đang xem, bằng tài khoản người dùng, thông điệp có
-    `[skip ci]`, sau bước xác nhận một lần cho mỗi repo. Ở chế độ local, ứng dụng ghi thẳng file đó
-    và không commit.
+    `[skip ci]`, sau bước xác nhận một lần cho mỗi repo (hỏi ở lần Save đầu). Các thay đổi làm trước
+    khi bấm Save chờ trong trình duyệt như một hàng đợi nháp (cùng loại với nháp bình luận và `prefs`,
+    không phải kho dữ liệu của dự án); chúng không ghi gì cho tới khi Save. Ở chế độ local, ứng dụng
+    ghi thẳng file đó và không commit.
   Ứng dụng KHÔNG tạo branch, PR hay file nào khác trong repo người dùng.
 - Thêm bất kỳ loại ghi mới nào ra GitHub (hoặc dịch vụ khác) PHẢI đi đủ quy trình Spec Kit và có
   bước xác nhận rõ ràng trong UI trước khi thực hiện.
@@ -175,4 +180,4 @@ thứ phải bảo trì và bảo mật.
 - Gate "Constitution Check" trong `/speckit-plan` PHẢI pass. Vi phạm có chủ đích phải ghi vào
   Complexity Tracking kèm lý do; `/speckit-analyze` coi vi phạm không được biện minh là CRITICAL.
 
-**Version**: 1.4.2 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-10-22
+**Version**: 1.4.3 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-10-23
